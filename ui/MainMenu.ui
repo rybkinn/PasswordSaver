@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>870</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>870</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>870</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Password Saver - Главная</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>0</y>
+      <width>190</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Arial Black</family>
+      <pointsize>16</pointsize>
+      <weight>75</weight>
+      <italic>false</italic>
+      <bold>true</bold>
+      <underline>false</underline>
+      <strikeout>false</strikeout>
+     </font>
+    </property>
+    <property name="text">
+     <string>Password Saver</string>
+    </property>
+   </widget>
+   <widget class="QTreeWidget" name="treeWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>80</y>
+      <width>830</width>
+      <height>451</height>
+     </rect>
+    </property>
+    <property name="animated">
+     <bool>true</bool>
+    </property>
+    <attribute name="headerDefaultSectionSize">
+     <number>118</number>
+    </attribute>
+    <attribute name="headerMinimumSectionSize">
+     <number>50</number>
+    </attribute>
+    <attribute name="headerStretchLastSection">
+     <bool>true</bool>
+    </attribute>
+    <column>
+     <property name="text">
+      <string>Раздел</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Название</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Логин</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Пароль</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Почта</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>Секретное слово</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+    </column>
+    <column>
+     <property name="text">
+      <string>URL</string>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+    </column>
+    <item>
+     <property name="text">
+      <string>Почта</string>
+     </property>
+     <property name="background">
+      <brush brushstyle="NoBrush">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
+       </color>
+      </brush>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="background">
+      <brush brushstyle="NoBrush">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
+       </color>
+      </brush>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="background">
+      <brush brushstyle="NoBrush">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
+       </color>
+      </brush>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="background">
+      <brush brushstyle="NoBrush">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
+       </color>
+      </brush>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="background">
+      <brush brushstyle="NoBrush">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
+       </color>
+      </brush>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="background">
+      <brush brushstyle="NoBrush">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
+       </color>
+      </brush>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="background">
+      <brush brushstyle="NoBrush">
+       <color alpha="255">
+        <red>0</red>
+        <green>0</green>
+        <blue>0</blue>
+       </color>
+      </brush>
+     </property>
+     <item>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="text">
+       <string>yandex</string>
+      </property>
+      <property name="text">
+       <string>test@yandex.ru</string>
+      </property>
+      <property name="text">
+       <string>qwerty123</string>
+      </property>
+      <property name="text">
+       <string>test@yandex.ru</string>
+      </property>
+      <property name="text">
+       <string>123</string>
+      </property>
+      <property name="text">
+       <string>https://yandex.ru</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="text">
+       <string>mail</string>
+      </property>
+      <property name="text">
+       <string>test@mail.ru</string>
+      </property>
+      <property name="text">
+       <string>ytrewq321</string>
+      </property>
+      <property name="text">
+       <string>test@mail.ru</string>
+      </property>
+      <property name="text">
+       <string>231</string>
+      </property>
+      <property name="text">
+       <string>https://mail.ru</string>
+      </property>
+     </item>
+    </item>
+    <item>
+     <property name="text">
+      <string>Игры</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <item>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="text">
+       <string>testgame</string>
+      </property>
+      <property name="text">
+       <string>gamelogin</string>
+      </property>
+      <property name="text">
+       <string>gamepass123</string>
+      </property>
+      <property name="text">
+       <string>test@mail.ru</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+     </item>
+    </item>
+    <item>
+     <property name="text">
+      <string>Соц сети</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <item>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="text">
+       <string>Vk</string>
+      </property>
+      <property name="text">
+       <string>loginvk</string>
+      </property>
+      <property name="text">
+       <string>vkpass123</string>
+      </property>
+      <property name="text">
+       <string>test@mail.ru</string>
+      </property>
+      <property name="text">
+       <string>231</string>
+      </property>
+      <property name="text">
+       <string>https://vk.com</string>
+      </property>
+     </item>
+    </item>
+    <item>
+     <property name="text">
+      <string>Разное</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <item>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="text">
+       <string>Forum</string>
+      </property>
+      <property name="text">
+       <string>forumlogin</string>
+      </property>
+      <property name="text">
+       <string>ytrewq12345</string>
+      </property>
+      <property name="text">
+       <string>testyandexlong@yandex.ru</string>
+      </property>
+      <property name="text">
+       <string>213</string>
+      </property>
+      <property name="text">
+       <string>https://testforumnexttest.ru</string>
+      </property>
+     </item>
+    </item>
+   </widget>
+   <widget class="QWidget" name="horizontalLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>530</x>
+      <y>50</y>
+      <width>311</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QPushButton" name="pushButton_3">
+       <property name="text">
+        <string>Копировать пароль в буфер</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton">
+       <property name="text">
+        <string>Удалить</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QPushButton" name="pushButton_2">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>20</y>
+      <width>151</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Добавить</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>870</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu">
+    <property name="title">
+     <string>Файл</string>
+    </property>
+    <addaction name="action_3"/>
+    <addaction name="action_4"/>
+    <addaction name="action_5"/>
+    <addaction name="separator"/>
+    <addaction name="action_7"/>
+   </widget>
+   <addaction name="menu"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="action">
+   <property name="text">
+    <string>Выход</string>
+   </property>
+  </action>
+  <action name="action_2">
+   <property name="text">
+    <string>Сохранить</string>
+   </property>
+  </action>
+  <action name="action_3">
+   <property name="text">
+    <string>Сохранить</string>
+   </property>
+  </action>
+  <action name="action_4">
+   <property name="text">
+    <string>Создать новую БД</string>
+   </property>
+  </action>
+  <action name="action_5">
+   <property name="text">
+    <string>Загрузить БД</string>
+   </property>
+  </action>
+  <action name="action_7">
+   <property name="text">
+    <string>Выход</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
