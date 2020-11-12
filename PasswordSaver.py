@@ -5,10 +5,13 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import os
 
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
+        global data_files
+        data_files = os.listdir(path="data")
         Dialog.setObjectName("Dialog")
         Dialog.resize(400, 300)
         Dialog.setMinimumSize(QtCore.QSize(400, 300))
@@ -59,8 +62,9 @@ class Ui_Dialog(object):
         self.label_7.setObjectName("label_7")
         self.gridLayout.addWidget(self.label_7, 1, 0, 1, 1)
         self.comboBox_2 = QtWidgets.QComboBox(self.gridLayoutWidget)
-        self.comboBox_2.setCurrentText("")
         self.comboBox_2.setObjectName("comboBox_2")
+        for _addItem in data_files:
+            exec('self.comboBox_2.addItem("")')
         self.gridLayout.addWidget(self.comboBox_2, 0, 1, 1, 1)
         self.toolButton = QtWidgets.QToolButton(self.gridLayoutWidget)
         self.toolButton.setObjectName("toolButton")
@@ -70,8 +74,14 @@ class Ui_Dialog(object):
         self.lineEdit_2.setObjectName("lineEdit_2")
         self.gridLayout.addWidget(self.lineEdit_2, 1, 1, 1, 1)
 
+
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
+
+
+        self.pushButton_2.clicked.connect(self.create_new_db)
+        self.pushButton_3.clicked.connect(self.enter)
+        self.toolButton.clicked.connect(self.push_toolbutton)
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
@@ -83,7 +93,44 @@ class Ui_Dialog(object):
         self.pushButton_3.setText(_translate("Dialog", "Войти"))
         self.label_6.setText(_translate("Dialog", "Выберете базу"))
         self.label_7.setText(_translate("Dialog", "Введите пароль"))
+
+        if 'file_info' in globals():
+            self.comboBox_2.setItemText(0, _translate("Dialog", filename[::-1]))
+        else:
+            _indexItem = 0
+            for _addItem in data_files:
+                exec('self.comboBox_2.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _addItem))
+                _indexItem += 1
+
         self.toolButton.setText(_translate("Dialog", "..."))
+
+    def enter(self):
+        password = self.lineEdit_2.text()
+        print('password - ' + password)
+
+    def create_new_db(self):
+        print('create new db')
+
+    def push_toolbutton(self):
+
+        global directory_name
+        global filename
+        global file_info
+        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Открытие базы данных', os.getcwd(), 'database files(*.db)')
+        if directory_name[0] != '':
+            self.comboBox_2.clear()
+            filename = ''
+            for _letter in reversed(directory_name[0]):
+                if _letter == '/':
+                    break
+                filename += _letter
+            file_info = []
+            file_info.append(filename[::-1])
+            file_info.append(directory_name)
+            self.comboBox_2.addItem("")
+            self.retranslateUi(Dialog)
+
+
 
 
 if __name__ == "__main__":
