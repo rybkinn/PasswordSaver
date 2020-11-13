@@ -3,12 +3,16 @@
 # -*- coding: utf-8 -*-
 # v 0.1
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-import os
-
+import os, sqlite3
+from py import DatabaseCreation
 
 class Ui_Dialog(object):
+    def __init__(self):
+        super(Ui_Dialog, self).__init__()
+        self.setupUi(Dialog)
+        self.DatabaseCreation = _DatabaseCreation()
+
     def setupUi(self, Dialog):
         global data_files
         data_files = os.listdir(path="data")
@@ -74,14 +78,12 @@ class Ui_Dialog(object):
         self.lineEdit_2.setObjectName("lineEdit_2")
         self.gridLayout.addWidget(self.lineEdit_2, 1, 1, 1, 1)
 
-
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
-
         self.pushButton_2.clicked.connect(self.create_new_db)
         self.pushButton_3.clicked.connect(self.enter)
-        self.toolButton.clicked.connect(self.push_toolbutton)
+        self.toolButton.clicked.connect(self.push_tool_button)
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
@@ -93,7 +95,6 @@ class Ui_Dialog(object):
         self.pushButton_3.setText(_translate("Dialog", "Войти"))
         self.label_6.setText(_translate("Dialog", "Выберете базу"))
         self.label_7.setText(_translate("Dialog", "Введите пароль"))
-
         if 'file_info' in globals():
             self.comboBox_2.setItemText(0, _translate("Dialog", filename[::-1]))
         else:
@@ -101,18 +102,13 @@ class Ui_Dialog(object):
             for _addItem in data_files:
                 exec('self.comboBox_2.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _addItem))
                 _indexItem += 1
-
         self.toolButton.setText(_translate("Dialog", "..."))
 
     def enter(self):
         password = self.lineEdit_2.text()
         print('password - ' + password)
 
-    def create_new_db(self):
-        print('create new db')
-
-    def push_toolbutton(self):
-
+    def push_tool_button(self):
         global directory_name
         global filename
         global file_info
@@ -130,7 +126,14 @@ class Ui_Dialog(object):
             self.comboBox_2.addItem("")
             self.retranslateUi(Dialog)
 
+    def create_new_db(self):
+        self.DatabaseCreation.show()
 
+
+class _DatabaseCreation(QtWidgets.QDialog, DatabaseCreation.Ui_Dialog):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
 
 
 if __name__ == "__main__":
