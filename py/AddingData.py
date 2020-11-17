@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-import sys
-sys.path.insert(0, '../')
-import PasswordSaver
-
 
 
 class Ui_Dialog(object):
@@ -100,6 +96,7 @@ class Ui_Dialog(object):
 
 
 if __name__ == "__main__":
+    import sys
     app = QtWidgets.QApplication(sys.argv)
     Dialog = QtWidgets.QDialog()
     ui = Ui_Dialog()
