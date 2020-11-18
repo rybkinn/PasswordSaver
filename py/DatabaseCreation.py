@@ -1,10 +1,31 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
+import sqlite3
+import os
+import py.StartWindow
+
+
+def show_msg(value, text_show):
+    if value:
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText(text_show)
+        msg.setWindowTitle("Сообщение")
+        msg.exec()
+    else:
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText(text_show)
+        msg.setWindowTitle("Ошибка")
+        msg.exec()
 
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
+        global data_files
+        data_files = os.listdir(path="data")
         Dialog.setObjectName("Dialog")
         Dialog.resize(400, 300)
         Dialog.setMinimumSize(QtCore.QSize(400, 300))
@@ -61,6 +82,8 @@ class Ui_Dialog(object):
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
+        self.pushButton.clicked.connect(self.create_database)
+
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Создание базы данных"))
@@ -70,6 +93,64 @@ class Ui_Dialog(object):
         self.label_3.setText(_translate("Dialog", "Введите пароль"))
         self.label_6.setText(_translate("Dialog", "Подтвердите пароль"))
         self.pushButton.setText(_translate("Dialog", "Создать"))
+
+    def create_database(self):
+        self.startwindow = startwindow()
+        name_db = self.lineEdit.text()
+        pwd = self.lineEdit_2.text()
+        pwd_re = self.lineEdit_3.text()
+        if name_db != '':
+            result = False
+            new_name_bd = []
+            for _name_bd in data_files:
+                type_file = _name_bd[_name_bd.find("."):]
+                if type_file == '.db':
+                    new_name_bd.append(_name_bd[:-3])
+            for _name_bd_new in new_name_bd:
+                if name_db == _name_bd_new:
+                    result = True
+                    break
+            if result:
+                show_msg(0, 'Такой файл уже существует')
+            elif pwd == '' and pwd_re == '':
+                show_msg(0, 'Заполните поля ввода паролей')
+            elif pwd == '':
+                show_msg(0, 'Поле введите пароль пустое')
+            elif pwd_re == '':
+                show_msg(0, 'Поле Подтвердите пароль пустое')
+            elif pwd == pwd_re:
+                conn = sqlite3.connect(r'data/' + name_db + '.db') # TODO: добавить шифрацию
+                cur = conn.cursor()
+                cur.execute("""CREATE TABLE IF NOT EXISTS account_information(
+                    "ID" INTEGER NOT NULL UNIQUE,
+                    "section" TEXT,
+                    "name" TEXT,
+                    "login" TEXT NOT NULL,
+                    "pass" TEXT NOT NULL,
+                    "email" TEXT,
+                    "secret_word" TEXT,
+                    "url" TEXT,
+                    PRIMARY KEY("ID" AUTOINCREMENT))
+                """)
+                conn.commit()
+                conn.close()
+                self.close()
+                show_msg(1, 'База данных успешно созданна')
+                self.show_startwindow()
+                # py.StartWindow.Ui_Dialog.
+            else:
+                show_msg(0, 'Пароли не совпадают')
+        else:
+            show_msg(0, 'Введите название БД')
+
+    def show_startwindow(self):
+        self.startwindow.show()
+
+
+class startwindow(QtWidgets.QDialog, py.StartWindow.Ui_Dialog):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
 
 
 if __name__ == "__main__":

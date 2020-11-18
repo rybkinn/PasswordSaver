@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import os
 
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
+        global data_files
+        data_files = os.listdir(path="data")
         Dialog.setObjectName("Dialog")
         Dialog.resize(400, 300)
         Dialog.setMinimumSize(QtCore.QSize(400, 300))
@@ -57,6 +60,14 @@ class Ui_Dialog(object):
         self.comboBox_2 = QtWidgets.QComboBox(self.gridLayoutWidget)
         self.comboBox_2.setCurrentText("")
         self.comboBox_2.setObjectName("comboBox_2")
+        global new_name_bd
+        new_name_bd = []
+        for _name_bd in data_files:
+            type_file = _name_bd[_name_bd.find("."):]
+            if type_file == '.db':
+                new_name_bd.append(_name_bd)
+        for _addItem in new_name_bd:
+            exec('self.comboBox_2.addItem("")')
         self.gridLayout.addWidget(self.comboBox_2, 0, 1, 1, 1)
         self.toolButton = QtWidgets.QToolButton(self.gridLayoutWidget)
         self.toolButton.setObjectName("toolButton")
@@ -69,6 +80,8 @@ class Ui_Dialog(object):
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
+        self.toolButton.clicked.connect(self.push_tool_button)
+
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Вход"))
@@ -79,14 +92,25 @@ class Ui_Dialog(object):
         self.pushButton_3.setText(_translate("Dialog", "Войти"))
         self.label_6.setText(_translate("Dialog", "Выберете базу"))
         self.label_7.setText(_translate("Dialog", "Введите пароль"))
+        _indexItem = 0
+        for _addItem in new_name_bd:
+            exec('self.comboBox_2.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _addItem))
+            _indexItem += 1
         self.toolButton.setText(_translate("Dialog", "..."))
 
+    def push_tool_button(self):
+        global directory_name
+        global filename
+        global file_info
 
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Dialog = QtWidgets.QDialog()
-    ui = Ui_Dialog()
-    ui.setupUi(Dialog)
-    Dialog.show()
-    sys.exit(app.exec_())
+        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Открытие базы данных', os.getcwd(), 'database files(*.db)')
+        if directory_name[0] != '':
+            self.comboBox_2.clear()
+            filename = ''
+            for _letter in reversed(directory_name[0]):
+                if _letter == '/':
+                    break
+                filename += _letter
+            file_info = [filename[::-1], directory_name]
+            self.comboBox_2.addItem("")
+            self.comboBox_2.setItemText(0, file_info[0])
