@@ -4,8 +4,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import sqlite3
 import os
-import py.StartWindow
-
 
 def show_msg(value, text_show):
     if value:
@@ -23,9 +21,11 @@ def show_msg(value, text_show):
 
 
 class Ui_Dialog(object):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
     def setupUi(self, Dialog):
-        global data_files
-        data_files = os.listdir(path="data")
         Dialog.setObjectName("Dialog")
         Dialog.resize(400, 300)
         Dialog.setMinimumSize(QtCore.QSize(400, 300))
@@ -94,8 +94,9 @@ class Ui_Dialog(object):
         self.label_6.setText(_translate("Dialog", "Подтвердите пароль"))
         self.pushButton.setText(_translate("Dialog", "Создать"))
 
+    @QtCore.pyqtSlot()
     def create_database(self):
-        self.startwindow = startwindow()
+        data_files = os.listdir(path="data")
         name_db = self.lineEdit.text()
         pwd = self.lineEdit_2.text()
         pwd_re = self.lineEdit_3.text()
@@ -134,30 +135,12 @@ class Ui_Dialog(object):
                 """)
                 conn.commit()
                 conn.close()
+                self.lineEdit.clear()
+                self.lineEdit_2.clear()
+                self.lineEdit_3.clear()
                 self.close()
                 show_msg(1, 'База данных успешно созданна')
-                self.show_startwindow()
-                # py.StartWindow.Ui_Dialog.
             else:
                 show_msg(0, 'Пароли не совпадают')
         else:
             show_msg(0, 'Введите название БД')
-
-    def show_startwindow(self):
-        self.startwindow.show()
-
-
-class startwindow(QtWidgets.QDialog, py.StartWindow.Ui_Dialog):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Dialog = QtWidgets.QDialog()
-    ui = Ui_Dialog()
-    ui.setupUi(Dialog)
-    Dialog.show()
-    sys.exit(app.exec_())

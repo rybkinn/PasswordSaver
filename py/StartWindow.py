@@ -1,10 +1,20 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
 import os
+import py.MainMenu
+import py.DatabaseCreation
 
 
 class Ui_Dialog(object):
+    def __init__(self):
+        super(Ui_Dialog, self).__init__()
+        self.setupUi(self)
+
+        self.mainwindow = mainwindow()
+        self.createdb = createdb()
+
     def setupUi(self, Dialog):
         global data_files
         data_files = os.listdir(path="data")
@@ -81,13 +91,15 @@ class Ui_Dialog(object):
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
         self.toolButton.clicked.connect(self.push_tool_button)
+        self.pushButton_3.clicked.connect(self.show_mainwindow)
+        self.pushButton_2.clicked.connect(self.show_createdb)
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Вход"))
         self.label_5.setText(_translate("Dialog", "Вход"))
         self.pushButton_2.setText(_translate("Dialog", "Создать базу"))
-        self.label_4.setText(_translate("Dialog", "v 0.1"))
+        self.label_4.setText(_translate("Dialog", "v 0.2"))
         self.label.setText(_translate("Dialog", "Password Saver"))
         self.pushButton_3.setText(_translate("Dialog", "Войти"))
         self.label_6.setText(_translate("Dialog", "Выберете базу"))
@@ -98,6 +110,7 @@ class Ui_Dialog(object):
             _indexItem += 1
         self.toolButton.setText(_translate("Dialog", "..."))
 
+    @QtCore.pyqtSlot()
     def push_tool_button(self):
         global directory_name
         global filename
@@ -114,3 +127,38 @@ class Ui_Dialog(object):
             file_info = [filename[::-1], directory_name]
             self.comboBox_2.addItem("")
             self.comboBox_2.setItemText(0, file_info[0])
+
+    @QtCore.pyqtSlot()
+    def show_mainwindow(self):
+        iw = bool(1)
+        if iw:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setWindowTitle("Оповещение")
+            msg.setText("Успешный вход")
+            msg.exec_()
+            self.mainwindow.show()
+            self.close()
+        else:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setWindowTitle("Ошибка входа")
+            msg.setText("Неправильный пароль")
+            msg.exec_()
+
+    @QtCore.pyqtSlot()
+    def show_createdb(self):
+        # self.hide()
+        self.createdb.show()
+
+
+class mainwindow(QtWidgets.QMainWindow, py.MainMenu.Ui_MainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
+
+class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)

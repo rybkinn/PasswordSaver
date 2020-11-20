@@ -1,9 +1,28 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
+import py.DatabaseCreation
+import py.AddingData
 
+
+def show_msg(text_show, text2_show):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setText(text_show)
+    msg.setInformativeText(text2_show)
+    msg.setWindowTitle("Сообщение")
+    msg.setStandardButtons(QMessageBox.Ok | QMessageBox.No)
+    result = msg.exec_()
+    return result
 
 class Ui_MainWindow(object):
+    def __init__(self):
+        super(Ui_MainWindow, self).__init__()
+        self.setupUi(self)
+        self.createdb = createdb()
+        self.addingdata = addingdata()
+
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(870, 600)
@@ -138,6 +157,14 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
+        self.action_3.triggered.connect(self.savebd)
+        self.action_4.triggered.connect(self.show_createdb)
+        self.action_5.triggered.connect(self.loadbd)
+        self.action_7.triggered.connect(self.exit)
+        self.pushButton.clicked.connect(self.deletedata)
+        self.pushButton_2.clicked.connect(self.show_addingdata)
+        self.pushButton_3.clicked.connect(self.copybuffer)
+
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Password Saver - Главная"))
@@ -187,7 +214,7 @@ class Ui_MainWindow(object):
         self.pushButton_3.setText(_translate("MainWindow", "Копировать пароль в буфер"))
         self.pushButton.setText(_translate("MainWindow", "Удалить"))
         self.pushButton_2.setText(_translate("MainWindow", "Добавить"))
-        self.label_2.setText(_translate("MainWindow", "v 0.1"))
+        self.label_2.setText(_translate("MainWindow", "v 0.2"))
         self.menu.setTitle(_translate("MainWindow", "Файл"))
         self.action.setText(_translate("MainWindow", "Выход"))
         self.action_2.setText(_translate("MainWindow", "Сохранить"))
@@ -196,12 +223,49 @@ class Ui_MainWindow(object):
         self.action_5.setText(_translate("MainWindow", "Загрузить БД"))
         self.action_7.setText(_translate("MainWindow", "Выход"))
 
+    @QtCore.pyqtSlot()
+    def savebd(self):
+        print('save')
 
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())
+    @QtCore.pyqtSlot()
+    def show_createdb(self):
+        self.createdb.show()
+
+    @QtCore.pyqtSlot()
+    def loadbd(self):
+        print('loadbd')
+        pass
+
+    @QtCore.pyqtSlot()
+    def exit(self):
+        result = show_msg('Все несохраненные изменения будут потеряны.', 'Все равно выйти?')
+        if result == 1024:
+            self.close()
+        elif result == 65536:
+            pass
+
+    @QtCore.pyqtSlot()
+    def show_addingdata(self):
+        self.addingdata.show()
+
+    @QtCore.pyqtSlot()
+    def copybuffer(self):
+        print('copybuffer')
+        pass
+
+    @QtCore.pyqtSlot()
+    def deletedata(self):
+        print('deletedata')
+        pass
+
+
+class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
+
+class addingdata(QtWidgets.QDialog, py.AddingData.Ui_Dialog):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
