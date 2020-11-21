@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import _md5
+import sqlite3
 
 
 class Ui_Dialog(object):
@@ -79,6 +81,8 @@ class Ui_Dialog(object):
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
+        self.pushButton_3.clicked.connect(self.add_data)
+
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Добавление данных"))
@@ -94,6 +98,10 @@ class Ui_Dialog(object):
         self.pushButton_4.setText(_translate("Dialog", "Отмена"))
         self.pushButton_3.setText(_translate("Dialog", "Добавить"))
 
+    @QtCore.pyqtSlot()
+    def add_data(self):
+        # conn.
+        self.close()
 
 if __name__ == "__main__":
     import sys

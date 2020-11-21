@@ -5,19 +5,19 @@ from PyQt5.QtWidgets import QMessageBox
 import os
 import py.MainMenu
 import py.DatabaseCreation
+import sqlite3
 
 
 class Ui_Dialog(object):
     def __init__(self):
         super(Ui_Dialog, self).__init__()
-        self.setupUi(self)
-
         self.mainwindow = mainwindow()
         self.createdb = createdb()
 
     def setupUi(self, Dialog):
-        global data_files
-        data_files = os.listdir(path="data")
+        global data_files_name
+        data_files_name = os.listdir(path="data")
+        path_dir = os.getcwd()
         Dialog.setObjectName("Dialog")
         Dialog.resize(400, 300)
         Dialog.setMinimumSize(QtCore.QSize(400, 300))
@@ -70,14 +70,15 @@ class Ui_Dialog(object):
         self.comboBox_2 = QtWidgets.QComboBox(self.gridLayoutWidget)
         self.comboBox_2.setCurrentText("")
         self.comboBox_2.setObjectName("comboBox_2")
-        global new_name_bd
-        new_name_bd = []
-        for _name_bd in data_files:
+        global name_bd
+        name_bd = []
+        for _name_bd in data_files_name:
             type_file = _name_bd[_name_bd.find("."):]
             if type_file == '.db':
-                new_name_bd.append(_name_bd)
-        for _addItem in new_name_bd:
-            exec('self.comboBox_2.addItem("")')
+                name_bd.append(_name_bd)
+        for _addItem in name_bd:
+            db_data = [path_dir + '\\data\\' + _addItem , _addItem]
+            exec('self.comboBox_2.addItem("", db_data)')
         self.gridLayout.addWidget(self.comboBox_2, 0, 1, 1, 1)
         self.toolButton = QtWidgets.QToolButton(self.gridLayoutWidget)
         self.toolButton.setObjectName("toolButton")
@@ -105,7 +106,7 @@ class Ui_Dialog(object):
         self.label_6.setText(_translate("Dialog", "Выберете базу"))
         self.label_7.setText(_translate("Dialog", "Введите пароль"))
         _indexItem = 0
-        for _addItem in new_name_bd:
+        for _addItem in name_bd:
             exec('self.comboBox_2.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _addItem))
             _indexItem += 1
         self.toolButton.setText(_translate("Dialog", "..."))
@@ -125,13 +126,16 @@ class Ui_Dialog(object):
                     break
                 filename += _letter
             file_info = [filename[::-1], directory_name]
-            self.comboBox_2.addItem("")
+            db_data = [file_info[1][0], file_info[0]]
+            self.comboBox_2.addItem("", db_data)
             self.comboBox_2.setItemText(0, file_info[0])
 
-    @QtCore.pyqtSlot()
+    # @QtCore.pyqtSlot()
     def show_mainwindow(self):
-        iw = bool(1)
-        if iw:
+        global db_info
+        db_info = self.comboBox_2.currentData()
+        result = bool(1)
+        if result:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
             msg.setWindowTitle("Оповещение")
@@ -139,6 +143,15 @@ class Ui_Dialog(object):
             msg.exec_()
             self.mainwindow.show()
             self.close()
+            conn = sqlite3.connect(self.comboBox_2.currentData()[0])
+            cur = conn.cursor()
+            # inf_acc = [(1, 'Игры', 'yandex', 'test@yandex.ru', 'qwerty123', 'test@yandex.ru', 'secret_word', 'https://yandex.ru/'),
+            #            (2, 'Программы', 'yandex', 'test@yandex.ru', 'qwerty321', 'test@yandex.ru', 'secret_word2', 'https://test.ru/')]
+            # cur.executemany("INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)", inf_acc)
+            # cur.execute("INSERT INTO account_information VALUES(0, 'Игры', 'yandex', 'test@yandex.ru', 'qwerty123', 'test@yandex.ru', 'secret_word', 'https://yandex.ru/')")
+            [test_db_info], = cur.execute("SELECT name FROM account_information WHERE ID=2")
+            print(test_db_info)
+            # conn.commit()
         else:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)

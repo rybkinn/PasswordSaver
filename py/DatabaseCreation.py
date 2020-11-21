@@ -23,7 +23,6 @@ def show_msg(value, text_show):
 class Ui_Dialog(object):
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
 
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
@@ -134,6 +133,7 @@ class Ui_Dialog(object):
                     PRIMARY KEY("ID" AUTOINCREMENT))
                 """)
                 conn.commit()
+                cur.close()
                 conn.close()
                 self.lineEdit.clear()
                 self.lineEdit_2.clear()

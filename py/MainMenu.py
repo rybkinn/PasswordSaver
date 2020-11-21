@@ -2,6 +2,7 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
+import sqlite3
 import py.DatabaseCreation
 import py.AddingData
 
@@ -19,7 +20,6 @@ def show_msg(text_show, text2_show):
 class Ui_MainWindow(object):
     def __init__(self):
         super(Ui_MainWindow, self).__init__()
-        self.setupUi(self)
         self.createdb = createdb()
         self.addingdata = addingdata()
 
