@@ -7,6 +7,8 @@ import py.MainMenu
 import py.DatabaseCreation
 import sqlite3
 
+import pprint
+
 
 class Ui_Dialog(object):
     def __init__(self):
@@ -130,7 +132,7 @@ class Ui_Dialog(object):
             self.comboBox_2.addItem("", db_data)
             self.comboBox_2.setItemText(0, file_info[0])
 
-    # @QtCore.pyqtSlot()
+    @QtCore.pyqtSlot()
     def show_mainwindow(self):
         global db_info
         db_info = self.comboBox_2.currentData()
@@ -143,14 +145,19 @@ class Ui_Dialog(object):
             msg.exec_()
             self.mainwindow.show()
             self.close()
-            conn = sqlite3.connect(self.comboBox_2.currentData()[0])
-            cur = conn.cursor()
+            py.MainMenu.connectsql(True)
+
+            # conn = sqlite3.connect(self.comboBox_2.currentData()[0])
+            # cur = conn.cursor()
+
             # inf_acc = [(1, 'Игры', 'yandex', 'test@yandex.ru', 'qwerty123', 'test@yandex.ru', 'secret_word', 'https://yandex.ru/'),
             #            (2, 'Программы', 'yandex', 'test@yandex.ru', 'qwerty321', 'test@yandex.ru', 'secret_word2', 'https://test.ru/')]
             # cur.executemany("INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)", inf_acc)
             # cur.execute("INSERT INTO account_information VALUES(0, 'Игры', 'yandex', 'test@yandex.ru', 'qwerty123', 'test@yandex.ru', 'secret_word', 'https://yandex.ru/')")
-            [test_db_info], = cur.execute("SELECT name FROM account_information WHERE ID=2")
-            print(test_db_info)
+
+            # [test_db_info], = cur.execute("SELECT name FROM account_information WHERE ID=2")
+            # print(test_db_info)
+
             # conn.commit()
         else:
             msg = QMessageBox()
