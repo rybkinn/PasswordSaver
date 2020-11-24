@@ -13,7 +13,6 @@ import pprint
 class Ui_Dialog(object):
     def __init__(self):
         super(Ui_Dialog, self).__init__()
-        self.mainwindow = mainwindow()
         self.createdb = createdb()
 
     def setupUi(self, Dialog):
@@ -143,9 +142,11 @@ class Ui_Dialog(object):
             msg.setWindowTitle("Оповещение")
             msg.setText("Успешный вход")
             msg.exec_()
+            py.MainMenu.Ui_MainWindow.connectsql(self, True)
+            self.mainwindow = mainwindow()
             self.mainwindow.show()
             self.close()
-            py.MainMenu.connectsql(True)
+
 
             # conn = sqlite3.connect(self.comboBox_2.currentData()[0])
             # cur = conn.cursor()
@@ -168,7 +169,6 @@ class Ui_Dialog(object):
 
     @QtCore.pyqtSlot()
     def show_createdb(self):
-        # self.hide()
         self.createdb.show()
 
 

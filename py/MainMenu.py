@@ -10,18 +10,6 @@ import py.StartWindow
 import pprint
 
 
-def connectsql(connected):
-    if connected:
-        print('connectsql')
-        global conn
-        global cur
-        conn = sqlite3.connect(py.StartWindow.db_info[0])
-        cur = conn.cursor()
-        return True
-    else:
-        return False
-
-
 def show_msg(text_show, text2_show):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
@@ -38,6 +26,17 @@ class Ui_MainWindow(object):
         super(Ui_MainWindow, self).__init__()
         self.createdb = createdb()
         self.addingdata = addingdata()
+
+    def connectsql(self, connected):
+        if connected:
+            print('connectsql - ' + py.StartWindow.db_info[1])
+            global conn
+            global cur
+            conn = sqlite3.connect(py.StartWindow.db_info[0])
+            cur = conn.cursor()
+            return True
+        else:
+            return False
 
     def setupUi(self, MainWindow):
         MainWindow.resize(870, 600)
@@ -90,38 +89,62 @@ class Ui_MainWindow(object):
         font.setWeight(75)
         self.treeWidget.headerItem().setFont(6, font)
 
-        # item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
+        [lines], = cur.execute("SELECT Count(*) FROM account_information")
+        amount_item_0 = 0
+        amount_item_1 = lines
+        index_item_0 = []
+        section = []
 
-        # brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-        # brush.setStyle(QtCore.Qt.NoBrush)
-        # item_0.setBackground(0, brush)
-        # brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-        # brush.setStyle(QtCore.Qt.NoBrush)
-        # item_0.setBackground(1, brush)
-        # brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-        # brush.setStyle(QtCore.Qt.NoBrush)
-        # item_0.setBackground(2, brush)
-        # brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-        # brush.setStyle(QtCore.Qt.NoBrush)
-        # item_0.setBackground(3, brush)
-        # brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-        # brush.setStyle(QtCore.Qt.NoBrush)
-        # item_0.setBackground(4, brush)
-        # brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-        # brush.setStyle(QtCore.Qt.NoBrush)
-        # item_0.setBackground(5, brush)
-        # brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-        # brush.setStyle(QtCore.Qt.NoBrush)
-        # item_0.setBackground(6, brush)
+        for _line in range(1, lines + 1):
+            [_current_section], = cur.execute("SELECT section FROM account_information WHERE ID='{}'".format(_line))
+            section.append(_current_section)
 
-        # item_1 = QtWidgets.QTreeWidgetItem(item_0)
-        # item_1 = QtWidgets.QTreeWidgetItem(item_0)
-        # item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
-        # item_1 = QtWidgets.QTreeWidgetItem(item_0)
-        # item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
-        # item_1 = QtWidgets.QTreeWidgetItem(item_0)
-        # item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
-        # item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        set_section = list(set(section))
+        amount_item_0 = len(list(set(section)))
+
+        acc_info = []
+        sqlquery = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(set_section[0]))
+        sqlquery = cur.fetchall()
+        pprint.pprint(sqlquery)
+
+        # if lines != 0:
+        #     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
+        #     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+        #     brush.setStyle(QtCore.Qt.NoBrush)
+        #     item_0.setBackground(0, brush)
+        #     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+        #     brush.setStyle(QtCore.Qt.NoBrush)
+        #     item_0.setBackground(1, brush)
+        #     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+        #     brush.setStyle(QtCore.Qt.NoBrush)
+        #     item_0.setBackground(2, brush)
+        #     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+        #     brush.setStyle(QtCore.Qt.NoBrush)
+        #     item_0.setBackground(3, brush)
+        #     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+        #     brush.setStyle(QtCore.Qt.NoBrush)
+        #     item_0.setBackground(4, brush)
+        #     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+        #     brush.setStyle(QtCore.Qt.NoBrush)
+        #     item_0.setBackground(5, brush)
+        #     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+        #     brush.setStyle(QtCore.Qt.NoBrush)
+        #     item_0.setBackground(6, brush)
+        # else:
+        #     print('lines - 0')
+
+        #     item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        #     item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        #     item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        #     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
+        #     item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        #     item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        #     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
+        #     item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        #     item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        #     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
+        #     item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        #     item_1 = QtWidgets.QTreeWidgetItem(item_0)
 
         self.treeWidget.header().setDefaultSectionSize(118)
         self.treeWidget.header().setMinimumSectionSize(50)
@@ -185,12 +208,6 @@ class Ui_MainWindow(object):
         self.pushButton_3.clicked.connect(self.copybuffer)
 
     def retranslateUi(self, MainWindow):
-        sqlcheck = connectsql(False)
-        print(sqlcheck)
-        if sqlcheck:
-            [test_db_info], = cur.execute("SELECT name FROM account_information WHERE ID=2")
-            print(test_db_info)
-
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Password Saver - Главная"))
         self.label.setText(_translate("MainWindow", "Password Saver"))
@@ -248,44 +265,6 @@ class Ui_MainWindow(object):
         self.action_5.setText(_translate("MainWindow", "Загрузить БД"))
         self.action_7.setText(_translate("MainWindow", "Выход"))
 
-    def datafilling(self, MainWindow):
-        _translate = QtCore.QCoreApplication.translate
-        __sortingEnabled = self.treeWidget.isSortingEnabled()
-        self.treeWidget.topLevelItem(0).setText(0, _translate("MainWindow", "Почта"))
-        self.treeWidget.topLevelItem(0).child(0).setText(1, _translate("MainWindow", "yandex"))
-        self.treeWidget.topLevelItem(0).child(0).setText(2, _translate("MainWindow", "test@yandex.ru"))
-        self.treeWidget.topLevelItem(0).child(0).setText(3, _translate("MainWindow", "qwerty123"))
-        self.treeWidget.topLevelItem(0).child(0).setText(4, _translate("MainWindow", "test@yandex.ru"))
-        self.treeWidget.topLevelItem(0).child(0).setText(5, _translate("MainWindow", "123"))
-        self.treeWidget.topLevelItem(0).child(0).setText(6, _translate("MainWindow", "https://yandex.ru"))
-        self.treeWidget.topLevelItem(0).child(1).setText(1, _translate("MainWindow", "mail"))
-        self.treeWidget.topLevelItem(0).child(1).setText(2, _translate("MainWindow", "test@mail.ru"))
-        self.treeWidget.topLevelItem(0).child(1).setText(3, _translate("MainWindow", "ytrewq321"))
-        self.treeWidget.topLevelItem(0).child(1).setText(4, _translate("MainWindow", "test@mail.ru"))
-        self.treeWidget.topLevelItem(0).child(1).setText(5, _translate("MainWindow", "231"))
-        self.treeWidget.topLevelItem(0).child(1).setText(6, _translate("MainWindow", "https://mail.ru"))
-        self.treeWidget.topLevelItem(1).setText(0, _translate("MainWindow", "Игры"))
-        self.treeWidget.topLevelItem(1).child(0).setText(1, _translate("MainWindow", "testgame"))
-        self.treeWidget.topLevelItem(1).child(0).setText(2, _translate("MainWindow", "gamelogin"))
-        self.treeWidget.topLevelItem(1).child(0).setText(3, _translate("MainWindow", "gamepass123"))
-        self.treeWidget.topLevelItem(1).child(0).setText(4, _translate("MainWindow", "test@mail.ru"))
-        self.treeWidget.topLevelItem(2).setText(0, _translate("MainWindow", "Соц сети"))
-        self.treeWidget.topLevelItem(2).child(0).setText(1, _translate("MainWindow", "Vk"))
-        self.treeWidget.topLevelItem(2).child(0).setText(2, _translate("MainWindow", "loginvk"))
-        self.treeWidget.topLevelItem(2).child(0).setText(3, _translate("MainWindow", "vkpass123"))
-        self.treeWidget.topLevelItem(2).child(0).setText(4, _translate("MainWindow", "test@mail.ru"))
-        self.treeWidget.topLevelItem(2).child(0).setText(5, _translate("MainWindow", "231"))
-        self.treeWidget.topLevelItem(2).child(0).setText(6, _translate("MainWindow", "https://vk.com"))
-        self.treeWidget.topLevelItem(3).setText(0, _translate("MainWindow", "Разное"))
-        self.treeWidget.topLevelItem(3).child(0).setText(1, _translate("MainWindow", "Forum"))
-        self.treeWidget.topLevelItem(3).child(0).setText(2, _translate("MainWindow", "forumlogin"))
-        self.treeWidget.topLevelItem(3).child(0).setText(3, _translate("MainWindow", "ytrewq12345"))
-        self.treeWidget.topLevelItem(3).child(0).setText(4, _translate("MainWindow", "testyandexlong@yandex.ru"))
-        self.treeWidget.topLevelItem(3).child(0).setText(5, _translate("MainWindow", "213"))
-        self.treeWidget.topLevelItem(3).child(0).setText(6, _translate("MainWindow", "https://testforumnexttest.ru"))
-        self.treeWidget.setSortingEnabled(__sortingEnabled)
-
-
     @QtCore.pyqtSlot()
     def savebd(self):
         print('save')
@@ -303,6 +282,7 @@ class Ui_MainWindow(object):
     def exit(self):
         result = show_msg('Все несохраненные изменения будут потеряны.', 'Все равно выйти?')
         if result == 1024:
+            conn.close()
             self.close()
         elif result == 65536:
             pass
