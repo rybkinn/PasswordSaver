@@ -252,14 +252,16 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def savebd(self):
-        print('save')
-        conn.commit()
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setWindowTitle("Сообщение")
-        msg.setText("База данных успешно сохранена")
-        msg.exec_()
-
+        result = show_msg('Вы действительно хотите сохранить изменения в базе данных?', '')
+        if result == 1024:
+            conn.commit()
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setWindowTitle("Сообщение")
+            msg.setText("База данных сохранена")
+            msg.exec_()
+        elif result == 65536:
+            pass
 
     @QtCore.pyqtSlot()
     def show_createdb(self):
