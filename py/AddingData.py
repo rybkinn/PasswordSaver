@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import py.MainMenu
 import _md5
 import sqlite3
 
@@ -78,10 +79,16 @@ class Ui_Dialog(object):
         self.pushButton_3.setObjectName("pushButton_3")
         self.horizontalLayout.addWidget(self.pushButton_3)
 
+        global srt_section_mm
+        srt_section_mm = py.MainMenu.srt_section
+        for _item in srt_section_mm:
+            exec('self.comboBox.addItem("")')
+
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
         self.pushButton_3.clicked.connect(self.add_data)
+        self.pushButton_4.clicked.connect(self.close)
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
@@ -97,11 +104,32 @@ class Ui_Dialog(object):
         self.label_7.setText(_translate("Dialog", "URL"))
         self.pushButton_4.setText(_translate("Dialog", "Отмена"))
         self.pushButton_3.setText(_translate("Dialog", "Добавить"))
+        _indexItem = 0
+        for _section in srt_section_mm:
+            exec('self.comboBox.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _section))
+            _indexItem += 1
 
     @QtCore.pyqtSlot()
     def add_data(self):
-        # conn.
+        section = self.comboBox.currentText()
+        name = self.lineEdit.text()
+        login = self.lineEdit_2.text()
+        password = self.lineEdit_3.text()
+        email = self.lineEdit_4.text()
+        secret_word = self.lineEdit_5.text()
+        url = self.lineEdit_6.text()
+        if name == '':
+            name = None
+        elif email == '':
+            email = None
+        elif secret_word == '':
+            secret_word = None
+        elif url == '':
+            url = None
+        print(section, name, login, password, email, secret_word, url)
+        py.MainMenu.cur.execute("INSERT INTO account_information (section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(section, name, login, password, email, secret_word, url))
         self.close()
+
 
 if __name__ == "__main__":
     import sys

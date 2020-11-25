@@ -25,7 +25,7 @@ class Ui_MainWindow(object):
     def __init__(self):
         super(Ui_MainWindow, self).__init__()
         self.createdb = createdb()
-        self.addingdata = addingdata()
+        # self.addingdata = addingdata()
 
     def connectsql(self, connected):
         if connected:
@@ -253,6 +253,13 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def savebd(self):
         print('save')
+        conn.commit()
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Сообщение")
+        msg.setText("База данных успешно сохранена")
+        msg.exec_()
+
 
     @QtCore.pyqtSlot()
     def show_createdb(self):
@@ -274,6 +281,7 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def show_addingdata(self):
+        self.addingdata = addingdata()
         self.addingdata.show()
 
     @QtCore.pyqtSlot()
