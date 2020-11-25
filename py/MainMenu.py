@@ -88,8 +88,9 @@ class Ui_MainWindow(object):
         font.setBold(True)
         font.setWeight(75)
         self.treeWidget.headerItem().setFont(6, font)
-
+        global lines
         [lines], = cur.execute("SELECT Count(*) FROM account_information")
+        global amount_item_0
         amount_item_0 = 0
         amount_item_1 = lines
         section = []
@@ -98,17 +99,14 @@ class Ui_MainWindow(object):
             [_current_section], = cur.execute("SELECT section FROM account_information WHERE ID='{}'".format(_line))
             section.append(_current_section)
 
-        print(section)
+        global srt_section
         srt_section = list(dict.fromkeys(section))
-        print(srt_section)
         amount_item_0 = len(list(set(section)))
-        print(amount_item_0)
 
         if lines != 0:
             for _data_section in range(amount_item_0):
                 if _data_section == 0:
                     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
-                    print('item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)')
                     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
                     brush.setStyle(QtCore.Qt.NoBrush)
                     item_0.setBackground(0, brush)
@@ -135,13 +133,10 @@ class Ui_MainWindow(object):
                 else:
                     data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
                     data_one_section = cur.fetchall()
-                    # pprint.pprint(data_one_section)
                     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
-                    print('item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)')
 
                 for _value in range(len(data_one_section)):
                     item_1 = QtWidgets.QTreeWidgetItem(item_0)
-                    print('item_1 = QtWidgets.QTreeWidgetItem(item_0)')
         else:
             print('lines - 0')
 
@@ -220,62 +215,29 @@ class Ui_MainWindow(object):
         __sortingEnabled = self.treeWidget.isSortingEnabled()
         self.treeWidget.setSortingEnabled(False)
 
-        # self.treeWidget.topLevelItem(0).setText(0, _translate("MainWindow", "Почта"))
-        # self.treeWidget.topLevelItem(0).child(0).setText(1, _translate("MainWindow", "yandex"))
-        # self.treeWidget.topLevelItem(0).child(0).setText(2, _translate("MainWindow", "test@yandex.ru"))
-        # self.treeWidget.topLevelItem(0).child(0).setText(3, _translate("MainWindow", "qwerty123"))
-        # self.treeWidget.topLevelItem(0).child(0).setText(4, _translate("MainWindow", "test@yandex.ru"))
-        # self.treeWidget.topLevelItem(0).child(0).setText(5, _translate("MainWindow", "123"))
-        # self.treeWidget.topLevelItem(0).child(0).setText(6, _translate("MainWindow", "https://yandex.ru"))
-        # self.treeWidget.topLevelItem(0).child(1).setText(1, _translate("MainWindow", "mail"))
-        # self.treeWidget.topLevelItem(0).child(1).setText(2, _translate("MainWindow", "test@mail.ru"))
-        # self.treeWidget.topLevelItem(0).child(1).setText(3, _translate("MainWindow", "ytrewq321"))
-        # self.treeWidget.topLevelItem(0).child(1).setText(4, _translate("MainWindow", "test@mail.ru"))
-        # self.treeWidget.topLevelItem(0).child(1).setText(5, _translate("MainWindow", "231"))
-        # self.treeWidget.topLevelItem(0).child(1).setText(6, _translate("MainWindow", "https://mail.ru"))
-        # self.treeWidget.topLevelItem(0).child(2).setText(1, _translate("MainWindow", "gmail"))
-        # self.treeWidget.topLevelItem(0).child(2).setText(2, _translate("MainWindow", "test@gmail.com"))
-        # self.treeWidget.topLevelItem(0).child(2).setText(3, _translate("MainWindow", "qwerty12345"))
-        # self.treeWidget.topLevelItem(0).child(2).setText(4, _translate("MainWindow", "test@gmail.com"))
-        # self.treeWidget.topLevelItem(0).child(2).setText(5, _translate("MainWindow", "secret_gmail_word"))
-        # self.treeWidget.topLevelItem(0).child(2).setText(6, _translate("MainWindow", "https://mail.google.com"))
-        # self.treeWidget.topLevelItem(1).setText(0, _translate("MainWindow", "Игры"))
-        # self.treeWidget.topLevelItem(1).child(0).setText(1, _translate("MainWindow", "testgame"))
-        # self.treeWidget.topLevelItem(1).child(0).setText(2, _translate("MainWindow", "gamelogin"))
-        # self.treeWidget.topLevelItem(1).child(0).setText(3, _translate("MainWindow", "gamepass123"))
-        # self.treeWidget.topLevelItem(1).child(0).setText(4, _translate("MainWindow", "test@mail.ru"))
-        # self.treeWidget.topLevelItem(1).child(1).setText(1, _translate("MainWindow", "game2"))
-        # self.treeWidget.topLevelItem(1).child(1).setText(2, _translate("MainWindow", "logingame2"))
-        # self.treeWidget.topLevelItem(1).child(1).setText(3, _translate("MainWindow", "p@sswordGame"))
-        # self.treeWidget.topLevelItem(1).child(1).setText(4, _translate("MainWindow", "test@mail.ru"))
-        # self.treeWidget.topLevelItem(2).setText(0, _translate("MainWindow", "Соц сети"))
-        # self.treeWidget.topLevelItem(2).child(0).setText(1, _translate("MainWindow", "Vk"))
-        # self.treeWidget.topLevelItem(2).child(0).setText(2, _translate("MainWindow", "loginvk"))
-        # self.treeWidget.topLevelItem(2).child(0).setText(3, _translate("MainWindow", "vkpass123"))
-        # self.treeWidget.topLevelItem(2).child(0).setText(4, _translate("MainWindow", "test@mail.ru"))
-        # self.treeWidget.topLevelItem(2).child(0).setText(5, _translate("MainWindow", "231"))
-        # self.treeWidget.topLevelItem(2).child(0).setText(6, _translate("MainWindow", "https://vk.com"))
-        # self.treeWidget.topLevelItem(2).child(1).setText(1, _translate("MainWindow", "instagram"))
-        # self.treeWidget.topLevelItem(2).child(1).setText(2, _translate("MainWindow", "loginInst"))
-        # self.treeWidget.topLevelItem(2).child(1).setText(3, _translate("MainWindow", "passInst"))
-        # self.treeWidget.topLevelItem(2).child(1).setText(4, _translate("MainWindow", "test@gmail.com"))
-        # self.treeWidget.topLevelItem(2).child(1).setText(5, _translate("MainWindow", "secret_inst"))
-        # self.treeWidget.topLevelItem(2).child(1).setText(6, _translate("MainWindow", "https://www.instagram.com"))
-        # self.treeWidget.topLevelItem(3).setText(0, _translate("MainWindow", "Разное"))
-        # self.treeWidget.topLevelItem(3).child(0).setText(1, _translate("MainWindow", "Forum"))
-        # self.treeWidget.topLevelItem(3).child(0).setText(2, _translate("MainWindow", "forumlogin"))
-        # self.treeWidget.topLevelItem(3).child(0).setText(3, _translate("MainWindow", "ytrewq12345"))
-        # self.treeWidget.topLevelItem(3).child(0).setText(4, _translate("MainWindow", "testyandexlong@yandex.ru"))
-        # self.treeWidget.topLevelItem(3).child(0).setText(5, _translate("MainWindow", "213"))
-        # self.treeWidget.topLevelItem(3).child(0).setText(6, _translate("MainWindow", "https://testforumnexttest.ru"))
-        # self.treeWidget.topLevelItem(3).child(1).setText(1, _translate("MainWindow", "GeekBrains"))
-        # self.treeWidget.topLevelItem(3).child(1).setText(2, _translate("MainWindow", "GeekBrains_login"))
-        # self.treeWidget.topLevelItem(3).child(1).setText(3, _translate("MainWindow", "GeekBrains_p@ss1"))
-        # self.treeWidget.topLevelItem(3).child(1).setText(4, _translate("MainWindow", "testyandexlong@yandex.ru"))
-        # self.treeWidget.topLevelItem(3).child(1).setText(5, _translate("MainWindow", "secrt_GeekBrains"))
-        # self.treeWidget.topLevelItem(3).child(1).setText(6, _translate("MainWindow", "https://GeekBrains_test.com"))
-        # self.treeWidget.setSortingEnabled(__sortingEnabled)
+        toplevelitem_iter = -1
+        child_iter = -1
+        text_iter = 0
 
+        if lines != 0:
+            for _data_section in range(amount_item_0):
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
+                data_one_section = cur.fetchall()
+                acc_info = []
+                for item in data_one_section:
+                    acc_info.append(item[2:])
+                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (_data_section, srt_section[_data_section]))
+                toplevelitem_iter += 1
+                child_iter = -1
+
+                for _index in range(len(acc_info)):
+                    child_iter += 1
+                    text_iter = 0
+                    for _value in acc_info[_index]:
+                        text_iter += 1
+                        exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
+
+        self.treeWidget.setSortingEnabled(__sortingEnabled)
         self.pushButton_3.setText(_translate("MainWindow", "Копировать пароль в буфер"))
         self.pushButton.setText(_translate("MainWindow", "Удалить"))
         self.pushButton_2.setText(_translate("MainWindow", "Добавить"))
