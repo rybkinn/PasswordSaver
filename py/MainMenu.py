@@ -25,7 +25,7 @@ class Ui_MainWindow(object):
     def __init__(self):
         super(Ui_MainWindow, self).__init__()
         self.createdb = createdb()
-        # self.addingdata = addingdata()
+        lines = 0
 
     def connectsql(self, connected):
         if connected:
@@ -95,15 +95,15 @@ class Ui_MainWindow(object):
         amount_item_1 = lines
         section = []
 
-        for _line in range(1, lines + 1):
-            [_current_section], = cur.execute("SELECT section FROM account_information WHERE ID='{}'".format(_line))
-            section.append(_current_section)
-
-        global srt_section
-        srt_section = list(dict.fromkeys(section))
-        amount_item_0 = len(list(set(section)))
-
         if lines != 0:
+            for _line in range(1, lines + 1):
+                [_current_section], = cur.execute("SELECT section FROM account_information WHERE ID='{}'".format(_line))
+                section.append(_current_section)
+
+            global srt_section
+            srt_section = list(dict.fromkeys(section))
+            amount_item_0 = len(list(set(section)))
+
             for _data_section in range(amount_item_0):
                 if _data_section == 0:
                     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
@@ -137,8 +137,6 @@ class Ui_MainWindow(object):
 
                 for _value in range(len(data_one_section)):
                     item_1 = QtWidgets.QTreeWidgetItem(item_0)
-        else:
-            print('lines - 0')
 
         self.treeWidget.header().setDefaultSectionSize(118)
         self.treeWidget.header().setMinimumSectionSize(50)
@@ -284,7 +282,9 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def show_addingdata(self):
         self.addingdata = addingdata()
-        self.addingdata.show()
+        self.addingdata.exec_()
+        self.refreshui()
+        self.treeWidget.expandAll()
 
     @QtCore.pyqtSlot()
     def copybuffer(self):
@@ -295,6 +295,11 @@ class Ui_MainWindow(object):
     def deletedata(self):
         print('deletedata')
         pass
+
+    def refreshui(self):
+        self.close()
+        self.__init__()
+        self.show()
 
 
 class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):

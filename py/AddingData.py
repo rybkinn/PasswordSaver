@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from importlib import reload
 import py.MainMenu
+import py.StartWindow
 import _md5
 import sqlite3
 
@@ -79,10 +81,14 @@ class Ui_Dialog(object):
         self.pushButton_3.setObjectName("pushButton_3")
         self.horizontalLayout.addWidget(self.pushButton_3)
 
-        global srt_section_mm
-        srt_section_mm = py.MainMenu.srt_section
-        for _item in srt_section_mm:
-            exec('self.comboBox.addItem("")')
+        global lines
+        [lines], = py.MainMenu.cur.execute("SELECT Count(*) FROM account_information")
+
+        if lines != 0:
+            global srt_section_mm
+            srt_section_mm = py.MainMenu.srt_section
+            for _item in srt_section_mm:
+                exec('self.comboBox.addItem("")')
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -95,19 +101,21 @@ class Ui_Dialog(object):
         Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Добавление данных"))
         self.label_6.setText(_translate("Dialog", "Секретное слово"))
         self.pushButton.setText(_translate("Dialog", "Создать"))
-        self.label_3.setText(_translate("Dialog", "Логин"))
+        self.label_3.setText(_translate("Dialog", "Логин*"))
         self.label.setText(_translate("Dialog", "Раздел"))
-        self.label_2.setText(_translate("Dialog", "Название"))
-        self.label_4.setText(_translate("Dialog", "Пароль"))
+        self.label_2.setText(_translate("Dialog", "Название*"))
+        self.label_4.setText(_translate("Dialog", "Пароль*"))
         self.label_5.setText(_translate("Dialog", "Почта"))
         self.pushButton_2.setText(_translate("Dialog", "Сгенерировать"))
         self.label_7.setText(_translate("Dialog", "URL"))
         self.pushButton_4.setText(_translate("Dialog", "Отмена"))
         self.pushButton_3.setText(_translate("Dialog", "Добавить"))
-        _indexItem = 0
-        for _section in srt_section_mm:
-            exec('self.comboBox.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _section))
-            _indexItem += 1
+
+        if lines != 0:
+            _indexItem = 0
+            for _section in srt_section_mm:
+                exec('self.comboBox.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _section))
+                _indexItem += 1
 
     @QtCore.pyqtSlot()
     def add_data(self):
@@ -119,23 +127,35 @@ class Ui_Dialog(object):
         secret_word = self.lineEdit_5.text()
         url = self.lineEdit_6.text()
         if name == '':
-            name = None
-        elif email == '':
-            email = None
-        elif secret_word == '':
-            secret_word = None
-        elif url == '':
-            url = None
-        print(section, name, login, password, email, secret_word, url)
-        py.MainMenu.cur.execute("INSERT INTO account_information (section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(section, name, login, password, email, secret_word, url))
-        self.close()
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Dialog = QtWidgets.QDialog()
-    ui = Ui_Dialog()
-    ui.setupUi(Dialog)
-    Dialog.show()
-    sys.exit(app.exec_())
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setWindowTitle("Сообщение")
+            msg.setText("Введите название")
+            msg.exec_()
+        elif login == '':
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setWindowTitle("Сообщение")
+            msg.setText("Введите логин")
+            msg.exec_()
+        elif password == '':
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setWindowTitle("Сообщение")
+            msg.setText("Введите пароль")
+            msg.exec_()
+        else:
+            if email == '':
+                email = None
+            elif secret_word == '':
+                secret_word = None
+            elif url == '':
+                url = None
+            if lines != 0:
+                [maxid], = py.MainMenu.cur.execute("SELECT ID FROM account_information ORDER BY ID DESC LIMIT 1")
+                maxid += 1
+                py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password, email, secret_word, url))
+            else:
+                maxid = 1
+                py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password, email, secret_word, url))
+            self.close()
