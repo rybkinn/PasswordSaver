@@ -287,11 +287,43 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def copybuffer(self):
-        print('copybuffer')
+        row = self.current_row()
+        buffer = QtWidgets.QApplication.clipboard()
+        if row[1] == 'item_1':
+            if buffer is not None:
+                buffer.setText(row[0][2])
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Information)
+                msg.setWindowTitle("Сообщение")
+                msg.setText("Пароль скопирован")
+                msg.exec_()
         pass
 
     @QtCore.pyqtSlot()
     def deletedata(self):
+        row = self.current_row()
+        if row[1] == 'item_0 first' or row[1] == 'item_0':
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Сообщение")
+            msg.setText("Нельзя удалить раздел")
+            msg.setInformativeText("Если хотите удалить раздел, то удалите все аккаунты в нём")
+            msg.exec_()
+        elif row[1] == 'item_1':
+            result = show_msg('Данные аккаунта <b>{}</b> с логином <b>{}</b> будут удалены.'.format(row[0][0], row[0][1]), 'Вы уверенны?')
+            if result == 1024:
+                cur.execute("DELETE FROM account_information WHERE name='{}' AND login='{}' AND pass='{}' AND email='{}' AND secret_word='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][2], row[0][3], row[0][4], row[0][5]))
+                self.refreshui()
+            elif result == 65536:
+                pass
+
+    def refreshui(self):
+        self.close()
+        self.__init__()
+        self.show()
+        self.treeWidget.expandAll()
+
+    def current_row(self):
         index = self.treeWidget.selectedIndexes()
         row_data = []
         iter_number = 0
@@ -305,32 +337,12 @@ class Ui_MainWindow(object):
                     item_type = 'item_0'
                 elif len(values_dict) == 2:
                     item_type = 'item_0 first'
-
             for key, value in values_dict.items():
                 if value is None:
                     continue
                 row_data.append(value)
             iter_number += 1
-        if item_type == 'item_0 first' or item_type == 'item_0':
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Warning)
-            msg.setWindowTitle("Сообщение")
-            msg.setText("Нельзя удалить раздел")
-            msg.setInformativeText("Если хотите удалить раздел, то удалите все аккаунты в нём")
-            msg.exec_()
-        elif item_type == 'item_1':
-            result = show_msg('Данные аккаунта <b>{}</b> с логином <b>{}</b> будут удалены.'.format(row_data[0], row_data[1]), 'Вы уверенны?')
-            if result == 1024:
-                cur.execute("DELETE FROM account_information WHERE name='{}' AND login='{}' AND pass='{}' AND email='{}' AND secret_word='{}' AND url='{}'".format(row_data[0], row_data[1], row_data[2], row_data[3], row_data[4], row_data[5]))
-                self.refreshui()
-            elif result == 65536:
-                pass
-
-    def refreshui(self):
-        self.close()
-        self.__init__()
-        self.show()
-        self.treeWidget.expandAll()
+        return row_data, item_type
 
 
 class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):
