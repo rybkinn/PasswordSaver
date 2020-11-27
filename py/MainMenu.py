@@ -304,7 +304,7 @@ class Ui_MainWindow(object):
         row = self.current_row()
         if row[1] == 'item_0 first' or row[1] == 'item_0':
             msg = QMessageBox()
-            msg.setIcon(QMessageBox.Warning)
+            msg.setIcon(QMessageBox.Critical)
             msg.setWindowTitle("Сообщение")
             msg.setText("Нельзя удалить раздел")
             msg.setInformativeText("Если хотите удалить раздел, то удалите все аккаунты в нём")
