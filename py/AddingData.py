@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from importlib import reload
 import py.MainMenu
 import py.StartWindow
 import _md5
+import string
+import random
 import sqlite3
 
 
@@ -68,6 +69,10 @@ class Ui_Dialog(object):
         self.lineEdit_6 = QtWidgets.QLineEdit(self.gridLayoutWidget)
         self.lineEdit_6.setObjectName("lineEdit_6")
         self.gridLayout.addWidget(self.lineEdit_6, 6, 1, 1, 1)
+        self.lineEdit_7 = QtWidgets.QLineEdit(self.gridLayoutWidget)
+        self.lineEdit_7.setObjectName("lineEdit")
+        self.gridLayout.addWidget(self.lineEdit_7, 0, 1, 1, 1)
+        self.lineEdit_7.hide()
         self.horizontalLayoutWidget = QtWidgets.QWidget(Dialog)
         self.horizontalLayoutWidget.setGeometry(QtCore.QRect(179, 260, 171, 25))
         self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
@@ -89,10 +94,14 @@ class Ui_Dialog(object):
             srt_section_mm = py.MainMenu.srt_section
             for _item in srt_section_mm:
                 exec('self.comboBox.addItem("")')
+        else:
+            self.add_section()
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
+        self.pushButton.clicked.connect(self.add_section)
+        self.pushButton_2.clicked.connect(self.generate_password)
         self.pushButton_3.clicked.connect(self.add_data)
         self.pushButton_4.clicked.connect(self.close)
 
@@ -102,7 +111,7 @@ class Ui_Dialog(object):
         self.label_6.setText(_translate("Dialog", "Секретное слово"))
         self.pushButton.setText(_translate("Dialog", "Создать"))
         self.label_3.setText(_translate("Dialog", "Логин*"))
-        self.label.setText(_translate("Dialog", "Раздел"))
+        self.label.setText(_translate("Dialog", "Раздел*"))
         self.label_2.setText(_translate("Dialog", "Название*"))
         self.label_4.setText(_translate("Dialog", "Пароль*"))
         self.label_5.setText(_translate("Dialog", "Почта"))
@@ -119,14 +128,23 @@ class Ui_Dialog(object):
 
     @QtCore.pyqtSlot()
     def add_data(self):
-        section = self.comboBox.currentText()
+        if self.lineEdit_7.isVisible():
+            section = self.lineEdit_7.text()
+        elif self.comboBox.isVisible():
+            section = self.comboBox.currentText()
         name = self.lineEdit.text()
         login = self.lineEdit_2.text()
         password = self.lineEdit_3.text()
         email = self.lineEdit_4.text()
         secret_word = self.lineEdit_5.text()
         url = self.lineEdit_6.text()
-        if name == '':
+        if section == '':
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setWindowTitle("Сообщение")
+            msg.setText("Введите раздел")
+            msg.exec_()
+        elif name == '':
             msg = QtWidgets.QMessageBox()
             msg.setIcon(QtWidgets.QMessageBox.Warning)
             msg.setWindowTitle("Сообщение")
@@ -147,9 +165,9 @@ class Ui_Dialog(object):
         else:
             if email == '':
                 email = None
-            elif secret_word == '':
+            if secret_word == '':
                 secret_word = None
-            elif url == '':
+            if url == '':
                 url = None
             if lines != 0:
                 [maxid], = py.MainMenu.cur.execute("SELECT ID FROM account_information ORDER BY ID DESC LIMIT 1")
@@ -159,3 +177,17 @@ class Ui_Dialog(object):
                 maxid = 1
                 py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password, email, secret_word, url))
             self.close()
+
+    @QtCore.pyqtSlot()
+    def add_section(self):
+        self.comboBox.hide()
+        self.pushButton.hide()
+        self.lineEdit_7.show()
+
+    @QtCore.pyqtSlot()
+    def generate_password(self):
+        def gen_pass():
+            chars = string.ascii_letters + string.digits + '_' + '!' + '?'
+            size = random.randint(8, 12)
+            return ''.join(random.choice(chars) for x in range(size))
+        self.lineEdit_3.setText(gen_pass())

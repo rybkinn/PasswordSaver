@@ -29,7 +29,6 @@ class Ui_MainWindow(object):
 
     def connectsql(self, connected):
         if connected:
-            print('connectsql - ' + py.StartWindow.db_info[1])
             global conn
             global cur
             conn = sqlite3.connect(py.StartWindow.db_info[0])
@@ -97,7 +96,8 @@ class Ui_MainWindow(object):
 
         if lines != 0:
             for _line in range(1, lines + 1):
-                [_current_section], = cur.execute("SELECT section FROM account_information WHERE ID='{}'".format(_line))
+                [_current_id], = cur.execute("SELECT ID FROM account_information LIMIT 1 OFFSET {}".format(_line-1))
+                [_current_section], = cur.execute("SELECT section FROM account_information WHERE ID='{}'".format(_current_id))
                 section.append(_current_section)
 
             global srt_section
@@ -201,7 +201,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Password Saver - Главная"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Password Saver - Главная | {}".format(py.StartWindow.db_info[1])))
         self.label.setText(_translate("MainWindow", "Password Saver"))
         self.treeWidget.headerItem().setText(0, _translate("MainWindow", "Раздел"))
         self.treeWidget.headerItem().setText(1, _translate("MainWindow", "Название"))
