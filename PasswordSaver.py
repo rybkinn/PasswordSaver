@@ -7,8 +7,6 @@ import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 import py.StartWindow
 
-version = 'v 0.2'
-
 
 class Interface(QtWidgets.QDialog, py.StartWindow.Ui_Dialog):
     def __init__(self):

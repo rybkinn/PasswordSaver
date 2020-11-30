@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
-import os
 import py.MainMenu
 import py.DatabaseCreation
 import sqlite3
@@ -101,7 +101,7 @@ class Ui_Dialog(object):
         Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Вход"))
         self.label_5.setText(_translate("Dialog", "Вход"))
         self.pushButton_2.setText(_translate("Dialog", "Создать базу"))
-        self.label_4.setText(_translate("Dialog", "v 0.2"))
+        self.label_4.setText(_translate("Dialog", "{}".format(py.MainMenu.version)))
         self.label.setText(_translate("Dialog", "Password Saver"))
         self.pushButton_3.setText(_translate("Dialog", "Войти"))
         self.label_6.setText(_translate("Dialog", "Выберете базу"))
@@ -146,20 +146,6 @@ class Ui_Dialog(object):
             self.mainwindow = mainwindow()
             self.mainwindow.show()
             self.close()
-
-
-            # conn = sqlite3.connect(self.comboBox_2.currentData()[0])
-            # cur = conn.cursor()
-
-            # inf_acc = [(1, 'Игры', 'yandex', 'test@yandex.ru', 'qwerty123', 'test@yandex.ru', 'secret_word', 'https://yandex.ru/'),
-            #            (2, 'Программы', 'yandex', 'test@yandex.ru', 'qwerty321', 'test@yandex.ru', 'secret_word2', 'https://test.ru/')]
-            # cur.executemany("INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)", inf_acc)
-            # cur.execute("INSERT INTO account_information VALUES(0, 'Игры', 'yandex', 'test@yandex.ru', 'qwerty123', 'test@yandex.ru', 'secret_word', 'https://yandex.ru/')")
-
-            # [test_db_info], = cur.execute("SELECT name FROM account_information WHERE ID=2")
-            # print(test_db_info)
-
-            # conn.commit()
         else:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)

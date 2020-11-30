@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import sqlite3
-import os
+import rsa
+
 
 def show_msg(value, text_show):
     if value:
@@ -135,6 +137,17 @@ class Ui_Dialog(object):
                 conn.commit()
                 cur.close()
                 conn.close()
+
+                (pubkey, privkey) = rsa.newkeys(1024)
+                pubkey_pem = pubkey.save_pkcs1('PEM')
+                privkey_pem = privkey.save_pkcs1('PEM')
+                with open('data/{0}_pubkey.pem'.format(name_db), mode='w+') as pubfile:
+                    pubfile.write(pubkey_pem.decode())
+                    pubfile.close()
+                with open('data/{0}_private.pem'.format(name_db), mode='w+') as privatefile:
+                    privatefile.write(privkey_pem.decode())
+                    privatefile.close()
+
                 self.lineEdit.clear()
                 self.lineEdit_2.clear()
                 self.lineEdit_3.clear()

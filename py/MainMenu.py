@@ -9,12 +9,14 @@ import py.StartWindow
 
 import pprint
 
+version = 'v 0.2'
 
-def show_msg(text_show, text2_show):
+
+def show_msg(top_text, bottom_text):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
-    msg.setText(text_show)
-    msg.setInformativeText(text2_show)
+    msg.setText(top_text)
+    msg.setInformativeText(bottom_text)
     msg.setWindowTitle("Сообщение")
     msg.setStandardButtons(QMessageBox.Ok | QMessageBox.No)
     result = msg.exec_()
@@ -156,6 +158,13 @@ class Ui_MainWindow(object):
         self.pushButton_2 = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_2.setGeometry(QtCore.QRect(690, 20, 151, 23))
         self.pushButton_2.setObjectName("pushButton_2")
+        self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_4.setGeometry(QtCore.QRect(530, 20, 151, 23))
+        self.pushButton_4.setObjectName("pushButton_4")
+        self.pushButton_4.hide()
+        self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButton_5.setGeometry(QtCore.QRect(530, 20, 151, 23))
+        self.pushButton_5.setObjectName("pushButton_5")
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
         self.label_2.setGeometry(QtCore.QRect(810, 540, 31, 20))
         self.label_2.setObjectName("label_2")
@@ -198,6 +207,8 @@ class Ui_MainWindow(object):
         self.pushButton.clicked.connect(self.deletedata)
         self.pushButton_2.clicked.connect(self.show_addingdata)
         self.pushButton_3.clicked.connect(self.copybuffer)
+        self.pushButton_4.clicked.connect(self.password_hide)
+        self.pushButton_5.clicked.connect(self.password_show)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -239,7 +250,10 @@ class Ui_MainWindow(object):
         self.pushButton_3.setText(_translate("MainWindow", "Копировать пароль в буфер"))
         self.pushButton.setText(_translate("MainWindow", "Удалить"))
         self.pushButton_2.setText(_translate("MainWindow", "Добавить"))
-        self.label_2.setText(_translate("MainWindow", "v 0.2"))
+        self.pushButton_4.setText(_translate("MainWindow", "Скрыть пароли"))
+        self.pushButton_5.setText(_translate("MainWindow", "Показать пароли"))
+
+        self.label_2.setText(_translate("MainWindow", "{}".format(version)))
         self.menu.setTitle(_translate("MainWindow", "Файл"))
         self.action.setText(_translate("MainWindow", "Выход"))
         self.action_2.setText(_translate("MainWindow", "Сохранить"))
@@ -288,8 +302,8 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def copybuffer(self):
         row = self.current_row()
-        buffer = QtWidgets.QApplication.clipboard()
         if row[1] == 'item_1':
+            buffer = QtWidgets.QApplication.clipboard()
             if buffer is not None:
                 buffer.setText(row[0][2])
                 msg = QMessageBox()
@@ -316,6 +330,20 @@ class Ui_MainWindow(object):
                 self.refreshui()
             elif result == 65536:
                 pass
+
+    @QtCore.pyqtSlot()
+    def password_show(self):
+        print('password show')
+        self.pushButton_5.hide()
+        self.pushButton_4.show()
+        pass
+
+    @QtCore.pyqtSlot()
+    def password_hide(self):
+        print('password hide')
+        self.pushButton_4.hide()
+        self.pushButton_5.show()
+        pass
 
     def refreshui(self):
         self.close()

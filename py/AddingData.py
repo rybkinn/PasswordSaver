@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-import py.MainMenu
-import py.StartWindow
-import _md5
 import string
 import random
+from PyQt5 import QtCore, QtGui, QtWidgets
 import sqlite3
+import rsa
+import py.MainMenu
+import py.StartWindow
 
 
 class Ui_Dialog(object):
@@ -134,7 +134,21 @@ class Ui_Dialog(object):
             section = self.comboBox.currentText()
         name = self.lineEdit.text()
         login = self.lineEdit_2.text()
-        password = self.lineEdit_3.text()
+        entered_password = self.lineEdit_3.text()
+
+        #rsa
+        with open('{}_pubkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as pubfile:
+            keydata = pubfile.read()
+        pubkey = rsa.PublicKey.load_pkcs1(keydata, 'PEM')
+        password = entered_password.encode()
+        # шифруем
+        crypto = rsa.encrypt(password, pubkey)
+        print(crypto)
+        print("\n")
+        # расшифровываем
+        # password = rsa.decrypt(crypto, pubkey)
+        # print(password)
+
         email = self.lineEdit_4.text()
         secret_word = self.lineEdit_5.text()
         url = self.lineEdit_6.text()
@@ -172,10 +186,10 @@ class Ui_Dialog(object):
             if lines != 0:
                 [maxid], = py.MainMenu.cur.execute("SELECT ID FROM account_information ORDER BY ID DESC LIMIT 1")
                 maxid += 1
-                py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password, email, secret_word, url))
+                # py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password.decode(), email, secret_word, url))
             else:
                 maxid = 1
-                py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password, email, secret_word, url))
+                py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password.decode(), email, secret_word, url))
             self.close()
 
     @QtCore.pyqtSlot()
@@ -187,7 +201,7 @@ class Ui_Dialog(object):
     @QtCore.pyqtSlot()
     def generate_password(self):
         def gen_pass():
-            chars = string.ascii_letters + string.digits + '_' + '!' + '?'
+            chars = string.ascii_letters + string.digits + '_' + '!' + '?' + '@'
             size = random.randint(8, 12)
             return ''.join(random.choice(chars) for x in range(size))
         self.lineEdit_3.setText(gen_pass())
