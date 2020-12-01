@@ -9,7 +9,9 @@ import py.StartWindow
 
 import pprint
 
-version = 'v 0.2'
+version = 'v 0.2'        # Версия программы
+hide_password = True     # Показазь или скрыть пароли при запуске программы: True - пароли скрыты / False - пароли показанны3
+buffer = None
 
 
 def show_msg(top_text, bottom_text):
@@ -29,7 +31,7 @@ class Ui_MainWindow(object):
         self.createdb = createdb()
         lines = 0
 
-    def connectsql(self, connected):
+    def connect_sql(self, connected):
         if connected:
             global conn
             global cur
@@ -111,10 +113,13 @@ class Ui_MainWindow(object):
         self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_4.setGeometry(QtCore.QRect(530, 20, 151, 23))
         self.pushButton_4.setObjectName("pushButton_4")
-        self.pushButton_4.hide()
         self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_5.setGeometry(QtCore.QRect(530, 20, 151, 23))
         self.pushButton_5.setObjectName("pushButton_5")
+        if hide_password:
+            self.pushButton_4.hide()
+        else:
+            self.pushButton_5.hide()
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
         self.label_2.setGeometry(QtCore.QRect(810, 540, 31, 20))
         self.label_2.setObjectName("label_2")
@@ -152,9 +157,9 @@ class Ui_MainWindow(object):
         self.action_4.triggered.connect(self.show_createdb)
         self.action_5.triggered.connect(self.loadbd)
         self.action_7.triggered.connect(self.close)
-        self.pushButton.clicked.connect(self.deletedata)
+        self.pushButton.clicked.connect(self.delete_data)
         self.pushButton_2.clicked.connect(self.show_addingdata)
-        self.pushButton_3.clicked.connect(self.copybuffer)
+        self.pushButton_3.clicked.connect(self.copy_buffer)
         self.pushButton_4.clicked.connect(self.password_hide)
         self.pushButton_5.clicked.connect(self.password_show)
 
@@ -207,7 +212,6 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def loadbd(self):
         print('loadbd')
-        pass
 
     @QtCore.pyqtSlot()
     def show_addingdata(self):
@@ -216,8 +220,9 @@ class Ui_MainWindow(object):
         self.refresh_treewidget()
 
     @QtCore.pyqtSlot()
-    def copybuffer(self):
-        row = self.current_row()
+    def copy_buffer(self):  # TODO: сделать удаление буфера при закрытии программы с диспетчера задач
+        global buffer
+        row = self.current_row()    # TODO: 2) Сделать копирование расшифрованного пароля при скрытом отображении
         if row[1] == 'item_1':
             buffer = QtWidgets.QApplication.clipboard()
             if buffer is not None:
@@ -227,10 +232,9 @@ class Ui_MainWindow(object):
                 msg.setWindowTitle("Сообщение")
                 msg.setText("Пароль скопирован")
                 msg.exec_()
-        pass
 
     @QtCore.pyqtSlot()
-    def deletedata(self):
+    def delete_data(self):
         row = self.current_row()
         if row[1] == 'item_0 first' or row[1] == 'item_0':
             msg = QMessageBox()
@@ -242,24 +246,68 @@ class Ui_MainWindow(object):
         elif row[1] == 'item_1':
             result = show_msg('Данные аккаунта <b>{}</b> с логином <b>{}</b> будут удалены.'.format(row[0][0], row[0][1]), 'Вы уверенны?')
             if result == QMessageBox.Yes:
-                cur.execute("DELETE FROM account_information WHERE name='{}' AND login='{}' AND pass='{}' AND email='{}' AND secret_word='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][2], row[0][3], row[0][4], row[0][5]))
+                cur.execute("DELETE FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][3], row[0][5]))
                 self.refresh_treewidget()
             elif result == QMessageBox.No:
                 pass
 
     @QtCore.pyqtSlot()
     def password_show(self):
-        print('password show')
+        global hide_password
+        hide_password = False
+        _translate = QtCore.QCoreApplication.translate
+        toplevelitem_iter = -1
+        child_iter = -1
+        text_iter = 0
+        if lines != 0:
+            for _data_section in range(amount_item_0):
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
+                data_one_section = cur.fetchall()
+                acc_info = []
+                for item in data_one_section:
+                    acc_info.append(item[2:])
+                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (_data_section, srt_section[_data_section]))
+                toplevelitem_iter += 1
+                child_iter = -1
+                for _index in range(len(acc_info)):
+                    child_iter += 1
+                    text_iter = 0
+                    for _value in acc_info[_index]:
+                        text_iter += 1
+                        if text_iter == 3 or text_iter == 5:
+                            exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
+
         self.pushButton_5.hide()
         self.pushButton_4.show()
-        pass
 
     @QtCore.pyqtSlot()
     def password_hide(self):
-        print('password hide')
+        global hide_password
+        hide_password = True
+        _translate = QtCore.QCoreApplication.translate
+        toplevelitem_iter = -1
+        child_iter = -1
+        text_iter = 0
+        if lines != 0:
+            for _data_section in range(amount_item_0):
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
+                data_one_section = cur.fetchall()
+                acc_info = []
+                for item in data_one_section:
+                    acc_info.append(item[2:])
+                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (_data_section, srt_section[_data_section]))
+                toplevelitem_iter += 1
+                child_iter = -1
+                for _index in range(len(acc_info)):
+                    child_iter += 1
+                    text_iter = 0
+                    for _value in acc_info[_index]:
+                        text_iter += 1
+                        if text_iter == 3 or text_iter == 5:
+                            exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, '**********'))
+
         self.pushButton_4.hide()
         self.pushButton_5.show()
-        pass
 
     def add_treewidget_item(self):
         global lines
@@ -332,7 +380,10 @@ class Ui_MainWindow(object):
                     text_iter = 0
                     for _value in acc_info[_index]:
                         text_iter += 1
-                        exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
+                        if (text_iter == 3 and hide_password) or (text_iter == 5 and hide_password):
+                            exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, '**********'))
+                        else:
+                            exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
 
     def refresh_treewidget(self):
         self.delete_treewidget_item()
@@ -364,6 +415,8 @@ class Ui_MainWindow(object):
     def closeEvent(self, event):
         close = QtWidgets.QMessageBox.question(self, "Выход", "Все несохраненные изменения будут потеряны.\nВсе ровно выйти?", QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         if close == QtWidgets.QMessageBox.Yes:
+            if buffer is not None:
+                buffer.clear()
             event.accept()
         else:
             event.ignore()

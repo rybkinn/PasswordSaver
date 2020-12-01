@@ -147,7 +147,7 @@ class Ui_Dialog(object):
         # шифруем
         crypto = rsa.encrypt(password_bin, pubkey)
         password = (base64.b64encode(crypto)).decode()
-        # расшифровываем
+        # расшифровываем    # TODO: 1) Сделать расшифровку пароля
         # password = rsa.decrypt(crypto, pubkey)
         # print(password)
 
@@ -186,13 +186,27 @@ class Ui_Dialog(object):
             if url == '':
                 url = None
             if lines != 0:
-                [maxid], = py.MainMenu.cur.execute("SELECT ID FROM account_information ORDER BY ID DESC LIMIT 1")
-                maxid += 1
-                py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password, email, secret_word, url))
+                exists_name = py.MainMenu.cur.execute("SELECT name FROM account_information WHERE name='{}'".format(name))
+                exists_name = py.MainMenu.cur.fetchone()
+                exists_login = py.MainMenu.cur.execute("SELECT login FROM account_information WHERE login='{}'".format(login))
+                exists_login = py.MainMenu.cur.fetchone()
+                if exists_name is not None and exists_login is not None:
+                    msg = QtWidgets.QMessageBox()
+                    msg.setIcon(QtWidgets.QMessageBox.Critical)
+                    msg.setWindowTitle("Сообщение")
+                    msg.setText("Такой аккаунт уже существует")
+                    msg.exec_()
+                else:
+                    [maxid], = py.MainMenu.cur.execute("SELECT ID FROM account_information ORDER BY ID DESC LIMIT 1")
+                    maxid += 1
+                    py.MainMenu.cur.execute(
+                        "INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(
+                            maxid, section, name, login, password, email, secret_word, url))
+                    self.close()
             else:
                 maxid = 1
                 py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password, email, secret_word, url))
-            self.close()
+                self.close()
 
     @QtCore.pyqtSlot()
     def add_section(self):

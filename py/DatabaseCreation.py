@@ -121,7 +121,7 @@ class Ui_Dialog(object):
             elif pwd_re == '':
                 show_msg(0, 'Поле Подтвердите пароль пустое')
             elif pwd == pwd_re:
-                conn = sqlite3.connect(r'data/' + name_db + '.db') # TODO: добавить шифрацию
+                conn = sqlite3.connect(r'data/' + name_db + '.db') # TODO: добавить шифрацию БД
                 cur = conn.cursor()
                 cur.execute("""CREATE TABLE IF NOT EXISTS account_information(
                     "ID" INTEGER NOT NULL UNIQUE,

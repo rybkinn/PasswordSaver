@@ -142,7 +142,7 @@ class Ui_Dialog(object):
             msg.setWindowTitle("Оповещение")
             msg.setText("Успешный вход")
             msg.exec_()
-            py.MainMenu.Ui_MainWindow.connectsql(self, True)
+            py.MainMenu.Ui_MainWindow.connect_sql(self, True)
             self.mainwindow = mainwindow()
             self.mainwindow.show()
             self.close()
