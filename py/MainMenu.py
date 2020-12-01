@@ -18,7 +18,7 @@ def show_msg(top_text, bottom_text):
     msg.setText(top_text)
     msg.setInformativeText(bottom_text)
     msg.setWindowTitle("Сообщение")
-    msg.setStandardButtons(QMessageBox.Ok | QMessageBox.No)
+    msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
     result = msg.exec_()
     return result
 
@@ -89,57 +89,7 @@ class Ui_MainWindow(object):
         font.setBold(True)
         font.setWeight(75)
         self.treeWidget.headerItem().setFont(6, font)
-        global lines
-        [lines], = cur.execute("SELECT Count(*) FROM account_information")
-        global amount_item_0
-        amount_item_0 = 0
-        amount_item_1 = lines
-        section = []
-
-        if lines != 0:
-            for _line in range(1, lines + 1):
-                [_current_id], = cur.execute("SELECT ID FROM account_information LIMIT 1 OFFSET {}".format(_line-1))
-                [_current_section], = cur.execute("SELECT section FROM account_information WHERE ID='{}'".format(_current_id))
-                section.append(_current_section)
-
-            global srt_section
-            srt_section = list(dict.fromkeys(section))
-            amount_item_0 = len(list(set(section)))
-
-            for _data_section in range(amount_item_0):
-                if _data_section == 0:
-                    item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
-                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-                    brush.setStyle(QtCore.Qt.NoBrush)
-                    item_0.setBackground(0, brush)
-                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-                    brush.setStyle(QtCore.Qt.NoBrush)
-                    item_0.setBackground(1, brush)
-                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-                    brush.setStyle(QtCore.Qt.NoBrush)
-                    item_0.setBackground(2, brush)
-                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-                    brush.setStyle(QtCore.Qt.NoBrush)
-                    item_0.setBackground(3, brush)
-                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-                    brush.setStyle(QtCore.Qt.NoBrush)
-                    item_0.setBackground(4, brush)
-                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-                    brush.setStyle(QtCore.Qt.NoBrush)
-                    item_0.setBackground(5, brush)
-                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-                    brush.setStyle(QtCore.Qt.NoBrush)
-                    item_0.setBackground(6, brush)
-                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
-                    data_one_section = cur.fetchall()
-                else:
-                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
-                    data_one_section = cur.fetchall()
-                    item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
-
-                for _value in range(len(data_one_section)):
-                    item_1 = QtWidgets.QTreeWidgetItem(item_0)
-
+        self.add_treewidget_item()
         self.treeWidget.header().setDefaultSectionSize(118)
         self.treeWidget.header().setMinimumSectionSize(50)
         self.treeWidget.header().setStretchLastSection(True)
@@ -196,14 +146,12 @@ class Ui_MainWindow(object):
         self.menu.addSeparator()
         self.menu.addAction(self.action_7)
         self.menubar.addAction(self.menu.menuAction())
-
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-
         self.action_3.triggered.connect(self.savebd)
         self.action_4.triggered.connect(self.show_createdb)
         self.action_5.triggered.connect(self.loadbd)
-        self.action_7.triggered.connect(self.exit)
+        self.action_7.triggered.connect(self.close)
         self.pushButton.clicked.connect(self.deletedata)
         self.pushButton_2.clicked.connect(self.show_addingdata)
         self.pushButton_3.clicked.connect(self.copybuffer)
@@ -223,36 +171,13 @@ class Ui_MainWindow(object):
         self.treeWidget.headerItem().setText(6, _translate("MainWindow", "URL"))
         __sortingEnabled = self.treeWidget.isSortingEnabled()
         self.treeWidget.setSortingEnabled(False)
-
-        toplevelitem_iter = -1
-        child_iter = -1
-        text_iter = 0
-
-        if lines != 0:
-            for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
-                data_one_section = cur.fetchall()
-                acc_info = []
-                for item in data_one_section:
-                    acc_info.append(item[2:])
-                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (_data_section, srt_section[_data_section]))
-                toplevelitem_iter += 1
-                child_iter = -1
-
-                for _index in range(len(acc_info)):
-                    child_iter += 1
-                    text_iter = 0
-                    for _value in acc_info[_index]:
-                        text_iter += 1
-                        exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
-
+        self.add_treewidget_item_text()
         self.treeWidget.setSortingEnabled(__sortingEnabled)
         self.pushButton_3.setText(_translate("MainWindow", "Копировать пароль в буфер"))
         self.pushButton.setText(_translate("MainWindow", "Удалить"))
         self.pushButton_2.setText(_translate("MainWindow", "Добавить"))
         self.pushButton_4.setText(_translate("MainWindow", "Скрыть пароли"))
         self.pushButton_5.setText(_translate("MainWindow", "Показать пароли"))
-
         self.label_2.setText(_translate("MainWindow", "{}".format(version)))
         self.menu.setTitle(_translate("MainWindow", "Файл"))
         self.action.setText(_translate("MainWindow", "Выход"))
@@ -265,14 +190,14 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def savebd(self):
         result = show_msg('Вы действительно хотите сохранить изменения в базе данных?', '')
-        if result == 1024:
+        if result == QMessageBox.Yes:
             conn.commit()
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
             msg.setWindowTitle("Сообщение")
             msg.setText("База данных сохранена")
             msg.exec_()
-        elif result == 65536:
+        elif result == QMessageBox.No:
             pass
 
     @QtCore.pyqtSlot()
@@ -285,19 +210,10 @@ class Ui_MainWindow(object):
         pass
 
     @QtCore.pyqtSlot()
-    def exit(self):
-        result = show_msg('Все несохраненные изменения будут потеряны.', 'Все равно выйти?')
-        if result == 1024:
-            conn.close()
-            self.close()
-        elif result == 65536:
-            pass
-
-    @QtCore.pyqtSlot()
     def show_addingdata(self):
         self.addingdata = addingdata()
         self.addingdata.exec_()
-        self.refreshui()
+        self.refresh_treewidget()
 
     @QtCore.pyqtSlot()
     def copybuffer(self):
@@ -325,10 +241,10 @@ class Ui_MainWindow(object):
             msg.exec_()
         elif row[1] == 'item_1':
             result = show_msg('Данные аккаунта <b>{}</b> с логином <b>{}</b> будут удалены.'.format(row[0][0], row[0][1]), 'Вы уверенны?')
-            if result == 1024:
+            if result == QMessageBox.Yes:
                 cur.execute("DELETE FROM account_information WHERE name='{}' AND login='{}' AND pass='{}' AND email='{}' AND secret_word='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][2], row[0][3], row[0][4], row[0][5]))
-                self.refreshui()
-            elif result == 65536:
+                self.refresh_treewidget()
+            elif result == QMessageBox.No:
                 pass
 
     @QtCore.pyqtSlot()
@@ -345,10 +261,83 @@ class Ui_MainWindow(object):
         self.pushButton_5.show()
         pass
 
-    def refreshui(self):
-        self.close()
-        self.__init__()
-        self.show()
+    def add_treewidget_item(self):
+        global lines
+        [lines], = cur.execute("SELECT Count(*) FROM account_information")
+        global amount_item_0
+        amount_item_0 = 0
+        amount_item_1 = lines
+        section = []
+        if lines != 0:
+            for _line in range(1, lines + 1):
+                [_current_id], = cur.execute("SELECT ID FROM account_information LIMIT 1 OFFSET {}".format(_line-1))
+                [_current_section], = cur.execute("SELECT section FROM account_information WHERE ID='{}'".format(_current_id))
+                section.append(_current_section)
+            global srt_section
+            srt_section = list(dict.fromkeys(section))
+            amount_item_0 = len(list(set(section)))
+            for _data_section in range(amount_item_0):
+                if _data_section == 0:
+                    item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
+                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+                    brush.setStyle(QtCore.Qt.NoBrush)
+                    item_0.setBackground(0, brush)
+                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+                    brush.setStyle(QtCore.Qt.NoBrush)
+                    item_0.setBackground(1, brush)
+                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+                    brush.setStyle(QtCore.Qt.NoBrush)
+                    item_0.setBackground(2, brush)
+                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+                    brush.setStyle(QtCore.Qt.NoBrush)
+                    item_0.setBackground(3, brush)
+                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+                    brush.setStyle(QtCore.Qt.NoBrush)
+                    item_0.setBackground(4, brush)
+                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+                    brush.setStyle(QtCore.Qt.NoBrush)
+                    item_0.setBackground(5, brush)
+                    brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+                    brush.setStyle(QtCore.Qt.NoBrush)
+                    item_0.setBackground(6, brush)
+                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
+                    data_one_section = cur.fetchall()
+                else:
+                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
+                    data_one_section = cur.fetchall()
+                    item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
+                for _value in range(len(data_one_section)):
+                    item_1 = QtWidgets.QTreeWidgetItem(item_0)
+
+    def delete_treewidget_item(self):
+        self.treeWidget.clear()
+
+    def add_treewidget_item_text(self):
+        _translate = QtCore.QCoreApplication.translate
+        toplevelitem_iter = -1
+        child_iter = -1
+        text_iter = 0
+        if lines != 0:
+            for _data_section in range(amount_item_0):
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
+                data_one_section = cur.fetchall()
+                acc_info = []
+                for item in data_one_section:
+                    acc_info.append(item[2:])
+                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (_data_section, srt_section[_data_section]))
+                toplevelitem_iter += 1
+                child_iter = -1
+                for _index in range(len(acc_info)):
+                    child_iter += 1
+                    text_iter = 0
+                    for _value in acc_info[_index]:
+                        text_iter += 1
+                        exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
+
+    def refresh_treewidget(self):
+        self.delete_treewidget_item()
+        self.add_treewidget_item()
+        self.add_treewidget_item_text()
         self.treeWidget.expandAll()
 
     def current_row(self):
@@ -371,6 +360,13 @@ class Ui_MainWindow(object):
                 row_data.append(value)
             iter_number += 1
         return row_data, item_type
+
+    def closeEvent(self, event):
+        close = QtWidgets.QMessageBox.question(self, "Выход", "Все несохраненные изменения будут потеряны.\nВсе ровно выйти?", QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        if close == QtWidgets.QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
 
 class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):

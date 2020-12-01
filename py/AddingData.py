@@ -7,6 +7,7 @@ import sqlite3
 import rsa
 import py.MainMenu
 import py.StartWindow
+import base64
 
 
 class Ui_Dialog(object):
@@ -139,12 +140,13 @@ class Ui_Dialog(object):
         #rsa
         with open('{}_pubkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as pubfile:
             keydata = pubfile.read()
+            pubfile.close()
         pubkey = rsa.PublicKey.load_pkcs1(keydata, 'PEM')
-        password = entered_password.encode()
+        # pubfile.close()
+        password_bin = entered_password.encode()
         # шифруем
-        crypto = rsa.encrypt(password, pubkey)
-        print(crypto)
-        print("\n")
+        crypto = rsa.encrypt(password_bin, pubkey)
+        password = (base64.b64encode(crypto)).decode()
         # расшифровываем
         # password = rsa.decrypt(crypto, pubkey)
         # print(password)
@@ -186,10 +188,10 @@ class Ui_Dialog(object):
             if lines != 0:
                 [maxid], = py.MainMenu.cur.execute("SELECT ID FROM account_information ORDER BY ID DESC LIMIT 1")
                 maxid += 1
-                # py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password.decode(), email, secret_word, url))
+                py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password, email, secret_word, url))
             else:
                 maxid = 1
-                py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password.decode(), email, secret_word, url))
+                py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password, email, secret_word, url))
             self.close()
 
     @QtCore.pyqtSlot()
