@@ -100,6 +100,16 @@ class Ui_Dialog(object):
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
+        Dialog.setTabOrder(self.lineEdit, self.lineEdit_2)
+        Dialog.setTabOrder(self.lineEdit_2, self.lineEdit_3)
+        Dialog.setTabOrder(self.lineEdit_3, self.lineEdit_4)
+        Dialog.setTabOrder(self.lineEdit_4, self.lineEdit_5)
+        Dialog.setTabOrder(self.lineEdit_5, self.lineEdit_6)
+        Dialog.setTabOrder(self.lineEdit_6, self.comboBox)
+        Dialog.setTabOrder(self.comboBox, self.pushButton)
+        Dialog.setTabOrder(self.pushButton, self.pushButton_2)
+        Dialog.setTabOrder(self.pushButton_2, self.pushButton_4)
+        Dialog.setTabOrder(self.pushButton_4, self.pushButton_3)
 
         self.pushButton.clicked.connect(self.add_section)
         self.pushButton_2.clicked.connect(self.generate_password)
@@ -136,23 +146,25 @@ class Ui_Dialog(object):
         name = self.lineEdit.text()
         login = self.lineEdit_2.text()
         entered_password = self.lineEdit_3.text()
-
-        #rsa
-        with open('{}_pubkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as pubfile:
-            keydata = pubfile.read()
-            pubfile.close()
-        pubkey = rsa.PublicKey.load_pkcs1(keydata, 'PEM')
-        # pubfile.close()
         password_bin = entered_password.encode()
-        # шифруем
-        crypto = rsa.encrypt(password_bin, pubkey)
-        password = (base64.b64encode(crypto)).decode()
-        # расшифровываем    # TODO: 1) Сделать расшифровку пароля
-        # password = rsa.decrypt(crypto, pubkey)
-        # print(password)
+
+        with open('{}_pubkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as pubfile:
+            keydata_pub = pubfile.read()
+            pubfile.close()
+        pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+
+        crypto_password = rsa.encrypt(password_bin, pubkey)
+        password = (base64.b64encode(crypto_password)).decode()
 
         email = self.lineEdit_4.text()
-        secret_word = self.lineEdit_5.text()
+        entered_secret_word = self.lineEdit_5.text()
+        if entered_secret_word == '':
+            entered_secret_word = 'None'
+
+        secret_word_bin = entered_secret_word.encode()
+        crypto_secret = rsa.encrypt(secret_word_bin, pubkey)
+        secret_word = (base64.b64encode(crypto_secret)).decode()
+
         url = self.lineEdit_6.text()
         if section == '':
             msg = QtWidgets.QMessageBox()
@@ -172,7 +184,7 @@ class Ui_Dialog(object):
             msg.setWindowTitle("Сообщение")
             msg.setText("Введите логин")
             msg.exec_()
-        elif password == '':
+        elif entered_password == '':
             msg = QtWidgets.QMessageBox()
             msg.setIcon(QtWidgets.QMessageBox.Critical)
             msg.setWindowTitle("Сообщение")
@@ -181,7 +193,7 @@ class Ui_Dialog(object):
         else:
             if email == '':
                 email = None
-            if secret_word == '':
+            if entered_secret_word == '':
                 secret_word = None
             if url == '':
                 url = None
@@ -205,7 +217,9 @@ class Ui_Dialog(object):
                     self.close()
             else:
                 maxid = 1
-                py.MainMenu.cur.execute("INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(maxid, section, name, login, password, email, secret_word, url))
+                py.MainMenu.cur.execute(
+                    "INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(
+                        maxid, section, name, login, password, email, secret_word, url))
                 self.close()
 
     @QtCore.pyqtSlot()

@@ -3,6 +3,8 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import sqlite3
+import rsa
+import base64
 import py.DatabaseCreation
 import py.AddingData
 import py.StartWindow
@@ -158,10 +160,10 @@ class Ui_MainWindow(object):
         self.action_5.triggered.connect(self.loadbd)
         self.action_7.triggered.connect(self.close)
         self.pushButton.clicked.connect(self.delete_data)
-        self.pushButton_2.clicked.connect(self.show_addingdata)
-        self.pushButton_3.clicked.connect(self.copy_buffer)
-        self.pushButton_4.clicked.connect(self.password_hide)
-        self.pushButton_5.clicked.connect(self.password_show)
+        self.pushButton_2.clicked.connect(self.show_addingdata)     # TODO: сделать неактивной если нету файла db_pubkey.pem
+        self.pushButton_3.clicked.connect(self.copy_buffer)         # TODO: сделать неактивной если нету файла db_privkey.pem
+        self.pushButton_4.clicked.connect(self.password_hide)       # TODO: сделать неактивной если нету файла db_privkey.pem
+        self.pushButton_5.clicked.connect(self.password_show)       # TODO: сделать неактивной если нету файла db_privkey.pem
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -222,7 +224,7 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def copy_buffer(self):  # TODO: сделать удаление буфера при закрытии программы с диспетчера задач
         global buffer
-        row = self.current_row()    # TODO: 2) Сделать копирование расшифрованного пароля при скрытом отображении
+        row = self.current_row()    # TODO: сделать копирование расшифрованного пароля при скрытом отображении
         if row[1] == 'item_1':
             buffer = QtWidgets.QApplication.clipboard()
             if buffer is not None:
@@ -260,12 +262,29 @@ class Ui_MainWindow(object):
         child_iter = -1
         text_iter = 0
         if lines != 0:
+            with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                keydata_priv = privfile.read()
+                privfile.close()
+            privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
             for _data_section in range(amount_item_0):
                 data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
                 data_one_section = cur.fetchall()
                 acc_info = []
-                for item in data_one_section:
-                    acc_info.append(item[2:])
+                for _item in data_one_section:
+                    acc_info.append(list(_item[2:]))
+                for _i in acc_info:
+                    password_bin = (_i[2]).encode()
+                    password_dec = base64.b64decode(password_bin)
+                    decrypto = rsa.decrypt(password_dec, privkey)
+                    password = decrypto.decode()
+                    _i[2] = password
+
+                    secret_word_bin = (_i[4]).encode()
+
+                    secret_word_dec = base64.b64decode(secret_word_bin)
+                    decrypto_secret = rsa.decrypt(secret_word_dec, privkey)
+                    secret_word = decrypto_secret.decode()
+                    _i[4] = secret_word
                 exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (_data_section, srt_section[_data_section]))
                 toplevelitem_iter += 1
                 child_iter = -1
@@ -366,6 +385,10 @@ class Ui_MainWindow(object):
         child_iter = -1
         text_iter = 0
         if lines != 0:
+            with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                keydata_priv = privfile.read()
+                privfile.close()
+            privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
             for _data_section in range(amount_item_0):
                 data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
                 data_one_section = cur.fetchall()
@@ -382,6 +405,13 @@ class Ui_MainWindow(object):
                         text_iter += 1
                         if (text_iter == 3 and hide_password) or (text_iter == 5 and hide_password):
                             exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, '**********'))
+                        elif len(_value) == 172:
+                                value_bin = (_value).encode()
+                                value_dec = base64.b64decode(value_bin)
+                                decrypto_value = rsa.decrypt(value_dec, privkey)
+                                value = decrypto_value.decode()
+                                print(value)
+                                exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
                         else:
                             exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
 

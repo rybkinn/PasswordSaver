@@ -144,7 +144,7 @@ class Ui_Dialog(object):
                 with open('data/{0}_pubkey.pem'.format(name_db), mode='w+') as pubfile:
                     pubfile.write(pubkey_pem.decode())
                     pubfile.close()
-                with open('data/{0}_private.pem'.format(name_db), mode='w+') as privatefile:
+                with open('data/{0}_privkey.pem'.format(name_db), mode='w+') as privatefile:
                     privatefile.write(privkey_pem.decode())
                     privatefile.close()
 
