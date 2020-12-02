@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="image">
+    <file>image/checkmark.ico</file>
+    <file>image/cross.ico</file>
+  </qresource>
+</RCC>

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os.path
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import sqlite3
@@ -8,11 +9,12 @@ import base64
 import py.DatabaseCreation
 import py.AddingData
 import py.StartWindow
+import py.res_rc
 
 import pprint
 
 version = 'v 0.2'        # Версия программы
-hide_password = True     # Показазь или скрыть пароли при запуске программы: True - пароли скрыты / False - пароли показанны3
+hide_password = True     # Показазь или скрыть пароли при запуске программы: True - пароли скрыты / False - пароли показанны
 buffer = None
 
 
@@ -32,6 +34,10 @@ class Ui_MainWindow(object):
         super(Ui_MainWindow, self).__init__()
         self.createdb = createdb()
         lines = 0
+        global pubkey_file
+        global privkey_file
+        pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))   # True если есть в директории data/   если нету False
+        privkey_file = os.path.isfile("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))   # True если есть в директории data/   если нету False
 
     def connect_sql(self, connected):
         if connected:
@@ -118,6 +124,11 @@ class Ui_MainWindow(object):
         self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_5.setGeometry(QtCore.QRect(530, 20, 151, 23))
         self.pushButton_5.setObjectName("pushButton_5")
+        if lines == 0:
+            self.pushButton.setEnabled(False)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
         if hide_password:
             self.pushButton_4.hide()
         else:
@@ -125,6 +136,81 @@ class Ui_MainWindow(object):
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
         self.label_2.setGeometry(QtCore.QRect(810, 540, 31, 20))
         self.label_2.setObjectName("label_2")
+
+        self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 231, 65))
+        self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setSpacing(2)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.toolButton_2 = QtWidgets.QToolButton(self.verticalLayoutWidget)
+        if pubkey_file:
+            global pubkey_dir
+            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            self.toolButton_2.setEnabled(False)
+            self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
+        else:
+            self.toolButton_2.setEnabled(True)
+            self.pushButton_2.setEnabled(False)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(22)
+        sizePolicy.setVerticalStretch(29)
+        sizePolicy.setHeightForWidth(self.toolButton_2.sizePolicy().hasHeightForWidth())
+        self.toolButton_2.setSizePolicy(sizePolicy)
+        self.toolButton_2.setMinimumSize(QtCore.QSize(23, 31))
+        self.toolButton_2.setSizeIncrement(QtCore.QSize(55, 15))
+        self.toolButton_2.setBaseSize(QtCore.QSize(24, 22))
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setItalic(False)
+        font.setUnderline(False)
+        font.setWeight(75)
+        self.toolButton_2.setFont(font)
+        self.toolButton_2.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
+        self.toolButton_2.setAcceptDrops(False)
+        self.toolButton_2.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.toolButton_2.setStyleSheet("")
+        self.toolButton_2.setInputMethodHints(QtCore.Qt.ImhNone)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/image/image/checkmark.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+        self.toolButton_2.setIcon(icon)
+        self.toolButton_2.setAutoRepeat(False)
+        self.toolButton_2.setAutoExclusive(False)
+        self.toolButton_2.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.toolButton_2.setAutoRaise(True)
+        self.toolButton_2.setObjectName("toolButton_2")
+        self.verticalLayout.addWidget(self.toolButton_2)
+        self.toolButton = QtWidgets.QToolButton(self.verticalLayoutWidget)
+        if privkey_file:
+            global privkey_dir
+            privkey_dir = os.path.abspath("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            self.toolButton.setEnabled(False)
+            self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
+        else:
+            self.toolButton.setEnabled(True)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.toolButton.sizePolicy().hasHeightForWidth())
+        self.toolButton.setSizePolicy(sizePolicy)
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.toolButton.setFont(font)
+        icon1 = QtGui.QIcon()
+        icon1.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(QtGui.QPixmap(":/image/image/checkmark.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+        self.toolButton.setIcon(icon1)
+        self.toolButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.toolButton.setAutoRaise(True)
+        self.toolButton.setObjectName("toolButton")
+        self.verticalLayout.addWidget(self.toolButton)
+
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 870, 21))
@@ -160,10 +246,12 @@ class Ui_MainWindow(object):
         self.action_5.triggered.connect(self.loadbd)
         self.action_7.triggered.connect(self.close)
         self.pushButton.clicked.connect(self.delete_data)
-        self.pushButton_2.clicked.connect(self.show_addingdata)     # TODO: сделать неактивной если нету файла db_pubkey.pem
-        self.pushButton_3.clicked.connect(self.copy_buffer)         # TODO: сделать неактивной если нету файла db_privkey.pem
-        self.pushButton_4.clicked.connect(self.password_hide)       # TODO: сделать неактивной если нету файла db_privkey.pem
-        self.pushButton_5.clicked.connect(self.password_show)       # TODO: сделать неактивной если нету файла db_privkey.pem
+        self.pushButton_2.clicked.connect(self.show_addingdata)
+        self.pushButton_3.clicked.connect(self.copy_buffer)
+        self.pushButton_4.clicked.connect(self.password_hide)
+        self.pushButton_5.clicked.connect(self.password_show)
+        self.toolButton.clicked.connect(self.choise_privkey)
+        self.toolButton_2.clicked.connect(self.choise_pubkey)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -186,6 +274,14 @@ class Ui_MainWindow(object):
         self.pushButton_4.setText(_translate("MainWindow", "Скрыть пароли"))
         self.pushButton_5.setText(_translate("MainWindow", "Показать пароли"))
         self.label_2.setText(_translate("MainWindow", "{}".format(version)))
+        if os.path.isfile("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3])):
+            self.toolButton_2.setText(_translate("MainWindow", "{}".format(pubkey_dir)))
+        else:
+            self.toolButton_2.setText(_translate("MainWindow", "Укажите pubkey.pem"))
+        if privkey_file:
+            self.toolButton.setText(_translate("MainWindow", "{}".format(privkey_dir)))
+        else:
+            self.toolButton.setText(_translate("MainWindow", "Укажите privkey.pem"))
         self.menu.setTitle(_translate("MainWindow", "Файл"))
         self.action.setText(_translate("MainWindow", "Выход"))
         self.action_2.setText(_translate("MainWindow", "Сохранить"))
@@ -221,6 +317,15 @@ class Ui_MainWindow(object):
         self.addingdata.exec_()
         self.refresh_treewidget()
 
+        if lines != 0:
+            if privkey_file:
+                self.pushButton.setEnabled(True)
+                self.pushButton_3.setEnabled(True)
+                self.pushButton_4.setEnabled(True)
+                self.pushButton_5.setEnabled(True)
+            else:
+                self.pushButton.setEnabled(True)
+
     @QtCore.pyqtSlot()
     def copy_buffer(self):  # TODO: сделать удаление буфера при закрытии программы с диспетчера задач
         global buffer
@@ -252,6 +357,11 @@ class Ui_MainWindow(object):
                 self.refresh_treewidget()
             elif result == QMessageBox.No:
                 pass
+        if lines == 0:
+            self.pushButton.setEnabled(False)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
 
     @QtCore.pyqtSlot()
     def password_show(self):
@@ -328,6 +438,18 @@ class Ui_MainWindow(object):
         self.pushButton_4.hide()
         self.pushButton_5.show()
 
+    @QtCore.pyqtSlot()
+    def choise_pubkey(self):
+        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_pubkey.pem'.format(py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_pubkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
+        print(directory_name)
+        pass
+
+    @QtCore.pyqtSlot()
+    def choise_privkey(self):
+        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_privkey.pem'.format(py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_privkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
+        print(directory_name)
+        pass
+
     def add_treewidget_item(self):
         global lines
         [lines], = cur.execute("SELECT Count(*) FROM account_information")
@@ -385,10 +507,11 @@ class Ui_MainWindow(object):
         child_iter = -1
         text_iter = 0
         if lines != 0:
-            with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
-                keydata_priv = privfile.read()
-                privfile.close()
-            privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+            if privkey_file:
+                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
             for _data_section in range(amount_item_0):
                 data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
                 data_one_section = cur.fetchall()
@@ -410,7 +533,6 @@ class Ui_MainWindow(object):
                                 value_dec = base64.b64decode(value_bin)
                                 decrypto_value = rsa.decrypt(value_dec, privkey)
                                 value = decrypto_value.decode()
-                                print(value)
                                 exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
                         else:
                             exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
