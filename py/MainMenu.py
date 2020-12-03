@@ -37,7 +37,7 @@ class Ui_MainWindow(object):
         global pubkey_file
         global privkey_file
         pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))   # True если есть в директории data/   если нету False
-        privkey_file = os.path.isfile("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))   # True если есть в директории data/   если нету False
+        privkey_file = os.path.isfile("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))  # True если есть в директории data/   если нету False
 
     def connect_sql(self, connected):
         if connected:
@@ -100,6 +100,28 @@ class Ui_MainWindow(object):
         font.setWeight(75)
         self.treeWidget.headerItem().setFont(6, font)
         self.add_treewidget_item()
+
+        global result_check_privkey
+        if lines != 0 and privkey_file:
+            try:
+                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+                first_pass = cur.execute("SELECT pass FROM account_information ORDER BY ID ASC LIMIT 1")
+                first_pass = cur.fetchall()
+                password_bin = (first_pass[0][0]).encode()
+                password_dec = base64.b64decode(password_bin)
+                decrypto = rsa.decrypt(password_dec, privkey)
+                password = decrypto.decode()
+                result_check_privkey = True
+            except rsa.pkcs1.DecryptionError:
+                result_check_privkey = False
+        elif lines == 0 and privkey_file:   # TODO: если нету аккаунтов и есть файл privkey.pem то нужно создать запись в БД (c помощью pubkey) и её расшифровать(с помощью privkey) (возможно сначало нужно проверить pubkey==privkey)
+            pass
+        else:
+            result_check_privkey = None
+
         self.treeWidget.header().setDefaultSectionSize(118)
         self.treeWidget.header().setMinimumSectionSize(50)
         self.treeWidget.header().setStretchLastSection(True)
@@ -183,16 +205,24 @@ class Ui_MainWindow(object):
         self.toolButton_2.setObjectName("toolButton_2")
         self.verticalLayout.addWidget(self.toolButton_2)
         self.toolButton = QtWidgets.QToolButton(self.verticalLayoutWidget)
-        if privkey_file:
-            global privkey_dir
+
+        global privkey_dir
+        if privkey_file and result_check_privkey:
             privkey_dir = os.path.abspath("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))
             self.toolButton.setEnabled(False)
             self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
+        elif privkey_file and not result_check_privkey:
+            privkey_dir = os.path.abspath("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            self.toolButton.setEnabled(True)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
         else:
             self.toolButton.setEnabled(True)
             self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
             self.pushButton_5.setEnabled(False)
+
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -274,14 +304,18 @@ class Ui_MainWindow(object):
         self.pushButton_4.setText(_translate("MainWindow", "Скрыть пароли"))
         self.pushButton_5.setText(_translate("MainWindow", "Показать пароли"))
         self.label_2.setText(_translate("MainWindow", "{}".format(version)))
-        if os.path.isfile("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3])):
+        if pubkey_file:
             self.toolButton_2.setText(_translate("MainWindow", "{}".format(pubkey_dir)))
         else:
             self.toolButton_2.setText(_translate("MainWindow", "Укажите pubkey.pem"))
-        if privkey_file:
+
+        if privkey_file and result_check_privkey:
             self.toolButton.setText(_translate("MainWindow", "{}".format(privkey_dir)))
+        elif privkey_file and not result_check_privkey:
+            self.toolButton.setText(_translate("MainWindow", "Ключ не подходит. Укажите privkey.pem"))
         else:
             self.toolButton.setText(_translate("MainWindow", "Укажите privkey.pem"))
+
         self.menu.setTitle(_translate("MainWindow", "Файл"))
         self.action.setText(_translate("MainWindow", "Выход"))
         self.action_2.setText(_translate("MainWindow", "Сохранить"))
@@ -317,14 +351,18 @@ class Ui_MainWindow(object):
         self.addingdata.exec_()
         self.refresh_treewidget()
 
-        if lines != 0:
-            if privkey_file:
-                self.pushButton.setEnabled(True)
-                self.pushButton_3.setEnabled(True)
-                self.pushButton_4.setEnabled(True)
-                self.pushButton_5.setEnabled(True)
-            else:
-                self.pushButton.setEnabled(True)
+        if lines != 0 and privkey_file and result_check_privkey:
+            self.pushButton.setEnabled(True)
+            self.pushButton_3.setEnabled(True)
+            self.pushButton_4.setEnabled(True)
+            self.pushButton_5.setEnabled(True)
+        elif lines != 0 and privkey_file and not result_check_privkey:
+            self.pushButton.setEnabled(True)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
+        else:
+            self.pushButton.setEnabled(True)
 
     @QtCore.pyqtSlot()
     def copy_buffer(self):  # TODO: сделать удаление буфера при закрытии программы с диспетчера задач
@@ -385,15 +423,22 @@ class Ui_MainWindow(object):
                 for _i in acc_info:
                     password_bin = (_i[2]).encode()
                     password_dec = base64.b64decode(password_bin)
-                    decrypto = rsa.decrypt(password_dec, privkey)
-                    password = decrypto.decode()
+                    try:
+                        decrypto = rsa.decrypt(password_dec, privkey)
+                        password = decrypto.decode()
+                    except rsa.pkcs1.DecryptionError:
+                        password = '##ERRORPUBKEY##'
                     _i[2] = password
 
                     secret_word_bin = (_i[4]).encode()
 
                     secret_word_dec = base64.b64decode(secret_word_bin)
-                    decrypto_secret = rsa.decrypt(secret_word_dec, privkey)
-                    secret_word = decrypto_secret.decode()
+                    try:
+                        decrypto_secret = rsa.decrypt(secret_word_dec, privkey)
+                        secret_word = decrypto_secret.decode()
+                    except rsa.pkcs1.DecryptionError:
+                        secret_word = '##ERRORPUBKEY##'
+
                     _i[4] = secret_word
                 exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (_data_section, srt_section[_data_section]))
                 toplevelitem_iter += 1
@@ -531,9 +576,13 @@ class Ui_MainWindow(object):
                         elif len(_value) == 172:
                                 value_bin = (_value).encode()
                                 value_dec = base64.b64decode(value_bin)
-                                decrypto_value = rsa.decrypt(value_dec, privkey)
-                                value = decrypto_value.decode()
-                                exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
+                                try:
+                                    decrypto_value = rsa.decrypt(value_dec, privkey)
+                                    value = decrypto_value.decode()
+                                    exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
+                                except rsa.pkcs1.DecryptionError:
+                                    value = '##ERRORPUBKEY##'
+                                    exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
                         else:
                             exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
 
