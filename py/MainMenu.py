@@ -6,6 +6,8 @@ from PyQt5.QtWidgets import QMessageBox
 import sqlite3
 import rsa
 import base64
+import random
+import string
 import py.DatabaseCreation
 import py.AddingData
 import py.StartWindow
@@ -100,28 +102,6 @@ class Ui_MainWindow(object):
         font.setWeight(75)
         self.treeWidget.headerItem().setFont(6, font)
         self.add_treewidget_item()
-
-        global result_check_privkey
-        if lines != 0 and privkey_file:
-            try:
-                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
-                    keydata_priv = privfile.read()
-                    privfile.close()
-                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-                first_pass = cur.execute("SELECT pass FROM account_information ORDER BY ID ASC LIMIT 1")
-                first_pass = cur.fetchall()
-                password_bin = (first_pass[0][0]).encode()
-                password_dec = base64.b64decode(password_bin)
-                decrypto = rsa.decrypt(password_dec, privkey)
-                password = decrypto.decode()
-                result_check_privkey = True
-            except rsa.pkcs1.DecryptionError:
-                result_check_privkey = False
-        elif lines == 0 and privkey_file:   # TODO: если нету аккаунтов и есть файл privkey.pem то нужно создать запись в БД (c помощью pubkey) и её расшифровать(с помощью privkey) (возможно сначало нужно проверить pubkey==privkey)
-            pass
-        else:
-            result_check_privkey = None
-
         self.treeWidget.header().setDefaultSectionSize(118)
         self.treeWidget.header().setMinimumSectionSize(50)
         self.treeWidget.header().setStretchLastSection(True)
@@ -146,35 +126,18 @@ class Ui_MainWindow(object):
         self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_5.setGeometry(QtCore.QRect(530, 20, 151, 23))
         self.pushButton_5.setObjectName("pushButton_5")
-        if lines == 0:
-            self.pushButton.setEnabled(False)
-            self.pushButton_3.setEnabled(False)
-            self.pushButton_4.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
-        if hide_password:
-            self.pushButton_4.hide()
-        else:
-            self.pushButton_5.hide()
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
         self.label_2.setGeometry(QtCore.QRect(810, 540, 31, 20))
         self.label_2.setObjectName("label_2")
-
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 231, 65))
+        # self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 231, 65))
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setSpacing(2)
         self.verticalLayout.setObjectName("verticalLayout")
         self.toolButton_2 = QtWidgets.QToolButton(self.verticalLayoutWidget)
-        if pubkey_file:
-            global pubkey_dir
-            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
-            self.toolButton_2.setEnabled(False)
-            self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
-        else:
-            self.toolButton_2.setEnabled(True)
-            self.pushButton_2.setEnabled(False)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(22)
         sizePolicy.setVerticalStretch(29)
@@ -205,24 +168,6 @@ class Ui_MainWindow(object):
         self.toolButton_2.setObjectName("toolButton_2")
         self.verticalLayout.addWidget(self.toolButton_2)
         self.toolButton = QtWidgets.QToolButton(self.verticalLayoutWidget)
-
-        global privkey_dir
-        if privkey_file and result_check_privkey:
-            privkey_dir = os.path.abspath("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))
-            self.toolButton.setEnabled(False)
-            self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
-        elif privkey_file and not result_check_privkey:
-            privkey_dir = os.path.abspath("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))
-            self.toolButton.setEnabled(True)
-            self.pushButton_3.setEnabled(False)
-            self.pushButton_4.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
-        else:
-            self.toolButton.setEnabled(True)
-            self.pushButton_3.setEnabled(False)
-            self.pushButton_4.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
-
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -240,7 +185,6 @@ class Ui_MainWindow(object):
         self.toolButton.setAutoRaise(True)
         self.toolButton.setObjectName("toolButton")
         self.verticalLayout.addWidget(self.toolButton)
-
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 870, 21))
@@ -269,6 +213,145 @@ class Ui_MainWindow(object):
         self.menu.addSeparator()
         self.menu.addAction(self.action_7)
         self.menubar.addAction(self.menu.menuAction())
+
+        # ========== Проверка приватного ключа на актуальность
+        global result_check_privkey
+        if lines != 0 and privkey_file:
+            try:
+                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+                first_pass = cur.execute("SELECT pass FROM account_information ORDER BY ID ASC LIMIT 1")
+                first_pass = cur.fetchall()
+                password_bin = (first_pass[0][0]).encode()
+                password_dec = base64.b64decode(password_bin)
+                decrypto = rsa.decrypt(password_dec, privkey)
+                password = decrypto.decode()
+                result_check_privkey = 'ok'
+                print('Приватный ключ правильный')
+            except rsa.pkcs1.DecryptionError:
+                result_check_privkey = '!ok'
+                print('Приватный ключ неправильный')
+        elif lines == 0 and privkey_file and pubkey_file:
+            try:
+                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+                with open('{}_pubkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as pubfile:
+                    keydata_pub = pubfile.read()
+                    pubfile.close()
+                pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+                chars = string.ascii_letters + string.digits
+                rnd_pass = ''.join(random.choice(chars) for x in range(20))
+                rnd_pass = rnd_pass.encode()
+                crypto_pass = rsa.encrypt(rnd_pass, pubkey)
+                decrypto = rsa.decrypt(crypto_pass, privkey)
+                print('Ключи в норме')
+                result_check_privkey = 'ok'
+            except rsa.pkcs1.DecryptionError:
+                print('Укажите правильные ключи, они разные')
+                result_check_privkey = 'privkey != pubkey'
+        elif lines == 0 and privkey_file and not pubkey_file:
+            print('Укажите сначало публичный ключ')
+            result_check_privkey = 'not pubkey'
+        else:
+            result_check_privkey = None
+        # ==========
+
+        # ========== Проверка публичного ключа на актуальность
+        global result_check_pubkey
+        if pubkey_file and privkey_file and result_check_privkey == 'ok':
+            try:
+                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+                with open('{}_pubkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as pubfile:
+                    keydata_pub = pubfile.read()
+                    pubfile.close()
+                pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+                chars = string.ascii_letters + string.digits
+                rnd_pass = ''.join(random.choice(chars) for x in range(20))
+                rnd_pass = rnd_pass.encode()
+                crypto_pass = rsa.encrypt(rnd_pass, pubkey)
+                decrypto = rsa.decrypt(crypto_pass, privkey)
+                print('Публичный ключ правильный')
+                result_check_pubkey = 'ok'
+            except rsa.pkcs1.DecryptionError:
+                print('Неправильный публичный ключ')
+                result_check_pubkey = '!ok'
+        elif lines != 0 and pubkey_file and privkey_file and result_check_privkey == '!ok':
+            result_check_pubkey = 'not privkey'
+        else:
+            result_check_pubkey = None
+        # ==========
+
+        # ========== Выбор какую кнопку скрыть - Покозать/Скрыть пароли
+        if hide_password:
+            self.pushButton_4.hide()
+        else:
+            self.pushButton_5.hide()
+        # ==========
+
+        # ========== Устоновка директории публичного ключа если он есть а так же отключение/влючение кнопок
+        if pubkey_file and result_check_pubkey == 'ok':
+            global pubkey_dir
+            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            self.toolButton_2.setEnabled(False)
+            # self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
+        elif pubkey_file and result_check_pubkey == '!ok':
+            self.toolButton_2.setEnabled(True)
+            self.pushButton_2.setEnabled(False)
+        elif pubkey_file and result_check_pubkey is None:
+            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            self.toolButton_2.setEnabled(False)
+        elif pubkey_file and result_check_pubkey == 'not privkey':
+            self.toolButton_2.setEnabled(False)
+            icon.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+            self.toolButton_2.setIcon(icon)
+        else:
+            self.toolButton_2.setEnabled(True)
+            self.pushButton_2.setEnabled(False)
+        # ==========
+
+        # ========== Установка директории приватного ключа и включение/выключение кнопок при условии есть/нету ключа и соответствует/несоответствует он публичному ключу
+        if privkey_file and result_check_privkey == 'ok':
+            self.toolButton.setEnabled(False)
+            self.pushButton_3.setEnabled(True)
+            self.pushButton_4.setEnabled(True)
+            self.pushButton_5.setEnabled(True)
+            # self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
+        elif privkey_file and result_check_privkey == '!ok':
+            self.toolButton.setEnabled(True)
+            self.pushButton_2.setEnabled(False)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
+        elif privkey_file and result_check_privkey == 'privkey != pubkey':
+            self.toolButton.setEnabled(True)
+            self.toolButton_2.setEnabled(True)
+            self.pushButton_2.setEnabled(False)
+        elif privkey_file and result_check_privkey == 'not pubkey':
+            self.toolButton.setEnabled(False)
+            icon1.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+            self.toolButton.setIcon(icon1)
+        else:
+            self.toolButton.setEnabled(True)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
+        # ==========
+
+        # ========== Установка кнопок если нету строк
+        if lines == 0:
+            self.pushButton.setEnabled(False)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
+        # ==========
+
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         self.action_3.triggered.connect(self.savebd)
@@ -304,15 +387,29 @@ class Ui_MainWindow(object):
         self.pushButton_4.setText(_translate("MainWindow", "Скрыть пароли"))
         self.pushButton_5.setText(_translate("MainWindow", "Показать пароли"))
         self.label_2.setText(_translate("MainWindow", "{}".format(version)))
-        if pubkey_file:
-            self.toolButton_2.setText(_translate("MainWindow", "{}".format(pubkey_dir)))
+
+        if pubkey_file and result_check_pubkey == 'ok':
+            self.toolButton_2.setText(_translate("MainWindow", pubkey_dir))
+        elif pubkey_file and result_check_pubkey == '!ok':
+            self.toolButton_2.setText(_translate("MainWindow", 'Ключ не подходит. Укажите pubkey.pem'))
+        elif pubkey_file and result_check_pubkey is None:
+            self.toolButton_2.setText(_translate("MainWindow", pubkey_dir))
+        elif pubkey_file and result_check_pubkey == 'not privkey':
+            self.toolButton_2.setText(_translate("MainWindow", 'Сначало укажите privkey.pem'))
         else:
             self.toolButton_2.setText(_translate("MainWindow", "Укажите pubkey.pem"))
 
-        if privkey_file and result_check_privkey:
-            self.toolButton.setText(_translate("MainWindow", "{}".format(privkey_dir)))
-        elif privkey_file and not result_check_privkey:
+        # print(result_check_privkey)
+        if privkey_file and result_check_privkey == 'ok':
+            privkey_dir = os.path.abspath("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            self.toolButton.setText(_translate("MainWindow", privkey_dir))
+        elif privkey_file and result_check_privkey == '!ok':
             self.toolButton.setText(_translate("MainWindow", "Ключ не подходит. Укажите privkey.pem"))
+        elif privkey_file and result_check_privkey == 'privkey != pubkey':
+            self.toolButton.setText(_translate("MainWindow", "Ключи разные. Укажите павильный privkey.pem"))
+            self.toolButton_2.setText(_translate("MainWindow", "Ключи разные. Укажите правильный pubkey.pem"))
+        elif privkey_file and result_check_privkey == 'not pubkey':
+            self.toolButton.setText(_translate("MainWindow", "Сначало укажите pubkey.pem"))
         else:
             self.toolButton.setText(_translate("MainWindow", "Укажите privkey.pem"))
 
@@ -351,16 +448,18 @@ class Ui_MainWindow(object):
         self.addingdata.exec_()
         self.refresh_treewidget()
 
-        if lines != 0 and privkey_file and result_check_privkey:
+        if lines != 0 and privkey_file and result_check_privkey == 'ok':
             self.pushButton.setEnabled(True)
             self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)
             self.pushButton_5.setEnabled(True)
-        elif lines != 0 and privkey_file and not result_check_privkey:
+        elif lines != 0 and privkey_file and result_check_privkey == '!ok':
             self.pushButton.setEnabled(True)
             self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
             self.pushButton_5.setEnabled(False)
+        elif lines == 0:
+            self.pushButton.setEnabled(False)
         else:
             self.pushButton.setEnabled(True)
 
