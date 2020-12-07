@@ -138,7 +138,7 @@ class Ui_Dialog(object):
                 cur.close()
                 conn.close()
 
-                (pubkey, privkey) = rsa.newkeys(1024)
+                (pubkey, privkey) = rsa.newkeys(3072)
                 pubkey_pem = pubkey.save_pkcs1('PEM')
                 privkey_pem = privkey.save_pkcs1('PEM')
                 with open('data/{0}_pubkey.pem'.format(name_db), mode='w+') as pubfile:

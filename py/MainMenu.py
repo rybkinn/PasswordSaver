@@ -130,7 +130,6 @@ class Ui_MainWindow(object):
         self.label_2.setGeometry(QtCore.QRect(810, 540, 31, 20))
         self.label_2.setObjectName("label_2")
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
-        # self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 231, 65))
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
@@ -214,7 +213,6 @@ class Ui_MainWindow(object):
         self.menu.addAction(self.action_7)
         self.menubar.addAction(self.menu.menuAction())
 
-        # ========== Проверка приватного ключа на актуальность
         global result_check_privkey
         if lines != 0 and privkey_file:
             try:
@@ -258,9 +256,7 @@ class Ui_MainWindow(object):
             result_check_privkey = 'not pubkey'
         else:
             result_check_privkey = None
-        # ==========
 
-        # ========== Проверка публичного ключа на актуальность
         global result_check_pubkey
         if pubkey_file and privkey_file and result_check_privkey == 'ok':
             try:
@@ -286,21 +282,16 @@ class Ui_MainWindow(object):
             result_check_pubkey = 'not privkey'
         else:
             result_check_pubkey = None
-        # ==========
 
-        # ========== Выбор какую кнопку скрыть - Покозать/Скрыть пароли
         if hide_password:
             self.pushButton_4.hide()
         else:
             self.pushButton_5.hide()
-        # ==========
 
-        # ========== Устоновка директории публичного ключа если он есть а так же отключение/влючение кнопок
         if pubkey_file and result_check_pubkey == 'ok':
             global pubkey_dir
             pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
             self.toolButton_2.setEnabled(False)
-            # self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
         elif pubkey_file and result_check_pubkey == '!ok':
             self.toolButton_2.setEnabled(True)
             self.pushButton_2.setEnabled(False)
@@ -314,15 +305,12 @@ class Ui_MainWindow(object):
         else:
             self.toolButton_2.setEnabled(True)
             self.pushButton_2.setEnabled(False)
-        # ==========
 
-        # ========== Установка директории приватного ключа и включение/выключение кнопок при условии есть/нету ключа и соответствует/несоответствует он публичному ключу
         if privkey_file and result_check_privkey == 'ok':
             self.toolButton.setEnabled(False)
             self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)
             self.pushButton_5.setEnabled(True)
-            # self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 320, 65))
         elif privkey_file and result_check_privkey == '!ok':
             self.toolButton.setEnabled(True)
             self.pushButton_2.setEnabled(False)
@@ -342,15 +330,12 @@ class Ui_MainWindow(object):
             self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
             self.pushButton_5.setEnabled(False)
-        # ==========
 
-        # ========== Установка кнопок если нету строк
         if lines == 0:
             self.pushButton.setEnabled(False)
             self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
             self.pushButton_5.setEnabled(False)
-        # ==========
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -365,6 +350,8 @@ class Ui_MainWindow(object):
         self.pushButton_5.clicked.connect(self.password_show)
         self.toolButton.clicked.connect(self.choise_privkey)
         self.toolButton_2.clicked.connect(self.choise_pubkey)
+        self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.treeWidget.customContextMenuRequested.connect(self.menuContextuelAlbum)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -593,6 +580,26 @@ class Ui_MainWindow(object):
         directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_privkey.pem'.format(py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_privkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
         print(directory_name)
         pass
+
+    def menuContextuelAlbum(self, event):
+        self.menu_contextuelAlb = QtWidgets.QMenu(self.treeWidget)
+        rmenu_copy_log = self.menu_contextuelAlb.addAction("Копировать логин")
+        rmenu_copy_pass = self.menu_contextuelAlb.addAction("Копировать пароль")
+        rmenu_copy_email = self.menu_contextuelAlb.addAction("Копировать почту")
+        rmenu_copy_secret = self.menu_contextuelAlb.addAction("Копировать секретное слово")
+        rmenu_copy_url = self.menu_contextuelAlb.addAction("Копировать url")
+        action2 = self.menu_contextuelAlb.exec_(self.treeWidget.mapToGlobal(event))
+        if action2 is not None:
+            if action2 == rmenu_copy_log:
+                print('Копировать логин')
+            elif action2 == rmenu_copy_pass:
+                print('Копировать пароль')
+            elif action2 == rmenu_copy_email:
+                print('Копировать почту')
+            elif action2 == rmenu_copy_secret:
+                print('Копировать секретное слово')
+            elif action2 == rmenu_copy_url:
+                print('Копировать url')
 
     def add_treewidget_item(self):
         global lines
