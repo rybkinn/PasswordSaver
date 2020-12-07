@@ -17,6 +17,7 @@ import pprint
 
 version = 'v 0.2'        # Версия программы
 hide_password = True     # Показазь или скрыть пароли при запуске программы: True - пароли скрыты / False - пароли показанны
+buffer_del_sec = 15      # Через сколько секунд будет удаляться буфер обмена после копирования пароля
 buffer = None
 
 
@@ -386,7 +387,6 @@ class Ui_MainWindow(object):
         else:
             self.toolButton_2.setText(_translate("MainWindow", "Укажите pubkey.pem"))
 
-        # print(result_check_privkey)
         if privkey_file and result_check_privkey == 'ok':
             privkey_dir = os.path.abspath("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))
             self.toolButton.setText(_translate("MainWindow", privkey_dir))
@@ -455,14 +455,43 @@ class Ui_MainWindow(object):
         global buffer
         row = self.current_row()    # TODO: сделать копирование расшифрованного пароля при скрытом отображении
         if row[1] == 'item_1':
-            buffer = QtWidgets.QApplication.clipboard()
-            if buffer is not None:
-                buffer.setText(row[0][2])
+            if result_check_privkey == 'ok':
+                buffer = QtWidgets.QApplication.clipboard()
+                if buffer is not None:
+                    data_one_section = cur.execute("SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
+                    with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                        keydata_priv = privfile.read()
+                        privfile.close()
+                    privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+                    password_bin = data_one_section[0][0].encode()
+                    password_dec = base64.b64decode(password_bin)
+                    decrypto = rsa.decrypt(password_dec, privkey)
+                    password = decrypto.decode()
+                    buffer.setText(password)
+                    global timer_iter
+                    timer_iter = 0
+                    self.timer = QtCore.QTimer()
+                    self.timer.timeout.connect(self.on_timeout)
+                    self.timer.start(1000)
+            else:
                 msg = QMessageBox()
-                msg.setIcon(QMessageBox.Information)
+                msg.setIcon(QMessageBox.Critical)
                 msg.setWindowTitle("Сообщение")
-                msg.setText("Пароль скопирован")
+                msg.setText("Проверте правильность приватного ключа")
                 msg.exec_()
+
+    def on_timeout(self):
+        global timer_iter
+        global buffer_del_sec
+        if timer_iter != buffer_del_sec - 1:
+            timer_iter += 1
+            print('tick - ' + str(timer_iter))
+        else:
+            timer_iter += 1
+            self.timer.stop()
+            global buffer
+            buffer.clear()
+            print('tick - ' + str(timer_iter))
 
     @QtCore.pyqtSlot()
     def delete_data(self):
@@ -501,8 +530,7 @@ class Ui_MainWindow(object):
                 privfile.close()
             privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
             for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
-                data_one_section = cur.fetchall()
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
                 acc_info = []
                 for _item in data_one_section:
                     acc_info.append(list(_item[2:]))
@@ -550,8 +578,7 @@ class Ui_MainWindow(object):
         text_iter = 0
         if lines != 0:
             for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
-                data_one_section = cur.fetchall()
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
                 acc_info = []
                 for item in data_one_section:
                     acc_info.append(item[2:])
@@ -582,24 +609,26 @@ class Ui_MainWindow(object):
         pass
 
     def menuContextuelAlbum(self, event):
-        self.menu_contextuelAlb = QtWidgets.QMenu(self.treeWidget)
-        rmenu_copy_log = self.menu_contextuelAlb.addAction("Копировать логин")
-        rmenu_copy_pass = self.menu_contextuelAlb.addAction("Копировать пароль")
-        rmenu_copy_email = self.menu_contextuelAlb.addAction("Копировать почту")
-        rmenu_copy_secret = self.menu_contextuelAlb.addAction("Копировать секретное слово")
-        rmenu_copy_url = self.menu_contextuelAlb.addAction("Копировать url")
-        action2 = self.menu_contextuelAlb.exec_(self.treeWidget.mapToGlobal(event))
-        if action2 is not None:
-            if action2 == rmenu_copy_log:
-                print('Копировать логин')
-            elif action2 == rmenu_copy_pass:
-                print('Копировать пароль')
-            elif action2 == rmenu_copy_email:
-                print('Копировать почту')
-            elif action2 == rmenu_copy_secret:
-                print('Копировать секретное слово')
-            elif action2 == rmenu_copy_url:
-                print('Копировать url')
+        row = self.current_row()
+        if row[1] == 'item_1':
+            self.menu_contextuelAlb = QtWidgets.QMenu(self.treeWidget)
+            rmenu_copy_log = self.menu_contextuelAlb.addAction("Копировать логин")
+            rmenu_copy_pass = self.menu_contextuelAlb.addAction("Копировать пароль")
+            rmenu_copy_email = self.menu_contextuelAlb.addAction("Копировать почту")
+            rmenu_copy_secret = self.menu_contextuelAlb.addAction("Копировать секретное слово")
+            rmenu_copy_url = self.menu_contextuelAlb.addAction("Копировать url")
+            action2 = self.menu_contextuelAlb.exec_(self.treeWidget.mapToGlobal(event))
+            if action2 is not None:
+                if action2 == rmenu_copy_log:
+                    print('Копировать логин')
+                elif action2 == rmenu_copy_pass:
+                    print('Копировать пароль')
+                elif action2 == rmenu_copy_email:
+                    print('Копировать почту')
+                elif action2 == rmenu_copy_secret:
+                    print('Копировать секретное слово')
+                elif action2 == rmenu_copy_url:
+                    print('Копировать url')
 
     def add_treewidget_item(self):
         global lines
@@ -640,11 +669,9 @@ class Ui_MainWindow(object):
                     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
                     brush.setStyle(QtCore.Qt.NoBrush)
                     item_0.setBackground(6, brush)
-                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
-                    data_one_section = cur.fetchall()
+                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
                 else:
-                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
-                    data_one_section = cur.fetchall()
+                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
                     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
                 for _value in range(len(data_one_section)):
                     item_1 = QtWidgets.QTreeWidgetItem(item_0)
@@ -664,8 +691,7 @@ class Ui_MainWindow(object):
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
             for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section]))
-                data_one_section = cur.fetchall()
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
                 acc_info = []
                 for item in data_one_section:
                     acc_info.append(item[2:])
