@@ -17,7 +17,7 @@ import pprint
 
 version = 'v 0.2'        # Версия программы
 hide_password = True     # Показазь или скрыть пароли при запуске программы: True - пароли скрыты / False - пароли показанны
-buffer_del_sec = 15      # Через сколько секунд будет удаляться буфер обмена после копирования пароля
+buffer_del_sec = 10      # Через сколько секунд будет удаляться буфер обмена после копирования пароля
 buffer = None
 
 
@@ -214,6 +214,21 @@ class Ui_MainWindow(object):
         self.menu.addAction(self.action_7)
         self.menubar.addAction(self.menu.menuAction())
 
+        self.progressBar = QtWidgets.QProgressBar(MainWindow)
+        self.progressBar.setGeometry(QtCore.QRect(10, 565, 200, 20))
+        self.progressBar.setMinimum(0)
+        self.progressBar.setMaximum(100)
+        self.progressBar.setProperty("value", 0)
+        self.progressBar.setOrientation(QtCore.Qt.Horizontal)
+        self.progressBar.setInvertedAppearance(False)
+        self.progressBar.setTextDirection(QtWidgets.QProgressBar.TopToBottom)
+        self.progressBar.setObjectName("progressBar")
+        self.progressBar.hide()
+        self.label_3 = QtWidgets.QLabel(self.centralwidget)
+        self.label_3.setGeometry(QtCore.QRect(180, 542, 300, 20))
+        self.label_3.setObjectName("label_3")
+        self.label_3.hide()
+
         global result_check_privkey
         if lines != 0 and privkey_file:
             try:
@@ -375,6 +390,7 @@ class Ui_MainWindow(object):
         self.pushButton_4.setText(_translate("MainWindow", "Скрыть пароли"))
         self.pushButton_5.setText(_translate("MainWindow", "Показать пароли"))
         self.label_2.setText(_translate("MainWindow", "{}".format(version)))
+        self.label_3.setText(_translate("MainWindow", "Данные будут удалены с буфера обмена через {} секунд".format(buffer_del_sec)))
 
         if pubkey_file and result_check_pubkey == 'ok':
             self.toolButton_2.setText(_translate("MainWindow", pubkey_dir))
@@ -407,6 +423,7 @@ class Ui_MainWindow(object):
         self.action_4.setText(_translate("MainWindow", "Создать новую БД"))
         self.action_5.setText(_translate("MainWindow", "Загрузить БД"))
         self.action_7.setText(_translate("MainWindow", "Выход"))
+        self.progressBar.setFormat(_translate("MainWindow", ""))
 
     @QtCore.pyqtSlot()
     def savebd(self):
@@ -453,7 +470,7 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def copy_buffer(self):  # TODO: сделать удаление буфера при закрытии программы с диспетчера задач
         global buffer
-        row = self.current_row()    # TODO: сделать копирование расшифрованного пароля при скрытом отображении
+        row = self.current_row()
         if row[1] == 'item_1':
             if result_check_privkey == 'ok':
                 buffer = QtWidgets.QApplication.clipboard()
@@ -468,30 +485,27 @@ class Ui_MainWindow(object):
                     decrypto = rsa.decrypt(password_dec, privkey)
                     password = decrypto.decode()
                     buffer.setText(password)
-                    global timer_iter
-                    timer_iter = 0
-                    self.timer = QtCore.QTimer()
-                    self.timer.timeout.connect(self.on_timeout)
-                    self.timer.start(1000)
+                    global buffer_del_sec
+                    self.timer = QtCore.QBasicTimer()
+                    self.timer_sec = QtCore.QTimer()
+                    self.step = 0
+                    self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow", "Данные будут удалены с буфера обмена через {} секунд".format(buffer_del_sec)))
+                    timer_del = buffer_del_sec * 10
+                    if self.timer_sec.isActive():
+                        self.timer_sec.stop()
+                    if self.timer.isActive():
+                        self.timer.stop()
+                    else:
+                        self.timer.start(timer_del, self)
+                        self.progressBar.show()
+                        self.label_3.show()
+                        self.start_timer(self.timer_func, buffer_del_sec)
             else:
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Critical)
                 msg.setWindowTitle("Сообщение")
                 msg.setText("Проверте правильность приватного ключа")
                 msg.exec_()
-
-    def on_timeout(self):
-        global timer_iter
-        global buffer_del_sec
-        if timer_iter != buffer_del_sec - 1:
-            timer_iter += 1
-            print('tick - ' + str(timer_iter))
-        else:
-            timer_iter += 1
-            self.timer.stop()
-            global buffer
-            buffer.clear()
-            print('tick - ' + str(timer_iter))
 
     @QtCore.pyqtSlot()
     def delete_data(self):
@@ -607,6 +621,37 @@ class Ui_MainWindow(object):
         directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_privkey.pem'.format(py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_privkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
         print(directory_name)
         pass
+
+    def timerEvent(self, e):
+        global buffer_del_sec
+        if self.step >= 100:
+            self.timer.stop()
+            buffer.clear()
+            self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow", "Данные удалены с буфера обмена."))
+            return
+        else:
+            self.step += 1
+            self.progressBar.setValue(self.step)
+
+    def start_timer(self, slot, count=0, interval=1000):
+        global buffer_del_sec
+        counter = buffer_del_sec
+
+        def handler():
+            nonlocal counter
+            counter -= 1
+            slot(counter)
+            if counter >= count:
+                py.MainMenu.Ui_MainWindow.timer_sec.stop()
+                py.MainMenu.Ui_MainWindow.timer_sec.deleteLater()
+        self.timer_sec.timeout.connect(handler)
+        self.timer_sec.start(interval)
+
+    def timer_func(self, count):
+        global buffer_del_sec
+        self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow", "Данные будут удалены с буфера обмена через {} секунд").format(count))
+        if count <= 0:
+            self.timer_sec.stop()
 
     def menuContextuelAlbum(self, event):
         row = self.current_row()
