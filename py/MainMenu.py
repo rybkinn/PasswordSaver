@@ -485,21 +485,7 @@ class Ui_MainWindow(object):
                     decrypto = rsa.decrypt(password_dec, privkey)
                     password = decrypto.decode()
                     buffer.setText(password)
-                    global buffer_del_sec
-                    self.timer = QtCore.QBasicTimer()
-                    self.timer_sec = QtCore.QTimer()
-                    self.step = 0
-                    self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow", "Данные будут удалены с буфера обмена через {} секунд".format(buffer_del_sec)))
-                    timer_del = buffer_del_sec * 10
-                    if self.timer_sec.isActive():
-                        self.timer_sec.stop()
-                    if self.timer.isActive():
-                        self.timer.stop()
-                    else:
-                        self.timer.start(timer_del, self)
-                        self.progressBar.show()
-                        self.label_3.show()
-                        self.start_timer(self.timer_func, buffer_del_sec)
+                    self.delete_buffer()
             else:
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Critical)
@@ -622,6 +608,23 @@ class Ui_MainWindow(object):
         print(directory_name)
         pass
 
+    def delete_buffer(self):
+        global buffer_del_sec
+        self.timer = QtCore.QBasicTimer()
+        self.timer_sec = QtCore.QTimer()
+        self.step = 0
+        self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow", "Данные будут удалены с буфера обмена через {} секунд".format(buffer_del_sec)))
+        timer_del = buffer_del_sec * 10
+        if self.timer_sec.isActive():
+            self.timer_sec.stop()
+        if self.timer.isActive():
+            self.timer.stop()
+        else:
+            self.timer.start(timer_del, self)
+            self.progressBar.show()
+            self.label_3.show()
+            self.start_timer(self.timer_func, buffer_del_sec)
+
     def timerEvent(self, e):
         global buffer_del_sec
         if self.step >= 100:
@@ -654,26 +657,72 @@ class Ui_MainWindow(object):
             self.timer_sec.stop()
 
     def menuContextuelAlbum(self, event):
+        global buffer
+        global result_check_privkey
         row = self.current_row()
         if row[1] == 'item_1':
             self.menu_contextuelAlb = QtWidgets.QMenu(self.treeWidget)
             rmenu_copy_log = self.menu_contextuelAlb.addAction("Копировать логин")
-            rmenu_copy_pass = self.menu_contextuelAlb.addAction("Копировать пароль")
+            if result_check_privkey == 'ok':
+                rmenu_copy_pass = self.menu_contextuelAlb.addAction("Копировать пароль")
             rmenu_copy_email = self.menu_contextuelAlb.addAction("Копировать почту")
-            rmenu_copy_secret = self.menu_contextuelAlb.addAction("Копировать секретное слово")
+            if result_check_privkey == 'ok':
+                rmenu_copy_secret = self.menu_contextuelAlb.addAction("Копировать секретное слово")
             rmenu_copy_url = self.menu_contextuelAlb.addAction("Копировать url")
             action2 = self.menu_contextuelAlb.exec_(self.treeWidget.mapToGlobal(event))
             if action2 is not None:
                 if action2 == rmenu_copy_log:
-                    print('Копировать логин')
-                elif action2 == rmenu_copy_pass:
-                    print('Копировать пароль')
+                    buffer = QtWidgets.QApplication.clipboard()
+                    if buffer is not None:
+                        buffer.setText(row[0][1])
+                        self.delete_buffer()
                 elif action2 == rmenu_copy_email:
-                    print('Копировать почту')
-                elif action2 == rmenu_copy_secret:
-                    print('Копировать секретное слово')
+                    buffer = QtWidgets.QApplication.clipboard()
+                    if buffer is not None:
+                        if row[0][3] == 'None':
+                            msg = QMessageBox()
+                            msg.setIcon(QMessageBox.Warning)
+                            msg.setWindowTitle("Сообщение")
+                            msg.setText("На этом аккаунте нету почты")
+                            msg.exec_()
+                        else:
+                            buffer.setText(row[0][3])
+                            self.delete_buffer()
                 elif action2 == rmenu_copy_url:
-                    print('Копировать url')
+                    buffer = QtWidgets.QApplication.clipboard()
+                    if buffer is not None:
+                        if row[0][5] == 'None':
+                            msg = QMessageBox()
+                            msg.setIcon(QMessageBox.Warning)
+                            msg.setWindowTitle("Сообщение")
+                            msg.setText("На этом аккаунте не указан url")
+                            msg.exec_()
+                        else:
+                            buffer.setText(row[0][5])
+                            self.delete_buffer()
+                elif action2 == rmenu_copy_pass:
+                    self.copy_buffer()
+                elif action2 == rmenu_copy_secret:
+                    buffer = QtWidgets.QApplication.clipboard()
+                    if buffer is not None:
+                        data_one_section = cur.execute("SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
+                        with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                            keydata_priv = privfile.read()
+                            privfile.close()
+                        privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+                        secret_bin = data_one_section[0][0].encode()
+                        secret_dec = base64.b64decode(secret_bin)
+                        decrypto = rsa.decrypt(secret_dec, privkey)
+                        secret = decrypto.decode()
+                        if secret == 'None':
+                            msg = QMessageBox()
+                            msg.setIcon(QMessageBox.Warning)
+                            msg.setWindowTitle("Сообщение")
+                            msg.setText("На этом аккаунте не указанно секретное слово")
+                            msg.exec_()
+                        else:
+                            buffer.setText(secret)
+                            self.delete_buffer()
 
     def add_treewidget_item(self):
         global lines
