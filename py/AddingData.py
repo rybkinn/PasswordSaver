@@ -150,10 +150,13 @@ class Ui_Dialog(object):
         entered_password = self.lineEdit_3.text()
         password_bin = entered_password.encode()
 
-        with open('{}_pubkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as pubfile:
-            keydata_pub = pubfile.read()
-            pubfile.close()
-        pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+        if py.MainMenu.choise_pubkey is not None:
+            pubkey = py.MainMenu.choise_pubkey
+        else:
+            with open('{}_pubkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as pubfile:
+                keydata_pub = pubfile.read()
+                pubfile.close()
+            pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
 
         crypto_password = rsa.encrypt(password_bin, pubkey)
         password = (base64.b64encode(crypto_password)).decode()

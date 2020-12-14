@@ -19,6 +19,9 @@ version = 'v 0.2'        # Версия программы
 hide_password = True     # Показазь или скрыть пароли при запуске программы: True - пароли скрыты / False - пароли показанны
 buffer_del_sec = 10      # Через сколько секунд будет удаляться буфер обмена после копирования пароля
 buffer = None
+choise_pubkey = None
+choise_privkey = None
+result_check_choise_privkey = None
 
 
 def show_msg(top_text, bottom_text):
@@ -358,26 +361,22 @@ class Ui_MainWindow(object):
         global buffer
         row = self.current_row()
         if row[1] == 'item_1':
-            if result_check_privkey == 'ok':
-                buffer = QtWidgets.QApplication.clipboard()
-                if buffer is not None:
-                    data_one_section = cur.execute("SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
+            buffer = QtWidgets.QApplication.clipboard()
+            if buffer is not None:
+                data_one_section = cur.execute("SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
+                if choise_privkey is not None:
+                    privkey = choise_privkey
+                else:
                     with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
                         keydata_priv = privfile.read()
                         privfile.close()
                     privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-                    password_bin = data_one_section[0][0].encode()
-                    password_dec = base64.b64decode(password_bin)
-                    decrypto = rsa.decrypt(password_dec, privkey)
-                    password = decrypto.decode()
-                    buffer.setText(password)
-                    self.delete_buffer()
-            else:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setWindowTitle("Сообщение")
-                msg.setText("Проверте правильность приватного ключа")
-                msg.exec_()
+                password_bin = data_one_section[0][0].encode()
+                password_dec = base64.b64decode(password_bin)
+                decrypto = rsa.decrypt(password_dec, privkey)
+                password = decrypto.decode()
+                buffer.setText(password)
+                self.delete_buffer()
 
     @QtCore.pyqtSlot()
     def delete_data(self):
@@ -411,10 +410,13 @@ class Ui_MainWindow(object):
         child_iter = -1
         text_iter = 0
         if lines != 0:
-            with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
-                keydata_priv = privfile.read()
-                privfile.close()
-            privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+            if choise_privkey is not None:
+                privkey = choise_privkey
+            else:
+                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
             for _data_section in range(amount_item_0):
                 data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
                 acc_info = []
@@ -484,81 +486,82 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def choise_pubkey(self):
+        global choise_pubkey
         directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_pubkey.pem'.format(py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_pubkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
-        #     with open(directory_name[0], 'rb') as pubfile:
-        #         keydata_pub = pubfile.read()
-        #         pubfile.close()
-        #     pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
-        #     chars = string.ascii_letters + string.digits
-        #     rnd_pass = ''.join(random.choice(chars) for x in range(20))
-        #     rnd_pass = rnd_pass.encode()
-        #     crypto_pass = rsa.encrypt(rnd_pass, pubkey)
-        #     decrypto = rsa.decrypt(crypto_pass, privkey)
-        #     print('Публичный ключ правильный')
-        #     result_check_pubkey = 'ok'
-        # except rsa.pkcs1.DecryptionError:
-        #     print('Неправильный публичный ключ')
-        #     result_check_pubkey = '!ok'
-            pass
-        print(directory_name)
-        pass
+            if directory_name[0][-(len(directory_name[1])-5):-11] == py.StartWindow.db_info[1][:-3]:
+                with open(directory_name[0], 'rb') as pubfile:
+                    keydata_pub = pubfile.read()
+                    pubfile.close()
+                choise_pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+                self.toolButton_2.setEnabled(False)
+                self.toolButton_2.setText(directory_name[0])
+                self.pushButton_2.setEnabled(True)
+
+                if not self.toolButton.isEnabled():
+                    try:
+                        with open(self.toolButton.text(), 'rb') as privfile:
+                            keydata_priv = privfile.read()
+                            privfile.close()
+                        selftest_privfile = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+                        chars = string.ascii_letters + string.digits
+                        rnd_text = ''.join(random.choice(chars) for x in range(20))
+                        rnd_text = rnd_text.encode()
+                        crypto_text = rsa.encrypt(rnd_text, choise_pubkey)
+                        selftest_decrypto = rsa.decrypt(crypto_text, selftest_privfile)
+                    except rsa.pkcs1.DecryptionError:
+                        self.toolButton_2.setEnabled(True)
+                        self.toolButton_2.setText('Опять неправильный. Укажите pubkey.pem')
+                        self.pushButton_2.setEnabled(False)
 
     @QtCore.pyqtSlot()
     def choise_privkey(self):
+        global choise_privkey
+        global result_check_choise_privkey
         directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_privkey.pem'.format(py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_privkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
-        print(directory_name)
-        pass
+        if directory_name[0] != '' and directory_name[1] != '':
+            if directory_name[0][-(len(directory_name[1])-5):-12] == py.StartWindow.db_info[1][:-3]:
+                if lines != 0:
+                    try:
+                        with open(directory_name[0], 'rb') as privfile:
+                            keydata_priv = privfile.read()
+                            privfile.close()
+                        choise_privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+                        first_pass = cur.execute("SELECT pass FROM account_information ORDER BY ID ASC LIMIT 1")
+                        first_pass = cur.fetchall()
+                        password_bin = (first_pass[0][0]).encode()
+                        password_dec = base64.b64decode(password_bin)
+                        decrypto = rsa.decrypt(password_dec, choise_privkey)
+                        password = decrypto.decode()
+                        result_check_choise_privkey = 'ok'
+                        print('Приватный ключ правильный')
+                    except rsa.pkcs1.DecryptionError:
+                        result_check_choise_privkey = '!ok'
+                        print('Приватный ключ неправильный')
+                    if result_check_choise_privkey == 'ok':
+                        self.toolButton.setEnabled(False)
+                        self.toolButton.setText(directory_name[0])
+                        self.pushButton_5.setEnabled(True)
+                        self.pushButton_4.setEnabled(True)
+                        self.pushButton_3.setEnabled(True)
+                        if not self.toolButton_2.isEnabled():
+                            try:
+                                with open(self.toolButton_2.text(), 'rb') as pubfile:
+                                    keydata_pub = pubfile.read()
+                                    pubfile.close()
+                                selftest_pubfile = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+                                chars = string.ascii_letters + string.digits
+                                rnd_text = ''.join(random.choice(chars) for x in range(20))
+                                rnd_text = rnd_text.encode()
+                                crypto_text = rsa.encrypt(rnd_text, selftest_pubfile)
+                                selftest_decrypto = rsa.decrypt(crypto_text, choise_privkey)
+                            except rsa.pkcs1.DecryptionError:
+                                self.toolButton_2.setEnabled(True)
+                                self.toolButton_2.setText('Ключ неправильный. Укажите pubkey.pem')
+                                self.pushButton_2.setEnabled(False)
 
-    def button_state(self):
-        if pubkey_file and result_check_pubkey == 'ok':
-            global pubkey_dir
-            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
-            self.toolButton_2.setEnabled(False)
-        elif pubkey_file and result_check_pubkey == '!ok':
-            self.toolButton_2.setEnabled(True)
-            self.pushButton_2.setEnabled(False)
-        elif pubkey_file and result_check_pubkey is None:
-            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
-            self.toolButton_2.setEnabled(False)
-        elif pubkey_file and result_check_pubkey == 'not privkey':
-            self.toolButton_2.setEnabled(False)
-            icon.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
-            self.toolButton_2.setIcon(icon)
-        else:
-            self.toolButton_2.setEnabled(True)
-            self.pushButton_2.setEnabled(False)
-
-        if privkey_file and result_check_privkey == 'ok':
-            self.toolButton.setEnabled(False)
-            self.pushButton_3.setEnabled(True)
-            self.pushButton_4.setEnabled(True)
-            self.pushButton_5.setEnabled(True)
-        elif privkey_file and result_check_privkey == '!ok':
-            self.toolButton.setEnabled(True)
-            self.pushButton_2.setEnabled(False)
-            self.pushButton_3.setEnabled(False)
-            self.pushButton_4.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
-        elif privkey_file and result_check_privkey == 'privkey != pubkey':
-            self.toolButton.setEnabled(True)
-            self.toolButton_2.setEnabled(True)
-            self.pushButton_2.setEnabled(False)
-        elif privkey_file and result_check_privkey == 'not pubkey':
-            self.toolButton.setEnabled(False)
-            icon1.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
-            self.toolButton.setIcon(icon1)
-        else:
-            self.toolButton.setEnabled(True)
-            self.pushButton_3.setEnabled(False)
-            self.pushButton_4.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
-
-        if lines == 0:
-            self.pushButton.setEnabled(False)
-            self.pushButton_3.setEnabled(False)
-            self.pushButton_4.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
+                    elif result_check_choise_privkey == '!ok':
+                        self.toolButton.setText('Ключ не подходит. Выберете правильный privkey')
 
     def result_check_privkey(self):
         global result_check_privkey
@@ -627,10 +630,60 @@ class Ui_MainWindow(object):
             except rsa.pkcs1.DecryptionError:
                 print('Неправильный публичный ключ')
                 result_check_pubkey = '!ok'
-        elif lines != 0 and pubkey_file and privkey_file and result_check_privkey == '!ok':
-            result_check_pubkey = 'not privkey'
         else:
             result_check_pubkey = None
+
+    def button_state(self):
+        icon = QtGui.QIcon()
+        icon1 = QtGui.QIcon()
+        if pubkey_file and result_check_pubkey == 'ok':
+            global pubkey_dir
+            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            self.toolButton_2.setEnabled(False)
+        elif pubkey_file and result_check_pubkey == '!ok':
+            self.toolButton_2.setEnabled(True)
+            self.pushButton_2.setEnabled(False)
+        elif pubkey_file and result_check_pubkey is None:
+            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            self.toolButton_2.setEnabled(False)
+        elif pubkey_file and result_check_pubkey == 'not privkey':
+            self.toolButton_2.setEnabled(False)
+            icon.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+            self.toolButton_2.setIcon(icon)
+        else:
+            self.toolButton_2.setEnabled(True)
+            self.pushButton_2.setEnabled(False)
+
+        if privkey_file and result_check_privkey == 'ok':
+            self.toolButton.setEnabled(False)
+            self.pushButton_3.setEnabled(True)
+            self.pushButton_4.setEnabled(True)
+            self.pushButton_5.setEnabled(True)
+        elif privkey_file and result_check_privkey == '!ok':
+            self.toolButton.setEnabled(True)
+            self.pushButton_2.setEnabled(False)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
+        elif privkey_file and result_check_privkey == 'privkey != pubkey':
+            self.toolButton.setEnabled(True)
+            self.toolButton_2.setEnabled(True)
+            self.pushButton_2.setEnabled(False)
+        elif privkey_file and result_check_privkey == 'not pubkey':
+            self.toolButton.setEnabled(False)
+            icon1.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+            self.toolButton.setIcon(icon1)
+        else:
+            self.toolButton.setEnabled(True)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
+
+        if lines == 0:
+            self.pushButton.setEnabled(False)
+            self.pushButton_3.setEnabled(False)
+            self.pushButton_4.setEnabled(False)
+            self.pushButton_5.setEnabled(False)
 
     def delete_buffer(self):
         global buffer_del_sec
@@ -687,10 +740,10 @@ class Ui_MainWindow(object):
         if row[1] == 'item_1':
             self.menu_contextuelAlb = QtWidgets.QMenu(self.treeWidget)
             rmenu_copy_log = self.menu_contextuelAlb.addAction("Копировать логин")
-            if result_check_privkey == 'ok':
+            if result_check_privkey == 'ok' or result_check_choise_privkey == 'ok':
                 rmenu_copy_pass = self.menu_contextuelAlb.addAction("Копировать пароль")
             rmenu_copy_email = self.menu_contextuelAlb.addAction("Копировать почту")
-            if result_check_privkey == 'ok':
+            if result_check_privkey == 'ok' or result_check_choise_privkey == 'ok':
                 rmenu_copy_secret = self.menu_contextuelAlb.addAction("Копировать секретное слово")
             rmenu_copy_url = self.menu_contextuelAlb.addAction("Копировать url")
             action2 = self.menu_contextuelAlb.exec_(self.treeWidget.mapToGlobal(event))
@@ -730,10 +783,15 @@ class Ui_MainWindow(object):
                     buffer = QtWidgets.QApplication.clipboard()
                     if buffer is not None:
                         data_one_section = cur.execute("SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
-                        with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
-                            keydata_priv = privfile.read()
-                            privfile.close()
-                        privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+
+                        if choise_privkey is not None:
+                            privkey = choise_privkey
+                        else:
+                            with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                                keydata_priv = privfile.read()
+                                privfile.close()
+                            privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+
                         secret_bin = data_one_section[0][0].encode()
                         secret_dec = base64.b64decode(secret_bin)
                         decrypto = rsa.decrypt(secret_dec, privkey)
@@ -803,11 +861,15 @@ class Ui_MainWindow(object):
         child_iter = -1
         text_iter = 0
         if lines != 0:
+
             if privkey_file:
                 with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+            elif choise_privkey:
+                privkey = choise_privkey
+
             for _data_section in range(amount_item_0):
                 data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
                 acc_info = []
