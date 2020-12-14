@@ -155,7 +155,7 @@ class Ui_Dialog(object):
 
     @QtCore.pyqtSlot()
     def show_createdb(self):
-        self.createdb.show()
+        self.createdb.exec_()
 
 
 class mainwindow(QtWidgets.QMainWindow, py.MainMenu.Ui_MainWindow):
