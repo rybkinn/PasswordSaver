@@ -5,6 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import sqlite3
 import rsa
+import py.MainMenu
 
 
 def show_msg(value, text_show):
@@ -134,11 +135,16 @@ class Ui_Dialog(object):
                     "url" TEXT,
                     PRIMARY KEY("ID" AUTOINCREMENT))
                 """)
+                cur.execute("""CREATE TABLE IF NOT EXISTS db_information(
+                    "name" TEXT,
+                    "value" INTEGER)
+                """)
+                cur.execute("INSERT INTO db_information (name, value) VALUES ('rsa_bit', {})".format(py.MainMenu.new_rsa_bit))
                 conn.commit()
                 cur.close()
                 conn.close()
 
-                (pubkey, privkey) = rsa.newkeys(3072)
+                (pubkey, privkey) = rsa.newkeys(py.MainMenu.new_rsa_bit)
                 pubkey_pem = pubkey.save_pkcs1('PEM')
                 privkey_pem = privkey.save_pkcs1('PEM')
                 with open('data/{0}_pubkey.pem'.format(name_db), mode='w+') as pubfile:

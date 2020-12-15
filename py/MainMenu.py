@@ -18,11 +18,12 @@ import pprint
 version = 'v 0.2'        # Версия программы
 hide_password = True     # Показазь или скрыть пароли при запуске программы: True - пароли скрыты / False - пароли показанны
 buffer_del_sec = 10      # Через сколько секунд будет удаляться буфер обмена после копирования пароля
+new_rsa_bit = 1024       # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072)
+
 buffer = None
 choise_pubkey = None
 choise_privkey = None
 result_check_choise_privkey = None
-
 
 def show_msg(top_text, bottom_text):
     msg = QMessageBox()
@@ -49,8 +50,16 @@ class Ui_MainWindow(object):
         if connected:
             global conn
             global cur
+            global rsa_length
             conn = sqlite3.connect(py.StartWindow.db_info[0])
             cur = conn.cursor()
+            rsa_bit = cur.execute("SELECT value FROM db_information WHERE name='rsa_bit'").fetchone()[0]
+            if rsa_bit == 3072:
+                rsa_length = 512
+            elif rsa_bit == 2048:
+                rsa_length = 344
+            elif rsa_bit == 1024:
+                rsa_length = 172
             return True
         else:
             return False
@@ -341,12 +350,12 @@ class Ui_MainWindow(object):
         self.addingdata.exec_()
         self.refresh_treewidget()
 
-        if lines != 0 and privkey_file and result_check_privkey == 'ok':
+        if lines != 0 and privkey_file and result_check_privkey == 'ok' or lines != 0 and result_check_choise_privkey == 'ok':
             self.pushButton.setEnabled(True)
             self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)
             self.pushButton_5.setEnabled(True)
-        elif lines != 0 and privkey_file and result_check_privkey == '!ok':
+        elif lines != 0 and privkey_file and result_check_privkey == '!ok' or lines != 0 and result_check_choise_privkey == '!ok':
             self.pushButton.setEnabled(True)
             self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
@@ -492,8 +501,10 @@ class Ui_MainWindow(object):
             if directory_name[0][-(len(directory_name[1])-5):-11] == py.StartWindow.db_info[1][:-3]:
                 with open(directory_name[0], 'rb') as pubfile:
                     keydata_pub = pubfile.read()
+                    print(keydata_pub)
                     pubfile.close()
                 choise_pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+                print(choise_pubkey)
                 self.toolButton_2.setEnabled(False)
                 self.toolButton_2.setText(directory_name[0])
                 self.pushButton_2.setEnabled(True)
@@ -521,12 +532,12 @@ class Ui_MainWindow(object):
         directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_privkey.pem'.format(py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_privkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
             if directory_name[0][-(len(directory_name[1])-5):-12] == py.StartWindow.db_info[1][:-3]:
+                with open(directory_name[0], 'rb') as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                choise_privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
                 if lines != 0:
                     try:
-                        with open(directory_name[0], 'rb') as privfile:
-                            keydata_priv = privfile.read()
-                            privfile.close()
-                        choise_privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
                         first_pass = cur.execute("SELECT pass FROM account_information ORDER BY ID ASC LIMIT 1")
                         first_pass = cur.fetchall()
                         password_bin = (first_pass[0][0]).encode()
@@ -562,6 +573,11 @@ class Ui_MainWindow(object):
 
                     elif result_check_choise_privkey == '!ok':
                         self.toolButton.setText('Ключ не подходит. Выберете правильный privkey')
+
+                elif lines == 0:
+                    self.toolButton.setEnabled(False)
+                    self.toolButton.setText(directory_name[0])
+                    result_check_choise_privkey = 'ok'
 
     def result_check_privkey(self):
         global result_check_privkey
@@ -885,7 +901,7 @@ class Ui_MainWindow(object):
                         text_iter += 1
                         if (text_iter == 3 and hide_password) or (text_iter == 5 and hide_password):
                             exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, '**********'))
-                        elif len(_value) == 172:
+                        elif len(_value) == rsa_length:
                                 value_bin = (_value).encode()
                                 value_dec = base64.b64decode(value_bin)
                                 try:
