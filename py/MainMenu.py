@@ -18,12 +18,13 @@ import pprint
 version = 'v 0.2'        # Версия программы
 hide_password = True     # Показазь или скрыть пароли при запуске программы: True - пароли скрыты / False - пароли показанны
 buffer_del_sec = 10      # Через сколько секунд будет удаляться буфер обмена после копирования пароля
-new_rsa_bit = 1024       # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072)
+new_rsa_bit = 4096       # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
 
 buffer = None
 choise_pubkey = None
 choise_privkey = None
 result_check_choise_privkey = None
+
 
 def show_msg(top_text, bottom_text):
     msg = QMessageBox()
@@ -54,12 +55,16 @@ class Ui_MainWindow(object):
             conn = sqlite3.connect(py.StartWindow.db_info[0])
             cur = conn.cursor()
             rsa_bit = cur.execute("SELECT value FROM db_information WHERE name='rsa_bit'").fetchone()[0]
-            if rsa_bit == 3072:
+            if rsa_bit == 4096:
+                rsa_length = 684
+            elif rsa_bit == 3072:
                 rsa_length = 512
             elif rsa_bit == 2048:
                 rsa_length = 344
             elif rsa_bit == 1024:
                 rsa_length = 172
+            else:
+                rsa_length = 'error'
             return True
         else:
             return False
@@ -911,6 +916,9 @@ class Ui_MainWindow(object):
                                 except rsa.pkcs1.DecryptionError:
                                     value = '##ERRORPUBKEY##'
                                     exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
+                        elif (text_iter == 3 and rsa_length == 'error') or (text_iter == 5 and rsa_length == 'error'):
+                            value = '##ERRORKEYLENGTH##'
+                            exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
                         else:
                             exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
 
