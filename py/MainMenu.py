@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 
 import os.path
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QMessageBox
-import sqlite3
-import rsa
 import base64
 import random
 import string
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
+
+from pysqlcipher3 import dbapi2 as sqlite3
+import rsa
 import py.DatabaseCreation
 import py.AddingData
 import py.StartWindow
 import py.res_rc
 
-import pprint
-
-version = 'v 0.2'        # Версия программы
-hide_password = True     # Показазь или скрыть пароли при запуске программы: True - пароли скрыты / False - пароли показанны
-buffer_del_sec = 10      # Через сколько секунд будет удаляться буфер обмена после копирования пароля
-new_rsa_bit = 4096       # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
+version = 'v 1.0'  # Версия программы
+hide_password = True  # Показазь или скрыть пароли при запуске программы: True - скрыты / False - показанны
+buffer_del_sec = 10  # Через сколько секунд будет удаляться буфер обмена после копирования пароля
+new_rsa_bit = 1024  # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
 
 buffer = None
 choise_pubkey = None
@@ -44,8 +44,10 @@ class Ui_MainWindow(object):
         lines = 0
         global pubkey_file
         global privkey_file
-        pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))   # True если есть в директории data/   если нету False
-        privkey_file = os.path.isfile("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))  # True если есть в директории data/   если нету False
+        pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
+            py.StartWindow.db_info[1][:-3]))  # True если есть в директории data/   если нету False
+        privkey_file = os.path.isfile("data/{}_privkey.pem".format(
+            py.StartWindow.db_info[1][:-3]))  # True если есть в директории data/   если нету False
 
     def connect_sql(self, connected):
         if connected:
@@ -54,6 +56,7 @@ class Ui_MainWindow(object):
             global rsa_length
             conn = sqlite3.connect(py.StartWindow.db_info[0])
             cur = conn.cursor()
+            cur.execute("PRAGMA key = '{}'".format(py.StartWindow.pwd))
             rsa_bit = cur.execute("SELECT value FROM db_information WHERE name='rsa_bit'").fetchone()[0]
             if rsa_bit == 4096:
                 rsa_length = 684
@@ -274,7 +277,8 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Password Saver - Главная | {}".format(py.StartWindow.db_info[1])))
+        MainWindow.setWindowTitle(
+            _translate("MainWindow", "Password Saver - Главная | {}".format(py.StartWindow.db_info[1])))
         self.label.setText(_translate("MainWindow", "Password Saver"))
         self.treeWidget.headerItem().setText(0, _translate("MainWindow", "Раздел"))
         self.treeWidget.headerItem().setText(1, _translate("MainWindow", "Название"))
@@ -293,7 +297,8 @@ class Ui_MainWindow(object):
         self.pushButton_4.setText(_translate("MainWindow", "Скрыть пароли"))
         self.pushButton_5.setText(_translate("MainWindow", "Показать пароли"))
         self.label_2.setText(_translate("MainWindow", "{}".format(version)))
-        self.label_3.setText(_translate("MainWindow", "Данные будут удалены с буфера обмена через {} секунд".format(buffer_del_sec)))
+        self.label_3.setText(
+            _translate("MainWindow", "Данные будут удалены с буфера обмена через {} секунд".format(buffer_del_sec)))
 
         if pubkey_file and result_check_pubkey == 'ok':
             self.toolButton_2.setText(_translate("MainWindow", pubkey_dir))
@@ -377,7 +382,9 @@ class Ui_MainWindow(object):
         if row[1] == 'item_1':
             buffer = QtWidgets.QApplication.clipboard()
             if buffer is not None:
-                data_one_section = cur.execute("SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
+                data_one_section = cur.execute(
+                    "SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
+                        row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
                 if choise_privkey is not None:
                     privkey = choise_privkey
                 else:
@@ -403,9 +410,13 @@ class Ui_MainWindow(object):
             msg.setInformativeText("Если хотите удалить раздел, то удалите все аккаунты в нём")
             msg.exec_()
         elif row[1] == 'item_1':
-            result = show_msg('Данные аккаунта <b>{}</b> с логином <b>{}</b> будут удалены.'.format(row[0][0], row[0][1]), 'Вы уверенны?')
+            result = show_msg(
+                'Данные аккаунта <b>{}</b> с логином <b>{}</b> будут удалены.'.format(row[0][0], row[0][1]),
+                'Вы уверенны?')
             if result == QMessageBox.Yes:
-                cur.execute("DELETE FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][3], row[0][5]))
+                cur.execute(
+                    "DELETE FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
+                        row[0][0], row[0][1], row[0][3], row[0][5]))
                 self.refresh_treewidget()
             elif result == QMessageBox.No:
                 pass
@@ -432,7 +443,8 @@ class Ui_MainWindow(object):
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
             for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
+                    srt_section[_data_section])).fetchall()
                 acc_info = []
                 for _item in data_one_section:
                     acc_info.append(list(_item[2:]))
@@ -456,7 +468,8 @@ class Ui_MainWindow(object):
                         secret_word = '##ERRORPUBKEY##'
 
                     _i[4] = secret_word
-                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (_data_section, srt_section[_data_section]))
+                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (
+                _data_section, srt_section[_data_section]))
                 toplevelitem_iter += 1
                 child_iter = -1
                 for _index in range(len(acc_info)):
@@ -465,7 +478,9 @@ class Ui_MainWindow(object):
                     for _value in acc_info[_index]:
                         text_iter += 1
                         if text_iter == 3 or text_iter == 5:
-                            exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
+                            exec(
+                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
+                                toplevelitem_iter, child_iter, text_iter, _value))
 
         self.pushButton_5.hide()
         self.pushButton_4.show()
@@ -480,11 +495,13 @@ class Ui_MainWindow(object):
         text_iter = 0
         if lines != 0:
             for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
+                    srt_section[_data_section])).fetchall()
                 acc_info = []
                 for item in data_one_section:
                     acc_info.append(item[2:])
-                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (_data_section, srt_section[_data_section]))
+                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (
+                _data_section, srt_section[_data_section]))
                 toplevelitem_iter += 1
                 child_iter = -1
                 for _index in range(len(acc_info)):
@@ -493,7 +510,9 @@ class Ui_MainWindow(object):
                     for _value in acc_info[_index]:
                         text_iter += 1
                         if text_iter == 3 or text_iter == 5:
-                            exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, '**********'))
+                            exec(
+                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
+                                toplevelitem_iter, child_iter, text_iter, '**********'))
 
         self.pushButton_4.hide()
         self.pushButton_5.show()
@@ -501,9 +520,10 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def choise_pubkey(self):
         global choise_pubkey
-        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_pubkey.pem'.format(py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_pubkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
+        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_pubkey.pem'.format(
+            py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_pubkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
-            if directory_name[0][-(len(directory_name[1])-5):-11] == py.StartWindow.db_info[1][:-3]:
+            if directory_name[0][-(len(directory_name[1]) - 5):-11] == py.StartWindow.db_info[1][:-3]:
                 with open(directory_name[0], 'rb') as pubfile:
                     keydata_pub = pubfile.read()
                     print(keydata_pub)
@@ -534,9 +554,10 @@ class Ui_MainWindow(object):
     def choise_privkey(self):
         global choise_privkey
         global result_check_choise_privkey
-        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_privkey.pem'.format(py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_privkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
+        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_privkey.pem'.format(
+            py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_privkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
-            if directory_name[0][-(len(directory_name[1])-5):-12] == py.StartWindow.db_info[1][:-3]:
+            if directory_name[0][-(len(directory_name[1]) - 5):-12] == py.StartWindow.db_info[1][:-3]:
                 with open(directory_name[0], 'rb') as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
@@ -711,7 +732,9 @@ class Ui_MainWindow(object):
         self.timer = QtCore.QBasicTimer()
         self.timer_sec = QtCore.QTimer()
         self.step = 0
-        self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow", "Данные будут удалены с буфера обмена через {} секунд".format(buffer_del_sec)))
+        self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow",
+                                                               "Данные будут удалены с буфера обмена через {} секунд".format(
+                                                                   buffer_del_sec)))
         timer_del = buffer_del_sec * 10
         if self.timer_sec.isActive():
             self.timer_sec.stop()
@@ -745,12 +768,15 @@ class Ui_MainWindow(object):
             if counter >= count:
                 py.MainMenu.Ui_MainWindow.timer_sec.stop()
                 py.MainMenu.Ui_MainWindow.timer_sec.deleteLater()
+
         self.timer_sec.timeout.connect(handler)
         self.timer_sec.start(interval)
 
     def timer_func(self, count):
         global buffer_del_sec
-        self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow", "Данные будут удалены с буфера обмена через {} секунд").format(count))
+        self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow",
+                                                               "Данные будут удалены с буфера обмена через {} секунд").format(
+            count))
         if count <= 0:
             self.timer_sec.stop()
 
@@ -803,7 +829,9 @@ class Ui_MainWindow(object):
                 elif action2 == rmenu_copy_secret:
                     buffer = QtWidgets.QApplication.clipboard()
                     if buffer is not None:
-                        data_one_section = cur.execute("SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
+                        data_one_section = cur.execute(
+                            "SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
+                                row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
 
                         if choise_privkey is not None:
                             privkey = choise_privkey
@@ -836,8 +864,9 @@ class Ui_MainWindow(object):
         section = []
         if lines != 0:
             for _line in range(1, lines + 1):
-                [_current_id], = cur.execute("SELECT ID FROM account_information LIMIT 1 OFFSET {}".format(_line-1))
-                [_current_section], = cur.execute("SELECT section FROM account_information WHERE ID='{}'".format(_current_id))
+                [_current_id], = cur.execute("SELECT ID FROM account_information LIMIT 1 OFFSET {}".format(_line - 1))
+                [_current_section], = cur.execute(
+                    "SELECT section FROM account_information WHERE ID='{}'".format(_current_id))
                 section.append(_current_section)
             global srt_section
             srt_section = list(dict.fromkeys(section))
@@ -866,9 +895,11 @@ class Ui_MainWindow(object):
                     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
                     brush.setStyle(QtCore.Qt.NoBrush)
                     item_0.setBackground(6, brush)
-                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
+                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
+                        srt_section[_data_section])).fetchall()
                 else:
-                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
+                    data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
+                        srt_section[_data_section])).fetchall()
                     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
                 for _value in range(len(data_one_section)):
                     item_1 = QtWidgets.QTreeWidgetItem(item_0)
@@ -892,11 +923,13 @@ class Ui_MainWindow(object):
                 privkey = choise_privkey
 
             for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(srt_section[_data_section])).fetchall()
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
+                    srt_section[_data_section])).fetchall()
                 acc_info = []
                 for item in data_one_section:
                     acc_info.append(item[2:])
-                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (_data_section, srt_section[_data_section]))
+                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (
+                _data_section, srt_section[_data_section]))
                 toplevelitem_iter += 1
                 child_iter = -1
                 for _index in range(len(acc_info)):
@@ -905,22 +938,32 @@ class Ui_MainWindow(object):
                     for _value in acc_info[_index]:
                         text_iter += 1
                         if (text_iter == 3 and hide_password) or (text_iter == 5 and hide_password):
-                            exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, '**********'))
+                            exec(
+                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
+                                toplevelitem_iter, child_iter, text_iter, '**********'))
                         elif len(_value) == rsa_length:
-                                value_bin = (_value).encode()
-                                value_dec = base64.b64decode(value_bin)
-                                try:
-                                    decrypto_value = rsa.decrypt(value_dec, privkey)
-                                    value = decrypto_value.decode()
-                                    exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
-                                except rsa.pkcs1.DecryptionError:
-                                    value = '##ERRORPUBKEY##'
-                                    exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
+                            value_bin = (_value).encode()
+                            value_dec = base64.b64decode(value_bin)
+                            try:
+                                decrypto_value = rsa.decrypt(value_dec, privkey)
+                                value = decrypto_value.decode()
+                                exec(
+                                    'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
+                                    toplevelitem_iter, child_iter, text_iter, value))
+                            except rsa.pkcs1.DecryptionError:
+                                value = '##ERRORPUBKEY##'
+                                exec(
+                                    'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
+                                    toplevelitem_iter, child_iter, text_iter, value))
                         elif (text_iter == 3 and rsa_length == 'error') or (text_iter == 5 and rsa_length == 'error'):
                             value = '##ERRORKEYLENGTH##'
-                            exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
+                            exec(
+                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
+                                toplevelitem_iter, child_iter, text_iter, value))
                         else:
-                            exec('self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (toplevelitem_iter, child_iter, text_iter, _value))
+                            exec(
+                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
+                                toplevelitem_iter, child_iter, text_iter, _value))
 
     def refresh_treewidget(self):
         self.delete_treewidget_item()
@@ -950,7 +993,9 @@ class Ui_MainWindow(object):
         return row_data, item_type
 
     def closeEvent(self, event):
-        close = QtWidgets.QMessageBox.question(self, "Выход", "Все несохраненные изменения будут потеряны.\nВсе ровно выйти?", QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        close = QtWidgets.QMessageBox.question(self, "Выход",
+                                               "Все несохраненные изменения будут потеряны.\nВсе ровно выйти?",
+                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
         if close == QtWidgets.QMessageBox.Yes:
             if buffer is not None:
                 buffer.clear()

@@ -3,9 +3,9 @@
 import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
-import sqlite3
 import rsa
 import py.MainMenu
+from pysqlcipher3 import dbapi2 as sqlite3
 
 
 def show_msg(value, text_show):
@@ -122,8 +122,9 @@ class Ui_Dialog(object):
             elif pwd_re == '':
                 show_msg(0, 'Поле Подтвердите пароль пустое')
             elif pwd == pwd_re:
-                conn = sqlite3.connect(r'data/' + name_db + '.db') # TODO: добавить шифрацию БД
+                conn = sqlite3.connect(r'data/' + name_db + '.db')
                 cur = conn.cursor()
+                cur.execute("PRAGMA key = '{}'".format(pwd))
                 cur.execute("""CREATE TABLE IF NOT EXISTS account_information(
                     "ID" INTEGER NOT NULL UNIQUE,
                     "section" TEXT,

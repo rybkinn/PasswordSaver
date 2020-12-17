@@ -3,7 +3,6 @@
 import string
 import random
 from PyQt5 import QtCore, QtGui, QtWidgets
-import sqlite3
 import rsa
 import py.MainMenu
 import py.StartWindow

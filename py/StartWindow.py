@@ -5,9 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import py.MainMenu
 import py.DatabaseCreation
-import sqlite3
-
-import pprint
+from pysqlcipher3 import dbapi2 as sqlite3
 
 
 class Ui_Dialog(object):
@@ -134,14 +132,31 @@ class Ui_Dialog(object):
     @QtCore.pyqtSlot()
     def show_mainwindow(self):
         global db_info
-        db_info = self.comboBox_2.currentData()
-        result = bool(1)
+        global pwd
+        pwd = self.lineEdit_2.text()
+        wrong_db_info = self.comboBox_2.currentData()
+        wrong_db_info_new = ''
+        db_info = list()
+        for _item_db_info in range(len(wrong_db_info[0])):
+            if wrong_db_info[0][_item_db_info] == '\\':
+                wrong_db_info_new += '/'
+            else:
+                wrong_db_info_new += wrong_db_info[0][_item_db_info]
+        db_info.append(wrong_db_info_new)
+        db_info.append(wrong_db_info[1])
+        conn = sqlite3.connect(py.StartWindow.db_info[0])
+        cur = conn.cursor()
+        cur.execute("PRAGMA key = '{}'".format(pwd))
+        try:
+            cur.execute("SELECT value FROM db_information WHERE name='rsa_bit'")
+            cur.close()
+            conn.close()
+            result = bool(1)
+        except sqlite3.DatabaseError:
+            cur.close()
+            conn.close()
+            result = bool(0)
         if result:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setWindowTitle("Оповещение")
-            msg.setText("Успешный вход")
-            msg.exec_()
             py.MainMenu.Ui_MainWindow.connect_sql(self, True)
             self.mainwindow = mainwindow()
             self.mainwindow.show()
