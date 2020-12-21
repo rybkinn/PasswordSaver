@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import os
+from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import py.MainMenu
 import py.DatabaseCreation
-from pysqlcipher3 import dbapi2 as sqlite3
+if platform == "linux" or platform == "linux2":
+    from pysqlcipher3 import dbapi2 as sqlite3
+elif platform == "win32":
+    import sqlite3
+# elif platform == "darwin":
+    # OS X
 
 
 class Ui_Dialog(object):
@@ -148,7 +154,7 @@ class Ui_Dialog(object):
         cur = conn.cursor()
         cur.execute("PRAGMA key = '{}'".format(pwd))
         try:
-            cur.execute("SELECT value FROM db_information WHERE name='rsa_bit'")
+            cur.execute("SELECT count(*) FROM account_information")
             cur.close()
             conn.close()
             result = bool(1)

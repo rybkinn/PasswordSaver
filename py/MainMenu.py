@@ -4,16 +4,20 @@ import os.path
 import base64
 import random
 import string
-
+from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
-
-from pysqlcipher3 import dbapi2 as sqlite3
 import rsa
 import py.DatabaseCreation
 import py.AddingData
 import py.StartWindow
 import py.res_rc
+if platform == "linux" or platform == "linux2":
+    from pysqlcipher3 import dbapi2 as sqlite3
+elif platform == "win32":
+    import sqlite3
+# elif platform == "darwin":
+    # OS X
 
 version = 'v 1.0'  # Версия программы
 hide_password = True  # Показазь или скрыть пароли при запуске программы: True - скрыты / False - показанны

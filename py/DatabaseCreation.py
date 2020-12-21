@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import os
+from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import rsa
 import py.MainMenu
-from pysqlcipher3 import dbapi2 as sqlite3
+if platform == "linux" or platform == "linux2":
+    from pysqlcipher3 import dbapi2 as sqlite3
+elif platform == "win32":
+    import sqlite3
+# elif platform == "darwin":
+    # OS X
 
 
 def show_msg(value, text_show):
