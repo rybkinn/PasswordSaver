@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import string
 from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
@@ -12,6 +13,8 @@ elif platform == "win32":
     import sqlite3
 # elif platform == "darwin":
     # OS X
+
+validate_password = None
 
 
 def show_msg(value, text_show):
@@ -67,6 +70,9 @@ class Ui_Dialog(object):
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_3)
         self.lineEdit = QtWidgets.QLineEdit(self.formLayoutWidget)
         self.lineEdit.setObjectName("lineEdit")
+
+        # self.lineEdit.setPlaceholderText('Введите название БД')
+
         self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.lineEdit)
         self.lineEdit_2 = QtWidgets.QLineEdit(self.formLayoutWidget)
         self.lineEdit_2.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
@@ -91,6 +97,9 @@ class Ui_Dialog(object):
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
         self.pushButton.clicked.connect(self.create_database)
+        self.lineEdit.textChanged.connect(self.valid_namedb)
+        self.lineEdit_2.textChanged.connect(self.valid_passwd)
+        self.lineEdit_3.textChanged.connect(self.confirm_passwd)
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
@@ -103,7 +112,46 @@ class Ui_Dialog(object):
         self.pushButton.setText(_translate("Dialog", "Создать"))
 
     @QtCore.pyqtSlot()
+    def valid_namedb(self):
+        data_files = os.listdir(path="data")
+        name_db = self.lineEdit.text()
+        new_name_bd = []
+        for _name_bd in data_files:
+            type_file = _name_bd[_name_bd.find("."):]
+            if type_file == '.db':
+                new_name_bd.append(_name_bd[:-3])
+        for _name_bd_new in new_name_bd:
+            if name_db == _name_bd_new:
+                self.lineEdit.setStyleSheet("border: 1px solid red")
+                break
+            else:
+                self.lineEdit.setStyleSheet("border: 1px solid green")
+        if name_db == '':
+            self.lineEdit.setStyleSheet("border: 1px solid red")
+
+    @QtCore.pyqtSlot()
+    def valid_passwd(self):
+        global validate_password
+        password = self.lineEdit_2.text()
+        if self.isvalid_pass(password):
+            self.lineEdit_2.setStyleSheet("border: 1px solid green")
+            validate_password = True
+        else:
+            self.lineEdit_2.setStyleSheet("border: 1px solid red")
+            validate_password = False
+
+    @QtCore.pyqtSlot()
+    def confirm_passwd(self):
+        password = self.lineEdit_2.text()
+        confirm_pass = self.lineEdit_3.text()
+        if confirm_pass == password:
+            self.lineEdit_3.setStyleSheet("border: 1px solid green")
+        else:
+            self.lineEdit_3.setStyleSheet("border: 1px solid red")
+
+    @QtCore.pyqtSlot()
     def create_database(self):
+        global validate_password
         data_files = os.listdir(path="data")
         name_db = self.lineEdit.text()
         pwd = self.lineEdit_2.text()
@@ -120,13 +168,22 @@ class Ui_Dialog(object):
                     result = True
                     break
             if result:
-                show_msg(0, 'Такой файл уже существует')
+                show_msg(0, 'Такая база данных уже существует')
+                self.lineEdit.setStyleSheet("border: 1px solid red")
             elif pwd == '' and pwd_re == '':
                 show_msg(0, 'Заполните поля ввода паролей')
+                self.lineEdit_2.setStyleSheet("border: 1px solid red")
+                self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd == '':
                 show_msg(0, 'Поле введите пароль пустое')
+                self.lineEdit_2.setStyleSheet("border: 1px solid red")
+            elif validate_password is None or not validate_password:
+                show_msg(0, 'Пароль должен быть больше 8 символов, верхний, нижний регистр и минимум 1 буква')
+                self.lineEdit_2.setStyleSheet("border: 1px solid red")
+                self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd_re == '':
                 show_msg(0, 'Поле Подтвердите пароль пустое')
+                self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd == pwd_re:
                 conn = sqlite3.connect(r'data/' + name_db + '.db')
                 cur = conn.cursor()
@@ -150,7 +207,6 @@ class Ui_Dialog(object):
                 conn.commit()
                 cur.close()
                 conn.close()
-
                 (pubkey, privkey) = rsa.newkeys(py.MainMenu.new_rsa_bit)
                 pubkey_pem = pubkey.save_pkcs1('PEM')
                 privkey_pem = privkey.save_pkcs1('PEM')
@@ -164,9 +220,18 @@ class Ui_Dialog(object):
                 self.lineEdit.clear()
                 self.lineEdit_2.clear()
                 self.lineEdit_3.clear()
+                self.lineEdit.setStyleSheet("border: 1px solid gray")
+                self.lineEdit_2.setStyleSheet("border: 1px solid gray")
+                self.lineEdit_3.setStyleSheet("border: 1px solid gray")
                 self.close()
                 show_msg(1, 'База данных успешно созданна')
             else:
                 show_msg(0, 'Пароли не совпадают')
+                self.lineEdit_3.setStyleSheet("border: 1px solid red")
         else:
             show_msg(0, 'Введите название БД')
+            self.lineEdit.setStyleSheet("border: 1px solid red")
+
+    def isvalid_pass(self, password):
+        has_no = set(password).isdisjoint
+        return not (len(password) < 8 or has_no(string.digits) or has_no(string.ascii_lowercase) or has_no(string.ascii_uppercase))
