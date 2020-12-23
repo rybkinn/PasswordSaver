@@ -18,19 +18,33 @@ validate_password = None
 name_created_database = None
 
 
-def show_msg(value, text_show):
+def show_msg(value, text_show, add_fields=False, informative_text=None, detailed_text=None):
+    width = 500
     if value:
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
-        msg.setText(text_show)
-        msg.setWindowTitle("Сообщение")
+        if add_fields:
+            msg.setText(text_show + ' ' * width)
+        else:
+            msg.setText(text_show)
+        msg.setWindowTitle("Успех")
+        if add_fields:
+            msg.setInformativeText(informative_text)
+            msg.setDetailedText(detailed_text)
         msg.exec()
+        result = True
+        return result
     else:
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
         msg.setText(text_show)
         msg.setWindowTitle("Ошибка")
+        if add_fields:
+            msg.setInformativeText(informative_text)
+            msg.setDetailedText(detailed_text)
         msg.exec()
+        result = False
+        return result
 
 
 class Ui_Dialog(object):
@@ -186,7 +200,12 @@ class Ui_Dialog(object):
                 show_msg(0, 'Поле введите пароль пустое')
                 self.lineEdit_2.setStyleSheet("border: 1px solid red")
             elif validate_password is None or not validate_password:
-                show_msg(0, 'Пароль должен быть больше 8 символов, верхний, нижний регистр и минимум 1 буква')
+                show_msg(0, 'Неправильный пароль',
+                         add_fields=True,
+                         informative_text='- 8 символов или больше\n'
+                                          '- Верхний и нижний регистр\n'
+                                          '- Минимум 1 цифра\n'
+                                          '- Не может быть русскими буквами')
                 self.lineEdit_2.setStyleSheet("border: 1px solid red")
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd_re == '':
@@ -225,7 +244,12 @@ class Ui_Dialog(object):
                     privatefile.write(privkey_pem.decode())
                     privatefile.close()
 
-                createdb_ok = show_msg(1, 'База данных успешно созданна')
+                createdb_ok = show_msg(1, 'База данных успешно созданна.',
+                                       add_fields=True,
+                                       informative_text='Более подробно по нажатию кнопки "Show Details..."',
+                                       detailed_text='- База данных: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '.db' + '\n\n'
+                                                     '- Публичный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '_pubkey.pem' + '\n\n'
+                                                     '- Приватный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '_privkey.pem')
                 if createdb_ok:
                     global name_created_database
                     name_created_database = self.lineEdit.text()
