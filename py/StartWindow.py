@@ -177,6 +177,13 @@ class Ui_Dialog(object):
     @QtCore.pyqtSlot()
     def show_createdb(self):
         self.createdb.exec_()
+        if py.DatabaseCreation.name_created_database:
+            namedb = py.DatabaseCreation.name_created_database + '.db'
+            db_data = [os.getcwd() + '\\data\\' + namedb, namedb]
+            self.comboBox_2.addItem("", db_data)
+            combo_count = self.comboBox_2.count()
+            self.comboBox_2.setItemText(combo_count - 1, namedb)
+            self.comboBox_2.setCurrentIndex(combo_count - 1)
 
 
 class mainwindow(QtWidgets.QMainWindow, py.MainMenu.Ui_MainWindow):

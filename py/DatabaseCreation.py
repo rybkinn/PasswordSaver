@@ -15,6 +15,7 @@ elif platform == "win32":
     # OS X
 
 validate_password = None
+name_created_database = None
 
 
 def show_msg(value, text_show):
@@ -224,6 +225,10 @@ class Ui_Dialog(object):
                     privatefile.write(privkey_pem.decode())
                     privatefile.close()
 
+                createdb_ok = show_msg(1, 'База данных успешно созданна')
+                if createdb_ok:
+                    global name_created_database
+                    name_created_database = self.lineEdit.text()
                 self.lineEdit.clear()
                 self.lineEdit_2.clear()
                 self.lineEdit_3.clear()
@@ -231,7 +236,6 @@ class Ui_Dialog(object):
                 self.lineEdit_2.setStyleSheet("border: 1px solid gray")
                 self.lineEdit_3.setStyleSheet("border: 1px solid gray")
                 self.close()
-                show_msg(1, 'База данных успешно созданна')
             else:
                 show_msg(0, 'Пароли не совпадают')
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
