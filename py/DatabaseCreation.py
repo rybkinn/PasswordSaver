@@ -133,12 +133,19 @@ class Ui_Dialog(object):
     def valid_passwd(self):
         global validate_password
         password = self.lineEdit_2.text()
+        confirm_pass = self.lineEdit_3.text()
         if self.isvalid_pass(password):
             self.lineEdit_2.setStyleSheet("border: 1px solid green")
             validate_password = True
         else:
             self.lineEdit_2.setStyleSheet("border: 1px solid red")
             validate_password = False
+        if confirm_pass == '':
+            pass
+        elif confirm_pass == password:
+            self.lineEdit_3.setStyleSheet("border: 1px solid green")
+        else:
+            self.lineEdit_3.setStyleSheet("border: 1px solid red")
 
     @QtCore.pyqtSlot()
     def confirm_passwd(self):
