@@ -12,6 +12,7 @@ import py.DatabaseCreation
 import py.AddingData
 import py.StartWindow
 import py.res_rc
+import py.LoadingDB
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
 elif platform == "win32":
@@ -356,7 +357,8 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def loadbd(self):
-        print('loadbd')
+        self.loadingdb = loadingdb()
+        self.loadingdb.exec()
 
     @QtCore.pyqtSlot()
     def show_addingdata(self):
@@ -1015,6 +1017,12 @@ class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):
 
 
 class addingdata(QtWidgets.QDialog, py.AddingData.Ui_Dialog):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
+
+class loadingdb(QtWidgets.QDialog, py.LoadingDB.Ui_Dialog):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
