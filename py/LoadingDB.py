@@ -107,13 +107,3 @@ class Ui_Dialog(object):
         self.label.setText(_translate("Dialog", "Password Saver"))
         self.label_4.setText(_translate("Dialog", "Введите пароль"))
         self.toolButton.setText(_translate("Dialog", "..."))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    Dialog = QtWidgets.QDialog()
-    ui = Ui_Dialog()
-    ui.setupUi(Dialog)
-    Dialog.show()
-    sys.exit(app.exec_())
