@@ -483,7 +483,7 @@ class Ui_MainWindow(object):
                     text_iter = 0
                     for _value in acc_info[_index]:
                         text_iter += 1
-                        if text_iter == 3 or text_iter == 5:
+                        if text_iter == 3:
                             exec(
                                 'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
                                 toplevelitem_iter, child_iter, text_iter, _value))
@@ -515,7 +515,7 @@ class Ui_MainWindow(object):
                     text_iter = 0
                     for _value in acc_info[_index]:
                         text_iter += 1
-                        if text_iter == 3 or text_iter == 5:
+                        if text_iter == 3:
                             exec(
                                 'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
                                 toplevelitem_iter, child_iter, text_iter, '**********'))
