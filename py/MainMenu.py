@@ -24,6 +24,9 @@ version = 'v 1.0'  # Версия программы
 hide_password = True  # Показазь или скрыть пароли при запуске программы: True - скрыты / False - показанны
 buffer_del_sec = 10  # Через сколько секунд будет удаляться буфер обмена после копирования пароля
 new_rsa_bit = 1024  # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
+db_dir = None
+db_name = None
+
 
 buffer = None
 choise_pubkey = None
@@ -50,18 +53,22 @@ class Ui_MainWindow(object):
         global pubkey_file
         global privkey_file
         pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
-            py.StartWindow.db_info[1][:-3]))  # True если есть в директории data/   если нету False
+            db_name[:-3]))  # True если есть в директории data/   если нету False
         privkey_file = os.path.isfile("data/{}_privkey.pem".format(
-            py.StartWindow.db_info[1][:-3]))  # True если есть в директории data/   если нету False
+            db_name[:-3]))  # True если есть в директории data/   если нету False
 
-    def connect_sql(self, connected):
+    def connect_sql(self, connected, start_or_load=None):
         if connected:
             global conn
             global cur
             global rsa_length
-            conn = sqlite3.connect(py.StartWindow.db_info[0])
+            conn = sqlite3.connect(db_dir)
             cur = conn.cursor()
-            cur.execute("PRAGMA key = '{}'".format(py.StartWindow.pwd))
+            if start_or_load == 'load':
+                cur.execute("PRAGMA key = '{}'".format(py.LoadingDB.pwd))
+            else:
+                cur.execute("PRAGMA key = '{}'".format(py.StartWindow.pwd))
+            py.StartWindow.pwd = None
             rsa_bit = cur.execute("SELECT value FROM db_information WHERE name='rsa_bit'").fetchone()[0]
             if rsa_bit == 4096:
                 rsa_length = 684
@@ -268,7 +275,7 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         self.action_3.triggered.connect(self.savebd)
         self.action_4.triggered.connect(self.show_createdb)
-        self.action_5.triggered.connect(self.loadbd)
+        self.action_5.triggered.connect(lambda: self.loadbd(MainWindow))
         self.action_7.triggered.connect(self.close)
         self.pushButton.clicked.connect(self.delete_data)
         self.pushButton_2.clicked.connect(self.show_addingdata)
@@ -283,7 +290,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(
-            _translate("MainWindow", "Password Saver - Главная | {}".format(py.StartWindow.db_info[1])))
+            _translate("MainWindow", "Password Saver - Главная | {}".format(db_name)))
         self.label.setText(_translate("MainWindow", "Password Saver"))
         self.treeWidget.headerItem().setText(0, _translate("MainWindow", "Раздел"))
         self.treeWidget.headerItem().setText(1, _translate("MainWindow", "Название"))
@@ -317,7 +324,7 @@ class Ui_MainWindow(object):
             self.toolButton_2.setText(_translate("MainWindow", "Укажите pubkey.pem"))
 
         if privkey_file and result_check_privkey == 'ok':
-            privkey_dir = os.path.abspath("data/{}_privkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            privkey_dir = os.path.abspath("data/{}_privkey.pem".format(db_name[:-3]))
             self.toolButton.setText(_translate("MainWindow", privkey_dir))
         elif privkey_file and result_check_privkey == '!ok':
             self.toolButton.setText(_translate("MainWindow", "Ключ не подходит. Укажите privkey.pem"))
@@ -356,9 +363,19 @@ class Ui_MainWindow(object):
         self.createdb.exec_()
 
     @QtCore.pyqtSlot()
-    def loadbd(self):
+    def loadbd(self, MainWindow):       # TODO: После загрузки БД нужно делать проверку на ключи и менять состояние кнопок
         self.loadingdb = loadingdb()
-        self.loadingdb.exec()
+        self.loadingdb.exec()           # TODO: При закрытии окна не должы выполнятся действия
+        global pubkey_file
+        global privkey_file
+        pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
+            db_name[:-3]))  # True если есть в директории data/   если нету False
+        privkey_file = os.path.isfile("data/{}_privkey.pem".format(
+            db_name[:-3]))  # True если есть в директории data/   если нету False
+        self.refresh_treewidget()
+        self.result_check_pubkey()
+        self.result_check_privkey()
+        self.retranslateUi(self)
 
     @QtCore.pyqtSlot()
     def show_addingdata(self):
@@ -394,7 +411,7 @@ class Ui_MainWindow(object):
                 if choise_privkey is not None:
                     privkey = choise_privkey
                 else:
-                    with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                    with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                         keydata_priv = privfile.read()
                         privfile.close()
                     privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
@@ -444,7 +461,7 @@ class Ui_MainWindow(object):
             if choise_privkey is not None:
                 privkey = choise_privkey
             else:
-                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
@@ -527,9 +544,9 @@ class Ui_MainWindow(object):
     def choise_pubkey(self):
         global choise_pubkey
         directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_pubkey.pem'.format(
-            py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_pubkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
+            db_name[:-3]), os.getcwd(), 'key({}_pubkey.pem)'.format(db_name[:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
-            if directory_name[0][-(len(directory_name[1]) - 5):-11] == py.StartWindow.db_info[1][:-3]:
+            if directory_name[0][-(len(directory_name[1]) - 5):-11] == db_name[:-3]:
                 with open(directory_name[0], 'rb') as pubfile:
                     keydata_pub = pubfile.read()
                     print(keydata_pub)
@@ -561,9 +578,9 @@ class Ui_MainWindow(object):
         global choise_privkey
         global result_check_choise_privkey
         directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_privkey.pem'.format(
-            py.StartWindow.db_info[1][:-3]), os.getcwd(), 'key({}_privkey.pem)'.format(py.StartWindow.db_info[1][:-3]))
+            db_name[:-3]), os.getcwd(), 'key({}_privkey.pem)'.format(db_name[:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
-            if directory_name[0][-(len(directory_name[1]) - 5):-12] == py.StartWindow.db_info[1][:-3]:
+            if directory_name[0][-(len(directory_name[1]) - 5):-12] == db_name[:-3]:
                 with open(directory_name[0], 'rb') as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
@@ -615,7 +632,7 @@ class Ui_MainWindow(object):
         global result_check_privkey
         if lines != 0 and privkey_file:
             try:
-                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
@@ -632,11 +649,11 @@ class Ui_MainWindow(object):
                 print('Приватный ключ неправильный')
         elif lines == 0 and privkey_file and pubkey_file:
             try:
-                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-                with open('{}_pubkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as pubfile:
+                with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
                     keydata_pub = pubfile.read()
                     pubfile.close()
                 pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
@@ -660,11 +677,11 @@ class Ui_MainWindow(object):
         global result_check_pubkey
         if pubkey_file and privkey_file and result_check_privkey == 'ok':
             try:
-                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-                with open('{}_pubkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as pubfile:
+                with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
                     keydata_pub = pubfile.read()
                     pubfile.close()
                 pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
@@ -686,13 +703,13 @@ class Ui_MainWindow(object):
         icon1 = QtGui.QIcon()
         if pubkey_file and result_check_pubkey == 'ok':
             global pubkey_dir
-            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(db_name[:-3]))
             self.toolButton_2.setEnabled(False)
         elif pubkey_file and result_check_pubkey == '!ok':
             self.toolButton_2.setEnabled(True)
             self.pushButton_2.setEnabled(False)
         elif pubkey_file and result_check_pubkey is None:
-            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(py.StartWindow.db_info[1][:-3]))
+            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(db_name[:-3]))
             self.toolButton_2.setEnabled(False)
         elif pubkey_file and result_check_pubkey == 'not privkey':
             self.toolButton_2.setEnabled(False)
@@ -842,7 +859,7 @@ class Ui_MainWindow(object):
                         if choise_privkey is not None:
                             privkey = choise_privkey
                         else:
-                            with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                            with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                                 keydata_priv = privfile.read()
                                 privfile.close()
                             privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
@@ -921,7 +938,7 @@ class Ui_MainWindow(object):
         if lines != 0:
 
             if privkey_file:
-                with open('{}_privkey.pem'.format(py.StartWindow.db_info[0][:-3]), 'rb') as privfile:
+                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')

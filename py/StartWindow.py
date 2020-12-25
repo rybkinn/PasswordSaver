@@ -154,7 +154,7 @@ class Ui_Dialog(object):
                 wrong_db_info_new += wrong_db_info[0][_item_db_info]
         db_info.append(wrong_db_info_new)
         db_info.append(wrong_db_info[1])
-        conn = sqlite3.connect(py.StartWindow.db_info[0])
+        conn = sqlite3.connect(db_info[0])
         cur = conn.cursor()
         cur.execute("PRAGMA key = '{}'".format(pwd))
         try:
@@ -167,7 +167,9 @@ class Ui_Dialog(object):
             conn.close()
             result = bool(0)
         if result:
-            py.MainMenu.Ui_MainWindow.connect_sql(self, True)
+            py.MainMenu.db_dir = db_info[0]
+            py.MainMenu.db_name = db_info[1]
+            py.MainMenu.Ui_MainWindow.connect_sql(self, True, start_or_load='start')
             self.mainwindow = mainwindow()
             self.mainwindow.show()
             self.close()
