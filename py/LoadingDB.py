@@ -14,6 +14,7 @@ elif platform == "win32":
     # OS X
 
 name_bd = []
+Close = True
 
 
 class Ui_Dialog(object):
@@ -188,6 +189,8 @@ class Ui_Dialog(object):
             py.MainMenu.db_dir = db_info[0]
             py.MainMenu.db_name = db_info[1]
             py.MainMenu.Ui_MainWindow.connect_sql(self, True, start_or_load='load')
+            global Close
+            Close = False
             self.close()
         else:
             msg = QMessageBox()

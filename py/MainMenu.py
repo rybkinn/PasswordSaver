@@ -365,17 +365,20 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def loadbd(self, MainWindow):       # TODO: После загрузки БД нужно делать проверку на ключи и менять состояние кнопок
         self.loadingdb = loadingdb()
-        self.loadingdb.exec()           # TODO: При закрытии окна не должы выполнятся действия
-        global pubkey_file
-        global privkey_file
-        pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
-            db_name[:-3]))  # True если есть в директории data/   если нету False
-        privkey_file = os.path.isfile("data/{}_privkey.pem".format(
-            db_name[:-3]))  # True если есть в директории data/   если нету False
-        self.refresh_treewidget()
-        self.result_check_pubkey()
-        self.result_check_privkey()
-        self.retranslateUi(self)
+        self.loadingdb.exec()
+        if not py.LoadingDB.Close:
+            py.LoadingDB.Close = True
+            global pubkey_file
+            global privkey_file
+            pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
+                db_name[:-3]))  # True если есть в директории data/   если нету False
+            privkey_file = os.path.isfile("data/{}_privkey.pem".format(
+                db_name[:-3]))  # True если есть в директории data/   если нету False
+            self.refresh_treewidget()
+            self.result_check_privkey()
+            self.result_check_pubkey()
+            self.button_state()
+            self.retranslateUi(self)
 
     @QtCore.pyqtSlot()
     def show_addingdata(self):
