@@ -23,7 +23,7 @@ elif platform == "win32":
 version = 'v 1.0'  # Версия программы
 hide_password = True  # Показазь или скрыть пароли при запуске программы: True - скрыты / False - показанны
 buffer_del_sec = 10  # Через сколько секунд будет удаляться буфер обмена после копирования пароля
-new_rsa_bit = 1024  # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
+new_rsa_bit = 4096  # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
 db_dir = None
 db_name = None
 
@@ -552,10 +552,8 @@ class Ui_MainWindow(object):
             if directory_name[0][-(len(directory_name[1]) - 5):-11] == db_name[:-3]:
                 with open(directory_name[0], 'rb') as pubfile:
                     keydata_pub = pubfile.read()
-                    print(keydata_pub)
                     pubfile.close()
                 choise_pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
-                print(choise_pubkey)
                 self.toolButton_2.setEnabled(False)
                 self.toolButton_2.setText(directory_name[0])
                 self.pushButton_2.setEnabled(True)
@@ -597,10 +595,8 @@ class Ui_MainWindow(object):
                         decrypto = rsa.decrypt(password_dec, choise_privkey)
                         password = decrypto.decode()
                         result_check_choise_privkey = 'ok'
-                        print('Приватный ключ правильный')
                     except rsa.pkcs1.DecryptionError:
                         result_check_choise_privkey = '!ok'
-                        print('Приватный ключ неправильный')
                     if result_check_choise_privkey == 'ok':
                         self.toolButton.setEnabled(False)
                         self.toolButton.setText(directory_name[0])
@@ -646,10 +642,8 @@ class Ui_MainWindow(object):
                 decrypto = rsa.decrypt(password_dec, privkey)
                 password = decrypto.decode()
                 result_check_privkey = 'ok'
-                print('Приватный ключ правильный')
             except rsa.pkcs1.DecryptionError:
                 result_check_privkey = '!ok'
-                print('Приватный ключ неправильный')
         elif lines == 0 and privkey_file and pubkey_file:
             try:
                 with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
@@ -665,13 +659,10 @@ class Ui_MainWindow(object):
                 rnd_pass = rnd_pass.encode()
                 crypto_pass = rsa.encrypt(rnd_pass, pubkey)
                 decrypto = rsa.decrypt(crypto_pass, privkey)
-                print('Ключи в норме')
                 result_check_privkey = 'ok'
             except rsa.pkcs1.DecryptionError:
-                print('Укажите правильные ключи, они разные')
                 result_check_privkey = 'privkey != pubkey'
         elif lines == 0 and privkey_file and not pubkey_file:
-            print('Укажите сначало публичный ключ')
             result_check_privkey = 'not pubkey'
         else:
             result_check_privkey = None
@@ -693,10 +684,8 @@ class Ui_MainWindow(object):
                 rnd_pass = rnd_pass.encode()
                 crypto_pass = rsa.encrypt(rnd_pass, pubkey)
                 decrypto = rsa.decrypt(crypto_pass, privkey)
-                print('Публичный ключ правильный')
                 result_check_pubkey = 'ok'
             except rsa.pkcs1.DecryptionError:
-                print('Неправильный публичный ключ')
                 result_check_pubkey = '!ok'
         else:
             result_check_pubkey = None

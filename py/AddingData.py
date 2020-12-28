@@ -2,11 +2,12 @@
 
 import string
 import random
+import base64
 from PyQt5 import QtCore, QtGui, QtWidgets
 import rsa
 import py.MainMenu
 import py.StartWindow
-import base64
+
 
 
 class Ui_Dialog(object):
