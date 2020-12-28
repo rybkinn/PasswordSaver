@@ -143,42 +143,50 @@ class Ui_Dialog(object):
     def show_mainwindow(self):
         global db_info
         global pwd
-        pwd = self.lineEdit_2.text()
-        wrong_db_info = self.comboBox_2.currentData()
-        wrong_db_info_new = ''
-        db_info = list()
-        for _item_db_info in range(len(wrong_db_info[0])):
-            if wrong_db_info[0][_item_db_info] == '\\':
-                wrong_db_info_new += '/'
-            else:
-                wrong_db_info_new += wrong_db_info[0][_item_db_info]
-        db_info.append(wrong_db_info_new)
-        db_info.append(wrong_db_info[1])
-        conn = sqlite3.connect(db_info[0])
-        cur = conn.cursor()
-        cur.execute("PRAGMA key = '{}'".format(pwd))
-        try:
-            cur.execute("SELECT count(*) FROM account_information")
-            cur.close()
-            conn.close()
-            result = bool(1)
-        except sqlite3.DatabaseError:
-            cur.close()
-            conn.close()
-            result = bool(0)
-        if result:
-            py.MainMenu.db_dir = db_info[0]
-            py.MainMenu.db_name = db_info[1]
-            py.MainMenu.Ui_MainWindow.connect_sql(self, True, start_or_load='start')
-            self.mainwindow = mainwindow()
-            self.mainwindow.show()
-            self.close()
-        else:
+        if self.comboBox_2.currentIndex() == -1:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setWindowTitle("Ошибка входа")
-            msg.setText("Неправильный пароль")
+            msg.setText("Не выбрана база данных")
             msg.exec_()
+        else:
+            pwd = self.lineEdit_2.text()
+            wrong_db_info = self.comboBox_2.currentData()
+
+            wrong_db_info_new = ''
+            db_info = list()
+            for _item_db_info in range(len(wrong_db_info[0])):
+                if wrong_db_info[0][_item_db_info] == '\\':
+                    wrong_db_info_new += '/'
+                else:
+                    wrong_db_info_new += wrong_db_info[0][_item_db_info]
+            db_info.append(wrong_db_info_new)
+            db_info.append(wrong_db_info[1])
+            conn = sqlite3.connect(db_info[0])
+            cur = conn.cursor()
+            cur.execute("PRAGMA key = '{}'".format(pwd))
+            try:
+                cur.execute("SELECT count(*) FROM account_information")
+                cur.close()
+                conn.close()
+                result = bool(1)
+            except sqlite3.DatabaseError:
+                cur.close()
+                conn.close()
+                result = bool(0)
+            if result:
+                py.MainMenu.db_dir = db_info[0]
+                py.MainMenu.db_name = db_info[1]
+                py.MainMenu.Ui_MainWindow.connect_sql(self, True, start_or_load='start')
+                self.mainwindow = mainwindow()
+                self.mainwindow.show()
+                self.close()
+            else:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Critical)
+                msg.setWindowTitle("Ошибка входа")
+                msg.setText("Неправильный пароль")
+                msg.exec_()
 
     @QtCore.pyqtSlot()
     def show_createdb(self):
