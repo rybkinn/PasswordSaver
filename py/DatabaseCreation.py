@@ -135,12 +135,15 @@ class Ui_Dialog(object):
             type_file = _name_bd[_name_bd.find("."):]
             if type_file == '.db':
                 new_name_bd.append(_name_bd[:-3])
-        for _name_bd_new in new_name_bd:
-            if name_db == _name_bd_new:
-                self.lineEdit.setStyleSheet("border: 1px solid red")
-                break
-            else:
-                self.lineEdit.setStyleSheet("border: 1px solid green")
+        if len(new_name_bd) == 0:
+            self.lineEdit.setStyleSheet("border: 1px solid green")
+        else:
+            for _name_bd_new in new_name_bd:
+                if name_db == _name_bd_new:
+                    self.lineEdit.setStyleSheet("border: 1px solid red")
+                    break
+                else:
+                    self.lineEdit.setStyleSheet("border: 1px solid green")
         if name_db == '':
             self.lineEdit.setStyleSheet("border: 1px solid red")
 

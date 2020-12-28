@@ -363,7 +363,7 @@ class Ui_MainWindow(object):
         self.createdb.exec_()
 
     @QtCore.pyqtSlot()
-    def loadbd(self, MainWindow):       # TODO: После загрузки БД нужно делать проверку на ключи и менять состояние кнопок
+    def loadbd(self, MainWindow):
         self.loadingdb = loadingdb()
         self.loadingdb.exec()
         if not py.LoadingDB.Close:
