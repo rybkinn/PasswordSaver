@@ -7,6 +7,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import rsa
 import py.MainMenu
+from py.waitingspinnerwidget import QtWaitingSpinner
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
 elif platform == "win32":
@@ -47,6 +48,23 @@ def show_msg(value, text_show, add_fields=False, informative_text=None, detailed
         return result
 
 
+class MyThread(QtCore.QThread):
+    def __init__(self, name_db, parent=None):
+        QtCore.QThread.__init__(self, parent)
+        self.name_db = name_db
+
+    def run(self):
+        (pubkey, privkey) = rsa.newkeys(py.MainMenu.new_rsa_bit)
+        pubkey_pem = pubkey.save_pkcs1('PEM')
+        privkey_pem = privkey.save_pkcs1('PEM')
+        with open('data/{0}_pubkey.pem'.format(self.name_db), mode='w+') as pubfile:
+            pubfile.write(pubkey_pem.decode())
+            pubfile.close()
+        with open('data/{0}_privkey.pem'.format(self.name_db), mode='w+') as privatefile:
+            privatefile.write(privkey_pem.decode())
+            privatefile.close()
+
+
 class Ui_Dialog(object):
     def __init__(self):
         super().__init__()
@@ -59,6 +77,11 @@ class Ui_Dialog(object):
         self.label_5 = QtWidgets.QLabel(Dialog)
         self.label_5.setGeometry(QtCore.QRect(140, 50, 121, 16))
         self.label_5.setObjectName("label_5")
+        self.label_7 = QtWidgets.QLabel(Dialog)
+        self.label_7.setGeometry(QtCore.QRect(140, 270, 140, 20))
+        self.label_7.setObjectName("label_7")
+        self.label_7.setFont(QtGui.QFont("MS Shell Dlg 2", 10, QtGui.QFont.Bold))
+        self.label_7.hide()
         self.label = QtWidgets.QLabel(Dialog)
         self.label.setGeometry(QtCore.QRect(115, 20, 190, 30))
         font = QtGui.QFont()
@@ -108,6 +131,18 @@ class Ui_Dialog(object):
         self.pushButton.setObjectName("pushButton")
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.pushButton)
 
+        self.spinner = QtWaitingSpinner(self, centerOnParent=False, disableParentWhenSpinning=True)
+        self.spinner.setGeometry(QtCore.QRect(180, 230, 121, 16))
+        self.spinner.setRoundness(70.0)
+        self.spinner.setMinimumTrailOpacity(15.0)
+        self.spinner.setTrailFadePercentage(70.0)
+        self.spinner.setNumberOfLines(12)
+        self.spinner.setLineLength(10)
+        self.spinner.setLineWidth(5)
+        self.spinner.setInnerRadius(10)
+        self.spinner.setRevolutionsPerSecond(1)
+        self.spinner.setColor(QtGui.QColor(0, 0, 0))
+
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
@@ -124,6 +159,7 @@ class Ui_Dialog(object):
         self.label_2.setText(_translate("Dialog", "Введите название"))
         self.label_3.setText(_translate("Dialog", "Введите пароль"))
         self.label_6.setText(_translate("Dialog", "Подтвердите пароль"))
+        self.label_7.setText(_translate("Dialog", "Генерирую ключи..."))
         self.pushButton.setText(_translate("Dialog", "Создать"))
 
     @QtCore.pyqtSlot()
@@ -237,38 +273,42 @@ class Ui_Dialog(object):
                 conn.commit()
                 cur.close()
                 conn.close()
-                (pubkey, privkey) = rsa.newkeys(py.MainMenu.new_rsa_bit)
-                pubkey_pem = pubkey.save_pkcs1('PEM')
-                privkey_pem = privkey.save_pkcs1('PEM')
-                with open('data/{0}_pubkey.pem'.format(name_db), mode='w+') as pubfile:
-                    pubfile.write(pubkey_pem.decode())
-                    pubfile.close()
-                with open('data/{0}_privkey.pem'.format(name_db), mode='w+') as privatefile:
-                    privatefile.write(privkey_pem.decode())
-                    privatefile.close()
-
-                createdb_ok = show_msg(1, 'База данных успешно созданна.',
-                                       add_fields=True,
-                                       informative_text='Более подробно по нажатию кнопки "Show Details..."',
-                                       detailed_text='- База данных: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '.db' + '\n\n'
-                                                     '- Публичный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '_pubkey.pem' + '\n\n'
-                                                     '- Приватный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '_privkey.pem')
-                if createdb_ok:
-                    global name_created_database
-                    name_created_database = self.lineEdit.text()
-                self.lineEdit.clear()
-                self.lineEdit_2.clear()
-                self.lineEdit_3.clear()
-                self.lineEdit.setStyleSheet("border: 1px solid gray")
-                self.lineEdit_2.setStyleSheet("border: 1px solid gray")
-                self.lineEdit_3.setStyleSheet("border: 1px solid gray")
-                self.close()
+                self.mythread = MyThread(name_db=self.lineEdit.text())
+                self.mythread.started.connect(self.spinner_started)
+                self.mythread.finished.connect(self.spinner_finished)
+                self.mythread.start()
             else:
                 show_msg(0, 'Пароли не совпадают')
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
         else:
             show_msg(0, 'Введите название БД')
             self.lineEdit.setStyleSheet("border: 1px solid red")
+
+    @QtCore.pyqtSlot()
+    def spinner_started(self):
+        self.spinner.start()
+        self.label_7.show()
+
+    @QtCore.pyqtSlot()
+    def spinner_finished(self):
+        self.spinner.stop()
+        self.label_7.hide()
+        createdb_ok = show_msg(1, 'База данных успешно создана.',
+                               add_fields=True,
+                               informative_text='Более подробно по нажатию кнопки "Show Details..."',
+                               detailed_text='- База данных: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '.db' + '\n\n'
+                                             '- Публичный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '_pubkey.pem' + '\n\n'
+                                             '- Приватный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '_privkey.pem')
+        if createdb_ok:
+            global name_created_database
+            name_created_database = self.lineEdit.text()
+        self.lineEdit.clear()
+        self.lineEdit_2.clear()
+        self.lineEdit_3.clear()
+        self.lineEdit.setStyleSheet("border: 1px solid gray")
+        self.lineEdit_2.setStyleSheet("border: 1px solid gray")
+        self.lineEdit_3.setStyleSheet("border: 1px solid gray")
+        self.close()
 
     def isvalid_pass(self, password):
         has_no = set(password).isdisjoint
