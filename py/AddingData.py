@@ -8,6 +8,7 @@ import rsa
 import py.MainMenu
 import py.StartWindow
 
+checkbox_pass = False
 
 
 class Ui_Dialog(object):
@@ -89,6 +90,15 @@ class Ui_Dialog(object):
         self.pushButton_3.setObjectName("pushButton_3")
         self.horizontalLayout.addWidget(self.pushButton_3)
 
+        self.checkBox = QtWidgets.QCheckBox(self.gridLayoutWidget)
+        self.checkBox.setObjectName("checkBox")
+        self.checkBox.setLayoutDirection(QtCore.Qt.RightToLeft)
+        self.gridLayout.addWidget(self.checkBox, 7, 1, 1, 1)
+        self.checkBox.setTristate(False)
+        self.label_8 = QtWidgets.QLabel(self.gridLayoutWidget)
+        self.label_8.setObjectName("label_8")
+        self.gridLayout.addWidget(self.label_8, 7, 0, 1, 1)
+
         global lines
         [lines], = py.MainMenu.cur.execute("SELECT Count(*) FROM account_information")
 
@@ -133,6 +143,9 @@ class Ui_Dialog(object):
         self.pushButton_4.setText(_translate("Dialog", "Отмена"))
         self.pushButton_3.setText(_translate("Dialog", "Добавить"))
 
+        self.label_8.setText(_translate("Dialog", "Копировать пароль"))
+        self.checkBox.setText(_translate("Dialog", "на {} секунд".format(py.MainMenu.buffer_del_sec)))
+
         if lines != 0:
             _indexItem = 0
             for _section in srt_section_mm:
@@ -141,6 +154,7 @@ class Ui_Dialog(object):
 
     @QtCore.pyqtSlot()
     def add_data(self):
+        global checkbox_pass
         if self.lineEdit_7.isVisible():
             section = self.lineEdit_7.text()
         elif self.comboBox.isVisible():
@@ -219,12 +233,22 @@ class Ui_Dialog(object):
                     py.MainMenu.cur.execute(
                         "INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(
                             maxid, section, name, login, password, email, secret_word, url))
+
+                    if self.checkBox.isChecked():
+                        py.MainMenu.buffer = QtWidgets.QApplication.clipboard()
+                        py.MainMenu.buffer.setText(entered_password)
+                        checkbox_pass = True
                     self.close()
             else:
                 maxid = 1
                 py.MainMenu.cur.execute(
                     "INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(
                         maxid, section, name, login, password, email, secret_word, url))
+
+                if self.checkBox.isChecked():
+                    buffer = QtWidgets.QApplication.clipboard()
+                    buffer.setText(entered_password)
+                    checkbox_pass = True
                 self.close()
 
     @QtCore.pyqtSlot()

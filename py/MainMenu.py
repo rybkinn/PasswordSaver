@@ -20,7 +20,7 @@ elif platform == "win32":
 # elif platform == "darwin":
     # OS X
 
-version = 'v 1.0'  # Версия программы
+version = 'v 1.1'  # Версия программы
 hide_password = True  # Показазь или скрыть пароли при запуске программы: True - скрыты / False - показанны
 buffer_del_sec = 10  # Через сколько секунд будет удаляться буфер обмена после копирования пароля
 new_rsa_bit = 4096  # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
@@ -400,6 +400,10 @@ class Ui_MainWindow(object):
             self.pushButton.setEnabled(False)
         else:
             self.pushButton.setEnabled(True)
+
+        if py.AddingData.checkbox_pass is True:
+            self.delete_buffer()
+            py.AddingData.checkbox_pass = False
 
     @QtCore.pyqtSlot()
     def copy_buffer(self):  # TODO: сделать удаление буфера при закрытии программы с диспетчера задач
