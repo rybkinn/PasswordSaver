@@ -246,8 +246,8 @@ class Ui_Dialog(object):
                         maxid, section, name, login, password, email, secret_word, url))
 
                 if self.checkBox.isChecked():
-                    buffer = QtWidgets.QApplication.clipboard()
-                    buffer.setText(entered_password)
+                    py.MainMenu.buffer = QtWidgets.QApplication.clipboard()
+                    py.MainMenu.buffer.setText(entered_password)
                     checkbox_pass = True
                 self.close()
 
