@@ -325,7 +325,7 @@ class Ui_MainWindow(object):
         elif privkey_file and result_check_privkey == '!ok':
             self.toolButton.setText(_translate("MainWindow", "Ключ не подходит. Укажите privkey.pem"))
         elif privkey_file and result_check_privkey == 'privkey != pubkey':
-            self.toolButton.setText(_translate("MainWindow", "Ключи разные. Укажите павильный privkey.pem"))
+            self.toolButton.setText(_translate("MainWindow", "Ключи разные. Укажите правильный privkey.pem"))
             self.toolButton_2.setText(_translate("MainWindow", "Ключи разные. Укажите правильный pubkey.pem"))
         elif privkey_file and result_check_privkey == 'not pubkey':
             self.toolButton.setText(_translate("MainWindow", "Сначало укажите pubkey.pem"))
@@ -344,67 +344,81 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def print(self):
-        with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
-            keydata_priv = privfile.read()
-            privfile.close()
-        privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-        pl = PrintList.PrintList()
-        pl.printer.setPageOrientation(QtGui.QPageLayout.Landscape)
-        pl.printer.setOutputFileName("PasswordPrint.pdf")
+        if not self.toolButton.isEnabled():
+            pl = PrintList.PrintList()
+            layout = QtGui.QPageLayout(QtGui.QPageSize(QtGui.QPageSize.A4),
+                                       QtGui.QPageLayout.Landscape,
+                                       QtCore.QMarginsF(5, 5, 5, 5),
+                                       units=QtGui.QPageLayout.Millimeter)
+            pl.printer.setPageLayout(layout)
+            pd = QtPrintSupport.QPrintDialog(pl.printer, parent=None)
+            result = pd.exec_()
 
-        data = []
-        treewidget_item_count = 0
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.treeWidget)
-        while iterator.value():
-            item = iterator.value()
-            if item.text(0) == '':
-                data.append([item.text(1)])
-                for i in range(2, 7):
-                    if item.text(i) == 'None':
-                        data[-1].append('')
-                    elif i == 3 and item.text(i) == '**********':
-                        data3_item = cur.execute(
-                            "SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
-                                item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
-                        password_bin = (data3_item[0][0]).encode()
-                        password_dec = base64.b64decode(password_bin)
-                        decrypto = rsa.decrypt(password_dec, privkey)
-                        password = decrypto.decode()
-                        data[-1].append(password)
-                    elif i == 5 and item.text(i) == '**********':
-                        data5_item = cur.execute(
-                            "SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
-                                item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
-                        secret_bin = (data5_item[0][0]).encode()
-                        secret_dec = base64.b64decode(secret_bin)
-                        decrypto = rsa.decrypt(secret_dec, privkey)
-                        secret = decrypto.decode()
-                        if secret == 'None':
-                            data[-1].append('')
-                        else:
-                            data[-1].append(secret)
+            if result == 1:
+                with open('{}_privkey.pem'.format(self.toolButton.text()[:-12]), 'rb') as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+
+                data = []
+                treewidget_item_count = 0
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.treeWidget)
+                while iterator.value():
+                    item = iterator.value()
+                    if item.text(0) == '':
+                        data.append([item.text(1)])
+                        for i in range(2, 7):
+                            if item.text(i) == 'None':
+                                data[-1].append('')
+                            elif i == 3 and item.text(i) == '**********':
+                                data3_item = cur.execute(
+                                    "SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
+                                        item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
+                                password_bin = (data3_item[0][0]).encode()
+                                password_dec = base64.b64decode(password_bin)
+                                decrypto = rsa.decrypt(password_dec, privkey)
+                                password = decrypto.decode()
+                                data[-1].append(password)
+                            elif i == 5 and item.text(i) == '**********':
+                                data5_item = cur.execute(
+                                    "SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
+                                        item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
+                                secret_bin = (data5_item[0][0]).encode()
+                                secret_dec = base64.b64decode(secret_bin)
+                                decrypto = rsa.decrypt(secret_dec, privkey)
+                                secret = decrypto.decode()
+                                if secret == 'None':
+                                    data[-1].append('')
+                                else:
+                                    data[-1].append(secret)
+                            else:
+                                data[-1].append(item.text(i))
+                    if item.parent():
+                        if item.parent():
+                            treewidget_item_count += 1
                     else:
-                        data[-1].append(item.text(i))
-            if item.parent():
-                if item.parent():
-                    treewidget_item_count += 1
-            else:
-                treewidget_item_count += 1
-            iterator += 1
-        pl.data = data
+                        treewidget_item_count += 1
+                    iterator += 1
+                pl.data = data
 
-        columnWidths = []
-        for i in range(1, self.treeWidget.headerItem().columnCount()):
-            columnWidths.append(180)
-        pl.columnWidths = columnWidths
+                columnWidths = []
+                for i in range(1, self.treeWidget.headerItem().columnCount()):
+                    columnWidths.append(180)
+                pl.columnWidths = columnWidths
 
-        headers = []
-        for i in range(1, self.treeWidget.headerItem().columnCount()):
-            item = self.treeWidget.headerItem().text(i)
-            headers.append(item)
-        pl.headers = headers
+                headers = []
+                for i in range(1, self.treeWidget.headerItem().columnCount()):
+                    item = self.treeWidget.headerItem().text(i)
+                    headers.append(item)
+                pl.headers = headers
 
-        pl.printData()
+                pl.printData()
+        else:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setText('Сначало укажите privkey.pem')
+            msg.setWindowTitle("Нельзя распечатать")
+            msg.exec_()
 
     @QtCore.pyqtSlot()
     def savebd(self):
