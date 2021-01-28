@@ -534,6 +534,7 @@
     <addaction name="action_3"/>
     <addaction name="action_4"/>
     <addaction name="action_5"/>
+    <addaction name="action_6"/>
     <addaction name="separator"/>
     <addaction name="action_7"/>
    </widget>
@@ -568,6 +569,11 @@
   <action name="action_7">
    <property name="text">
     <string>Выход</string>
+   </property>
+  </action>
+  <action name="action_6">
+   <property name="text">
+    <string>Печать</string>
    </property>
   </action>
  </widget>

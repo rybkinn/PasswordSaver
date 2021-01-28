@@ -5,7 +5,7 @@ import base64
 import random
 import string
 from sys import platform
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets, QtPrintSupport
 from PyQt5.QtWidgets import QMessageBox
 import rsa
 import py.DatabaseCreation
@@ -13,6 +13,7 @@ import py.AddingData
 import py.StartWindow
 import py.res_rc
 import py.LoadingDB
+import py.PrintList as PrintList
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
 elif platform == "win32":
@@ -229,11 +230,14 @@ class Ui_MainWindow(object):
         self.action_4.setObjectName("action_4")
         self.action_5 = QtWidgets.QAction(MainWindow)
         self.action_5.setObjectName("action_5")
+        self.action_6 = QtWidgets.QAction(MainWindow)
+        self.action_6.setObjectName("action_6")
         self.action_7 = QtWidgets.QAction(MainWindow)
         self.action_7.setObjectName("action_7")
         self.menu.addAction(self.action_3)
         self.menu.addAction(self.action_4)
         self.menu.addAction(self.action_5)
+        self.menu.addAction(self.action_6)
         self.menu.addSeparator()
         self.menu.addAction(self.action_7)
         self.menubar.addAction(self.menu.menuAction())
@@ -268,6 +272,7 @@ class Ui_MainWindow(object):
         self.action_3.triggered.connect(self.savebd)
         self.action_4.triggered.connect(self.show_createdb)
         self.action_5.triggered.connect(lambda: self.loadbd(MainWindow))
+        self.action_6.triggered.connect(self.print)
         self.action_7.triggered.connect(self.close)
         self.pushButton.clicked.connect(self.delete_data)
         self.pushButton_2.clicked.connect(self.show_addingdata)
@@ -333,8 +338,73 @@ class Ui_MainWindow(object):
         self.action_3.setText(_translate("MainWindow", "Сохранить"))
         self.action_4.setText(_translate("MainWindow", "Создать новую БД"))
         self.action_5.setText(_translate("MainWindow", "Загрузить БД"))
+        self.action_6.setText(_translate("MainWindow", "Печать"))
         self.action_7.setText(_translate("MainWindow", "Выход"))
         self.progressBar.setFormat(_translate("MainWindow", ""))
+
+    @QtCore.pyqtSlot()
+    def print(self):
+        with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
+            keydata_priv = privfile.read()
+            privfile.close()
+        privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+        pl = PrintList.PrintList()
+        pl.printer.setPageOrientation(QtGui.QPageLayout.Landscape)
+        pl.printer.setOutputFileName("PasswordPrint.pdf")
+
+        data = []
+        treewidget_item_count = 0
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.treeWidget)
+        while iterator.value():
+            item = iterator.value()
+            if item.text(0) == '':
+                data.append([item.text(1)])
+                for i in range(2, 7):
+                    if item.text(i) == 'None':
+                        data[-1].append('')
+                    elif i == 3 and item.text(i) == '**********':
+                        data3_item = cur.execute(
+                            "SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
+                                item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
+                        password_bin = (data3_item[0][0]).encode()
+                        password_dec = base64.b64decode(password_bin)
+                        decrypto = rsa.decrypt(password_dec, privkey)
+                        password = decrypto.decode()
+                        data[-1].append(password)
+                    elif i == 5 and item.text(i) == '**********':
+                        data5_item = cur.execute(
+                            "SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
+                                item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
+                        secret_bin = (data5_item[0][0]).encode()
+                        secret_dec = base64.b64decode(secret_bin)
+                        decrypto = rsa.decrypt(secret_dec, privkey)
+                        secret = decrypto.decode()
+                        if secret == 'None':
+                            data[-1].append('')
+                        else:
+                            data[-1].append(secret)
+                    else:
+                        data[-1].append(item.text(i))
+            if item.parent():
+                if item.parent():
+                    treewidget_item_count += 1
+            else:
+                treewidget_item_count += 1
+            iterator += 1
+        pl.data = data
+
+        columnWidths = []
+        for i in range(1, self.treeWidget.headerItem().columnCount()):
+            columnWidths.append(180)
+        pl.columnWidths = columnWidths
+
+        headers = []
+        for i in range(1, self.treeWidget.headerItem().columnCount()):
+            item = self.treeWidget.headerItem().text(i)
+            headers.append(item)
+        pl.headers = headers
+
+        pl.printData()
 
     @QtCore.pyqtSlot()
     def savebd(self):
@@ -974,6 +1044,7 @@ class Ui_MainWindow(object):
                             exec(
                                 'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
                                 toplevelitem_iter, child_iter, text_iter, _value))
+                # print(acc_info)
 
     def refresh_treewidget(self):
         self.delete_treewidget_item()
