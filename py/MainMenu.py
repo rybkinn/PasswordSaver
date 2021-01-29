@@ -247,15 +247,10 @@ class Ui_MainWindow(object):
         self.progressBar.setMaximum(100)
         self.progressBar.setProperty("value", 0)
         self.progressBar.setObjectName("progressBar")
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHeightForWidth(self.progressBar.sizePolicy().hasHeightForWidth())
-        self.progressBar.setSizePolicy(sizePolicy)
         self.gridLayout.addWidget(self.progressBar, 4, 0, 1, 1)
         self.progressBar.hide()
-        self.label_3 = QtWidgets.QLabel(self.centralwidget)
-        self.label_3.setObjectName("label_3")
-        self.gridLayout.addWidget(self.label_3, 4, 1, 1, 1)
-        self.label_3.hide()
+        self.statusbar.addPermanentWidget(self.progressBar)
+        self.statusbar.addPermanentWidget(self.label_2)
 
         self.result_check_privkey()
         self.result_check_pubkey()
@@ -306,8 +301,6 @@ class Ui_MainWindow(object):
         self.pushButton_4.setText(_translate("MainWindow", "Скрыть пароли"))
         self.pushButton_5.setText(_translate("MainWindow", "Показать пароли"))
         self.label_2.setText(_translate("MainWindow", "{}".format(version)))
-        self.label_3.setText(
-            _translate("MainWindow", "Данные будут удалены с буфера обмена через {} секунд".format(buffer_del_sec)))
         if pubkey_file and result_check_pubkey == 'ok':
             self.toolButton_2.setText(_translate("MainWindow", pubkey_dir))
         elif pubkey_file and result_check_pubkey == '!ok':
@@ -413,6 +406,7 @@ class Ui_MainWindow(object):
                 pl.headers = headers
 
                 pl.printData()
+                self.statusbar.showMessage("Печать завершена")
         else:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
@@ -481,7 +475,7 @@ class Ui_MainWindow(object):
             py.AddingData.checkbox_pass = False
 
     @QtCore.pyqtSlot()
-    def copy_buffer(self):  # TODO: сделать удаление буфера при закрытии программы с диспетчера задач
+    def copy_buffer(self):
         global buffer
         row = self.current_row()
         if row[1] == 'item_1':
@@ -826,9 +820,7 @@ class Ui_MainWindow(object):
         self.timer = QtCore.QBasicTimer()
         self.timer_sec = QtCore.QTimer()
         self.step = 0
-        self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow",
-                                                               "Данные будут удалены с буфера обмена через {} секунд".format(
-                                                                   buffer_del_sec)))
+        self.statusbar.showMessage("Данные будут удалены с буфера обмена через {} секунд".format(buffer_del_sec))
         timer_del = buffer_del_sec * 10
         if self.timer_sec.isActive():
             self.timer_sec.stop()
@@ -837,7 +829,6 @@ class Ui_MainWindow(object):
         else:
             self.timer.start(timer_del, self)
             self.progressBar.show()
-            self.label_3.show()
             self.start_timer(self.timer_func, buffer_del_sec)
 
     def timerEvent(self, e):
@@ -845,7 +836,7 @@ class Ui_MainWindow(object):
         if self.step >= 100:
             self.timer.stop()
             buffer.clear()
-            self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow", "Данные удалены с буфера обмена."))
+            self.statusbar.showMessage("Данные удалены с буфера обмена.")
             return
         else:
             self.step += 1
@@ -868,9 +859,7 @@ class Ui_MainWindow(object):
 
     def timer_func(self, count):
         global buffer_del_sec
-        self.label_3.setText(QtCore.QCoreApplication.translate("MainWindow",
-                                                               "Данные будут удалены с буфера обмена через {} секунд").format(
-            count))
+        self.statusbar.showMessage("Данные будут удалены с буфера обмена через {} секунд".format(count))
         if count <= 0:
             self.timer_sec.stop()
 
@@ -1058,7 +1047,6 @@ class Ui_MainWindow(object):
                             exec(
                                 'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
                                 toplevelitem_iter, child_iter, text_iter, _value))
-                # print(acc_info)
 
     def refresh_treewidget(self):
         self.delete_treewidget_item()
