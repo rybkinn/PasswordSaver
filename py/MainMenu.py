@@ -14,6 +14,7 @@ import py.StartWindow
 import py.res_rc
 import py.LoadingDB
 import py.PrintList as PrintList
+from py.waitingspinnerwidget import QtWaitingSpinner
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
 elif platform == "win32":
@@ -46,6 +47,79 @@ def show_msg(top_text, bottom_text):
     return result
 
 
+class MyThread(QtCore.QThread):
+    def __init__(self, toolButton, treeWidget, pl, parent=None):
+        QtCore.QThread.__init__(self, parent)
+        self.toolButton = toolButton
+        self.treeWidget = treeWidget
+        self.pl = pl
+
+    def run(self):
+        conn_t1 = sqlite3.connect(db_dir)
+        cur_t1 = conn_t1.cursor()
+        cur_t1.execute("PRAGMA key = '{}'".format(py.StartWindow.pwd))
+
+        with open('{}_privkey.pem'.format(self.toolButton.text()[:-12]), 'rb') as privfile:
+            keydata_priv = privfile.read()
+            privfile.close()
+        privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+
+        data = []
+        treewidget_item_count = 0
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.treeWidget)
+        while iterator.value():
+            item = iterator.value()
+            if item.text(0) == '':
+                data.append([item.text(1)])
+                for i in range(2, 7):
+                    if item.text(i) == 'None':
+                        data[-1].append('')
+                    elif i == 3 and item.text(i) == '**********':
+                        data3_item = cur_t1.execute(
+                            "SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
+                                item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
+                        password_bin = (data3_item[0][0]).encode()
+                        password_dec = base64.b64decode(password_bin)
+                        decrypto = rsa.decrypt(password_dec, privkey)
+                        password = decrypto.decode()
+                        data[-1].append(password)
+                    elif i == 5 and item.text(i) == '**********':
+                        data5_item = cur_t1.execute(
+                            "SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
+                                item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
+                        secret_bin = (data5_item[0][0]).encode()
+                        secret_dec = base64.b64decode(secret_bin)
+                        decrypto = rsa.decrypt(secret_dec, privkey)
+                        secret = decrypto.decode()
+                        if secret == 'None':
+                            data[-1].append('')
+                        else:
+                            data[-1].append(secret)
+                    else:
+                        data[-1].append(item.text(i))
+            if item.parent():
+                if item.parent():
+                    treewidget_item_count += 1
+            else:
+                treewidget_item_count += 1
+            iterator += 1
+        self.pl.data = data
+
+        columnWidths = []
+        for i in range(1, self.treeWidget.headerItem().columnCount()):
+            columnWidths.append(180)
+        self.pl.columnWidths = columnWidths
+
+        headers = []
+        for i in range(1, self.treeWidget.headerItem().columnCount()):
+            item = self.treeWidget.headerItem().text(i)
+            headers.append(item)
+        self.pl.headers = headers
+
+        cur_t1.close()
+        conn_t1.close()
+
+
 class Ui_MainWindow(object):
     def __init__(self):
         super(Ui_MainWindow, self).__init__()
@@ -69,7 +143,6 @@ class Ui_MainWindow(object):
                 cur.execute("PRAGMA key = '{}'".format(py.LoadingDB.pwd))
             else:
                 cur.execute("PRAGMA key = '{}'".format(py.StartWindow.pwd))
-            py.StartWindow.pwd = None
             rsa_bit = cur.execute("SELECT value FROM db_information WHERE name='rsa_bit'").fetchone()[0]
             if rsa_bit == 4096:
                 rsa_length = 684
@@ -252,6 +325,18 @@ class Ui_MainWindow(object):
         self.statusbar.addPermanentWidget(self.progressBar)
         self.statusbar.addPermanentWidget(self.label_2)
 
+        self.spinner = QtWaitingSpinner(self, centerOnParent=True, disableParentWhenSpinning=True)
+        self.spinner.setGeometry(QtCore.QRect(180, 230, 121, 16))
+        self.spinner.setRoundness(70.0)
+        self.spinner.setMinimumTrailOpacity(15.0)
+        self.spinner.setTrailFadePercentage(70.0)
+        self.spinner.setNumberOfLines(12)
+        self.spinner.setLineLength(10)
+        self.spinner.setLineWidth(5)
+        self.spinner.setInnerRadius(10)
+        self.spinner.setRevolutionsPerSecond(1)
+        self.spinner.setColor(QtGui.QColor(0, 0, 0))
+
         self.result_check_privkey()
         self.result_check_pubkey()
 
@@ -348,71 +433,27 @@ class Ui_MainWindow(object):
             result = pd.exec_()
 
             if result == 1:
-                with open('{}_privkey.pem'.format(self.toolButton.text()[:-12]), 'rb') as privfile:
-                    keydata_priv = privfile.read()
-                    privfile.close()
-                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-
-                data = []
-                treewidget_item_count = 0
-                iterator = QtWidgets.QTreeWidgetItemIterator(self.treeWidget)
-                while iterator.value():
-                    item = iterator.value()
-                    if item.text(0) == '':
-                        data.append([item.text(1)])
-                        for i in range(2, 7):
-                            if item.text(i) == 'None':
-                                data[-1].append('')
-                            elif i == 3 and item.text(i) == '**********':
-                                data3_item = cur.execute(
-                                    "SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
-                                        item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
-                                password_bin = (data3_item[0][0]).encode()
-                                password_dec = base64.b64decode(password_bin)
-                                decrypto = rsa.decrypt(password_dec, privkey)
-                                password = decrypto.decode()
-                                data[-1].append(password)
-                            elif i == 5 and item.text(i) == '**********':
-                                data5_item = cur.execute(
-                                    "SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
-                                        item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
-                                secret_bin = (data5_item[0][0]).encode()
-                                secret_dec = base64.b64decode(secret_bin)
-                                decrypto = rsa.decrypt(secret_dec, privkey)
-                                secret = decrypto.decode()
-                                if secret == 'None':
-                                    data[-1].append('')
-                                else:
-                                    data[-1].append(secret)
-                            else:
-                                data[-1].append(item.text(i))
-                    if item.parent():
-                        if item.parent():
-                            treewidget_item_count += 1
-                    else:
-                        treewidget_item_count += 1
-                    iterator += 1
-                pl.data = data
-
-                columnWidths = []
-                for i in range(1, self.treeWidget.headerItem().columnCount()):
-                    columnWidths.append(180)
-                pl.columnWidths = columnWidths
-
-                headers = []
-                for i in range(1, self.treeWidget.headerItem().columnCount()):
-                    item = self.treeWidget.headerItem().text(i)
-                    headers.append(item)
-                pl.headers = headers
-
-                pl.printData()
-                self.statusbar.showMessage("Печать завершена")
+                self.mythread = MyThread(toolButton=self.toolButton, treeWidget=self.treeWidget, pl=pl)
+                self.mythread.started.connect(self.spinner_started)
+                self.mythread.finished.connect(lambda: self.spinner_finished(pl=self.mythread.pl))
+                self.mythread.start()
         else:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText('Сначало укажите privkey.pem')
             msg.setWindowTitle("Нельзя распечатать")
             msg.exec_()
+
+    @QtCore.pyqtSlot()
+    def spinner_started(self):
+        self.spinner.start()
+        self.statusbar.showMessage("Готовлюсь к печати")
+
+    @QtCore.pyqtSlot()
+    def spinner_finished(self, pl):
+        pl.printData()
+        self.spinner.stop()
+        self.statusbar.showMessage("Печать завершена")
 
     @QtCore.pyqtSlot()
     def savebd(self):
@@ -1082,6 +1123,8 @@ class Ui_MainWindow(object):
         if close == QtWidgets.QMessageBox.Yes:
             if buffer is not None:
                 buffer.clear()
+            cur.close()
+            conn.close()
             event.accept()
         else:
             event.ignore()
