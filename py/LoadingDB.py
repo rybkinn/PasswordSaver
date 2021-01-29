@@ -117,6 +117,8 @@ class Ui_Dialog(object):
         self.toolButton.setObjectName("toolButton")
         self.gridLayout.addWidget(self.toolButton, 3, 2, 1, 1)
 
+        Dialog.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
+
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
         Dialog.setTabOrder(self.pushButton_3, self.comboBox_2)

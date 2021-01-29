@@ -93,6 +93,8 @@ class Ui_Dialog(object):
         self.lineEdit_2.setObjectName("lineEdit_2")
         self.gridLayout.addWidget(self.lineEdit_2, 1, 1, 1, 1)
 
+        Dialog.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
+
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
         Dialog.setTabOrder(self.pushButton_3, self.comboBox_2)

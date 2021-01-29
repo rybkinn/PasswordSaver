@@ -143,6 +143,8 @@ class Ui_Dialog(object):
         self.spinner.setRevolutionsPerSecond(1)
         self.spinner.setColor(QtGui.QColor(0, 0, 0))
 
+        Dialog.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
+
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 

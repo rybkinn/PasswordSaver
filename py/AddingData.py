@@ -99,6 +99,8 @@ class Ui_Dialog(object):
         self.label_8.setObjectName("label_8")
         self.gridLayout.addWidget(self.label_8, 7, 0, 1, 1)
 
+        Dialog.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
+
         global lines
         [lines], = py.MainMenu.cur.execute("SELECT Count(*) FROM account_information")
 
