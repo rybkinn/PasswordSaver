@@ -34,6 +34,7 @@ buffer = None
 choise_pubkey = None
 choise_privkey = None
 result_check_choise_privkey = None
+result_check_choise_pubkey = None
 
 
 def show_msg(top_text, bottom_text):
@@ -664,6 +665,7 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def choise_pubkey(self):
         global choise_pubkey
+        global result_check_choise_pubkey
         directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_pubkey.pem'.format(
             db_name[:-3]), os.getcwd(), 'key({}_pubkey.pem)'.format(db_name[:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
@@ -687,10 +689,12 @@ class Ui_MainWindow(object):
                         rnd_text = rnd_text.encode()
                         crypto_text = rsa.encrypt(rnd_text, choise_pubkey)
                         selftest_decrypto = rsa.decrypt(crypto_text, selftest_privfile)
+                        result_check_choise_pubkey = 'ok'
                     except rsa.pkcs1.DecryptionError:
                         self.toolButton_2.setEnabled(True)
                         self.toolButton_2.setText('Опять неправильный. Укажите pubkey.pem')
                         self.pushButton_2.setEnabled(False)
+                        result_check_choise_pubkey = '!ok'
 
     @QtCore.pyqtSlot()
     def choise_privkey(self):
@@ -911,16 +915,46 @@ class Ui_MainWindow(object):
     def menuContextuelAlbum(self, event):
         global buffer
         global result_check_privkey
+        global result_check_pubkey
         row = self.current_row()
         if row[1] == 'item_1':
             self.menu_contextuelAlb = QtWidgets.QMenu(self.treeWidget)
-            rmenu_copy_log = self.menu_contextuelAlb.addAction("Копировать логин")
+
+            rsubmenu_copy_log = self.menu_contextuelAlb.addMenu("Копировать")
+            rsubmenu_change_log = self.menu_contextuelAlb.addMenu("Изменить")
+
+            rmenu_copy_log = rsubmenu_copy_log.addAction("Копировать логин")
+            rmenu_copy_pass = rsubmenu_copy_log.addAction("Копировать пароль")
+            rmenu_copy_email = rsubmenu_copy_log.addAction("Копировать почту")
+            rmenu_copy_secret = rsubmenu_copy_log.addAction("Копировать секретное слово")
+            rmenu_copy_url = rsubmenu_copy_log.addAction("Копировать url")
+
             if result_check_privkey == 'ok' or result_check_choise_privkey == 'ok':
-                rmenu_copy_pass = self.menu_contextuelAlb.addAction("Копировать пароль")
-            rmenu_copy_email = self.menu_contextuelAlb.addAction("Копировать почту")
-            if result_check_privkey == 'ok' or result_check_choise_privkey == 'ok':
-                rmenu_copy_secret = self.menu_contextuelAlb.addAction("Копировать секретное слово")
-            rmenu_copy_url = self.menu_contextuelAlb.addAction("Копировать url")
+                rmenu_copy_pass.setEnabled(True)
+                rmenu_copy_secret.setEnabled(True)
+            else:
+                rmenu_copy_pass.setEnabled(False)
+                rmenu_copy_secret.setEnabled(False)
+
+            rmenu_change_log = rsubmenu_change_log.addAction("Изменить логин")
+            rmenu_change_pass = rsubmenu_change_log.addAction("Изменить пароль")
+            rmenu_change_email = rsubmenu_change_log.addAction("Изменить почту")
+            rmenu_change_secret = rsubmenu_change_log.addAction("Изменить секретное слово")
+            rmenu_change_url = rsubmenu_change_log.addAction("Изменить url")
+
+            if not self.toolButton.isEnabled() and not self.toolButton_2.isEnabled():
+                rmenu_change_log.setEnabled(True)
+                rmenu_change_pass.setEnabled(True)
+                rmenu_change_email.setEnabled(True)
+                rmenu_change_secret.setEnabled(True)
+                rmenu_change_url.setEnabled(True)
+            else:
+                rmenu_change_log.setEnabled(False)
+                rmenu_change_pass.setEnabled(False)
+                rmenu_change_email.setEnabled(False)
+                rmenu_change_secret.setEnabled(False)
+                rmenu_change_url.setEnabled(False)
+
             action2 = self.menu_contextuelAlb.exec_(self.treeWidget.mapToGlobal(event))
             if action2 is not None:
                 if action2 == rmenu_copy_log:
