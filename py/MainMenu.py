@@ -14,6 +14,7 @@ import py.StartWindow
 import py.res_rc
 import py.LoadingDB
 import py.PrintList as PrintList
+import py.Change
 from py.waitingspinnerwidget import QtWaitingSpinner
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -942,7 +943,7 @@ class Ui_MainWindow(object):
             rmenu_change_secret = rsubmenu_change_log.addAction("Изменить секретное слово")
             rmenu_change_url = rsubmenu_change_log.addAction("Изменить url")
 
-            if not self.toolButton.isEnabled() and not self.toolButton_2.isEnabled():
+            if not self.toolButton_2.isEnabled():
                 rmenu_change_log.setEnabled(True)
                 rmenu_change_pass.setEnabled(True)
                 rmenu_change_email.setEnabled(True)
@@ -1016,6 +1017,63 @@ class Ui_MainWindow(object):
                         else:
                             buffer.setText(secret)
                             self.delete_buffer()
+                elif action2 == rmenu_change_log:
+                    self.change = change('Изменение логина', 'Введите новый логин', False)
+                    result_close_window = self.change.exec_()
+                    if result_close_window:
+                        login = self.change.lineEdit.text()
+                        cur.execute(
+                                    "UPDATE account_information SET login='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
+                                        login, row[0][0], row[0][1], row[0][3], row[0][5]))
+                        self.refresh_treewidget()
+                elif action2 == rmenu_change_pass:
+                    self.change = change('Изменение пароля', 'Введите новый пароль', True)
+                    result_close_window = self.change.exec_()
+                    if result_close_window:
+                        with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                            keydata_pub = pubfile.read()
+                            pubfile.close()
+                        pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+                        pass_bin = self.change.lineEdit.text().encode()
+                        crypto_pass = rsa.encrypt(pass_bin, pubkey)
+                        password = base64.b64encode(crypto_pass).decode()
+                        cur.execute(
+                            "UPDATE account_information SET pass='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
+                                password, row[0][0], row[0][1], row[0][3], row[0][5]))
+                        self.refresh_treewidget()
+                elif action2 == rmenu_change_email:
+                    self.change = change('Изменение почты', 'Введите новую почту', False)
+                    result_close_window = self.change.exec_()
+                    if result_close_window:
+                        email = self.change.lineEdit.text()
+                        cur.execute(
+                            "UPDATE account_information SET email='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
+                                email, row[0][0], row[0][1], row[0][3], row[0][5]))
+                        self.refresh_treewidget()
+                elif action2 == rmenu_change_secret:
+                    self.change = change('Изменение секретного слова', 'Введите новое секретное слово', False)
+                    result_close_window = self.change.exec_()
+                    if result_close_window:
+                        with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                            keydata_pub = pubfile.read()
+                            pubfile.close()
+                        pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+                        secret_bin = self.change.lineEdit.text().encode()
+                        crypto_secret = rsa.encrypt(secret_bin, pubkey)
+                        secret = base64.b64encode(crypto_secret).decode()
+                        cur.execute(
+                            "UPDATE account_information SET secret_word='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
+                                secret, row[0][0], row[0][1], row[0][3], row[0][5]))
+                        self.refresh_treewidget()
+                elif action2 == rmenu_change_url:
+                    self.change = change('Изменение url', 'Введите новый url', False)
+                    result_close_window = self.change.exec_()
+                    if result_close_window:
+                        url = self.change.lineEdit.text()
+                        cur.execute(
+                            "UPDATE account_information SET url='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
+                                url, row[0][0], row[0][1], row[0][3], row[0][5]))
+                        self.refresh_treewidget()
 
     def add_treewidget_item(self):
         global lines
@@ -1184,3 +1242,13 @@ class loadingdb(QtWidgets.QDialog, py.LoadingDB.Ui_Dialog):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
+
+class change(QtWidgets.QDialog, py.Change.Ui_Dialog):
+    def __init__(self, title=str, label_text=str, pushbutton=bool):
+        super().__init__()
+        self.setupUi(self)
+        self.setWindowTitle(title)
+        self.label.setText(label_text)
+        if not pushbutton:
+            self.pushButton.hide()
