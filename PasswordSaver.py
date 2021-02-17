@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # Password Saver by Rybkin Nikita Igorevich
 # -*- coding: utf-8 -*-
-# v 1.1
+# v 1.2
 
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets

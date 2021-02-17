@@ -29,6 +29,8 @@ class Ui_Dialog(object):
         self.buttonBox.rejected.connect(Dialog.reject)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
+        Dialog.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
+
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Изменение логина"))

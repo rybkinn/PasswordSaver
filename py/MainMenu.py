@@ -23,7 +23,7 @@ elif platform == "win32":
 # elif platform == "darwin":
     # OS X
 
-version = 'v 1.1'  # Версия программы
+version = 'v 1.2'  # Версия программы
 hide_password = True  # Показазь или скрыть пароли при запуске программы: True - скрыты / False - показанны
 buffer_del_sec = 10  # Через сколько секунд будет удаляться буфер обмена после копирования пароля
 new_rsa_bit = 4096  # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
@@ -995,7 +995,6 @@ class Ui_MainWindow(object):
                         data_one_section = cur.execute(
                             "SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
                                 row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
-
                         if choise_privkey is not None:
                             privkey = choise_privkey
                         else:
@@ -1003,7 +1002,6 @@ class Ui_MainWindow(object):
                                 keydata_priv = privfile.read()
                                 privfile.close()
                             privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-
                         secret_bin = data_one_section[0][0].encode()
                         secret_dec = base64.b64decode(secret_bin)
                         decrypto = rsa.decrypt(secret_dec, privkey)
@@ -1022,30 +1020,46 @@ class Ui_MainWindow(object):
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         login = self.change.lineEdit.text()
-                        cur.execute(
-                                    "UPDATE account_information SET login='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
-                                        login, row[0][0], row[0][1], row[0][3], row[0][5]))
-                        self.refresh_treewidget()
+                        if login != '':
+                            cur.execute(
+                                        "UPDATE account_information SET login='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
+                                            login, row[0][0], row[0][1], row[0][3], row[0][5]))
+                            self.refresh_treewidget()
+                        else:
+                            msg = QMessageBox()
+                            msg.setIcon(QMessageBox.Critical)
+                            msg.setWindowTitle("Ошибка")
+                            msg.setText("Нельзя изменить на пустой логин")
+                            msg.exec_()
                 elif action2 == rmenu_change_pass:
                     self.change = change('Изменение пароля', 'Введите новый пароль', True)
                     result_close_window = self.change.exec_()
                     if result_close_window:
-                        with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
-                            keydata_pub = pubfile.read()
-                            pubfile.close()
-                        pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
-                        pass_bin = self.change.lineEdit.text().encode()
-                        crypto_pass = rsa.encrypt(pass_bin, pubkey)
-                        password = base64.b64encode(crypto_pass).decode()
-                        cur.execute(
-                            "UPDATE account_information SET pass='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
-                                password, row[0][0], row[0][1], row[0][3], row[0][5]))
-                        self.refresh_treewidget()
+                        if self.change.lineEdit.text() != '':
+                            with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                                keydata_pub = pubfile.read()
+                                pubfile.close()
+                            pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+                            pass_bin = self.change.lineEdit.text().encode()
+                            crypto_pass = rsa.encrypt(pass_bin, pubkey)
+                            password = base64.b64encode(crypto_pass).decode()
+                            cur.execute(
+                                "UPDATE account_information SET pass='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
+                                    password, row[0][0], row[0][1], row[0][3], row[0][5]))
+                            self.refresh_treewidget()
+                        else:
+                            msg = QMessageBox()
+                            msg.setIcon(QMessageBox.Critical)
+                            msg.setWindowTitle("Ошибка")
+                            msg.setText("Нельзя изменить на пустой пароль")
+                            msg.exec_()
                 elif action2 == rmenu_change_email:
                     self.change = change('Изменение почты', 'Введите новую почту', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         email = self.change.lineEdit.text()
+                        if email == '':
+                            email = None
                         cur.execute(
                             "UPDATE account_information SET email='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
                                 email, row[0][0], row[0][1], row[0][3], row[0][5]))
@@ -1054,13 +1068,16 @@ class Ui_MainWindow(object):
                     self.change = change('Изменение секретного слова', 'Введите новое секретное слово', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
-                        with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
-                            keydata_pub = pubfile.read()
-                            pubfile.close()
-                        pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
-                        secret_bin = self.change.lineEdit.text().encode()
-                        crypto_secret = rsa.encrypt(secret_bin, pubkey)
-                        secret = base64.b64encode(crypto_secret).decode()
+                        if self.change.lineEdit.text() == '':
+                            secret = None
+                        else:
+                            with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                                keydata_pub = pubfile.read()
+                                pubfile.close()
+                            pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+                            secret_bin = self.change.lineEdit.text().encode()
+                            crypto_secret = rsa.encrypt(secret_bin, pubkey)
+                            secret = base64.b64encode(crypto_secret).decode()
                         cur.execute(
                             "UPDATE account_information SET secret_word='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
                                 secret, row[0][0], row[0][1], row[0][3], row[0][5]))
@@ -1070,6 +1087,8 @@ class Ui_MainWindow(object):
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         url = self.change.lineEdit.text()
+                        if url == '':
+                            url = None
                         cur.execute(
                             "UPDATE account_information SET url='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
                                 url, row[0][0], row[0][1], row[0][3], row[0][5]))
@@ -1252,3 +1271,13 @@ class change(QtWidgets.QDialog, py.Change.Ui_Dialog):
         self.label.setText(label_text)
         if not pushbutton:
             self.pushButton.hide()
+        if title == 'Изменение секретного слова' or title == 'Изменение пароля':
+            self.lineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.pushButton.clicked.connect(self.generate_password)
+
+    def generate_password(self):
+        def gen_pass():
+            chars = string.ascii_letters + string.digits + '_' + '!' + '?' + '@'
+            size = random.randint(8, 12)
+            return ''.join(random.choice(chars) for x in range(size))
+        self.lineEdit.setText(gen_pass())
