@@ -1068,16 +1068,16 @@ class Ui_MainWindow(object):
                     self.change = change('Изменение секретного слова', 'Введите новое секретное слово', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
-                        if self.change.lineEdit.text() == '':
-                            secret = None
-                        else:
-                            with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
-                                keydata_pub = pubfile.read()
-                                pubfile.close()
-                            pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
-                            secret_bin = self.change.lineEdit.text().encode()
-                            crypto_secret = rsa.encrypt(secret_bin, pubkey)
-                            secret = base64.b64encode(crypto_secret).decode()
+                        secret_text = self.change.lineEdit.text()
+                        if secret_text == '':
+                            secret_text = 'None'
+                        with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                            keydata_pub = pubfile.read()
+                            pubfile.close()
+                        pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+                        secret_bin = secret_text.encode()
+                        crypto_secret = rsa.encrypt(secret_bin, pubkey)
+                        secret = base64.b64encode(crypto_secret).decode()
                         cur.execute(
                             "UPDATE account_information SET secret_word='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
                                 secret, row[0][0], row[0][1], row[0][3], row[0][5]))
