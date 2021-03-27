@@ -923,6 +923,7 @@ class Ui_MainWindow(object):
 
             rsubmenu_copy_log = self.menu_contextuelAlb.addMenu("Копировать")
             rsubmenu_change_log = self.menu_contextuelAlb.addMenu("Изменить")
+            rsubmenu_transfer_acc = self.menu_contextuelAlb.addMenu("Переместить в")
 
             rmenu_copy_log = rsubmenu_copy_log.addAction("Копировать логин")
             rmenu_copy_pass = rsubmenu_copy_log.addAction("Копировать пароль")
@@ -942,6 +943,11 @@ class Ui_MainWindow(object):
             rmenu_change_email = rsubmenu_change_log.addAction("Изменить почту")
             rmenu_change_secret = rsubmenu_change_log.addAction("Изменить секретное слово")
             rmenu_change_url = rsubmenu_change_log.addAction("Изменить url")
+
+            sect_list = []
+            section = cur.execute("SELECT section FROM account_information GROUP BY section ORDER BY id").fetchall()
+            for section_item in section:
+                sect_list.append(rsubmenu_transfer_acc.addAction(section_item[0]))
 
             if not self.toolButton_2.isEnabled():
                 rmenu_change_log.setEnabled(True)
@@ -1092,6 +1098,18 @@ class Ui_MainWindow(object):
                         cur.execute(
                             "UPDATE account_information SET url='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
                                 url, row[0][0], row[0][1], row[0][3], row[0][5]))
+                        self.refresh_treewidget()
+
+                for item_type in sect_list:
+                    if action2 is not None and action2 == item_type:
+                        cur.execute(f"""
+                        UPDATE account_information SET 
+                        section='{item_type.text()}' WHERE 
+                        name='{row[0][0]}' AND 
+                        login='{row[0][1]}' AND 
+                        email='{row[0][3]}' AND 
+                        url='{row[0][5]}'"""
+                                    )
                         self.refresh_treewidget()
 
     def add_treewidget_item(self):
