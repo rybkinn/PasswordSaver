@@ -200,3 +200,4 @@ class Ui_Dialog(object):
             msg.setWindowTitle("Ошибка входа")
             msg.setText("Неправильный пароль")
             msg.exec_()
+            self.lineEdit_2.clear()
