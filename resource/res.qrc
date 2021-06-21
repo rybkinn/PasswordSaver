@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="image">
+    <file>image/question.ico</file>
     <file>image/checkmark.ico</file>
     <file>image/cross.ico</file>
   </qresource>
