@@ -144,7 +144,8 @@ class Ui_Dialog(object):
 
     @QtCore.pyqtSlot()
     def push_tool_button(self):
-        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Открытие базы данных', os.getcwd(), 'database files(*.db)')
+        directory_name = QtWidgets.QFileDialog.getOpenFileName(
+            None, 'Открытие базы данных', os.getcwd(), 'database files(*.db)')
         if directory_name[0] != '':
             self.comboBox_2.clear()
             filename = ''
