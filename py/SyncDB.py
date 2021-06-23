@@ -3,7 +3,6 @@ import base64
 import os
 from sys import platform
 
-import PyQt5.Qt
 import rsa
 from PyQt5 import QtCore
 from PyQt5 import QtGui
@@ -29,38 +28,44 @@ class MyThread(QtCore.QThread):
         self.path = path
         self.pwd = pwd
 
-    def run(self):  # TODO: добавить очистку sync БД и копирование всех данных с main БД в sync БД.
+    def run(self):
         added_acc_count = 0
-        tread_conn_main = sqlite3.connect(py.MainMenu.db_dir)
-        tread_cur_main = tread_conn_main.cursor()
-        tread_cur_main.execute("PRAGMA key = '{}'".format(self.pwd))
-        rows_main_db = tread_cur_main.execute('SELECT * FROM account_information').fetchall()
+        thread_conn_main = sqlite3.connect(py.MainMenu.db_dir)
+        thread_cur_main = thread_conn_main.cursor()
+        thread_cur_main.execute("PRAGMA key = '{}'".format(self.pwd))
+        rows_main_db = thread_cur_main.execute('SELECT * FROM account_information').fetchall()
         rows_main_db_without_id = []
-        last_id_main = tread_cur_main.execute('SELECT MAX(id) FROM account_information').fetchall()[0][0]
+        last_id_main = thread_cur_main.execute('SELECT MAX(id) FROM account_information').fetchall()[0][0]
         new_id_main = last_id_main + 1
 
         for row_main in rows_main_db:
             rows_main_db_without_id.append(row_main[1:])
 
-        tread_conn_sync = sqlite3.connect(self.path)
-        tread_cur_sync = tread_conn_sync.cursor()
-        tread_cur_sync.execute("PRAGMA key = '{}'".format(self.pwd))
-        rows_sync_db = tread_cur_sync.execute('SELECT * FROM account_information').fetchall()
+        thread_conn_sync = sqlite3.connect(self.path)
+        thread_cur_sync = thread_conn_sync.cursor()
+        thread_cur_sync.execute("PRAGMA key = '{}'".format(self.pwd))
+        rows_sync_db = thread_cur_sync.execute('SELECT * FROM account_information').fetchall()
 
         for row_sync in rows_sync_db:
             if row_sync[1:] in rows_main_db_without_id:
                 continue
             else:
                 row_sync_new_id = (new_id_main, ) + row_sync[1:]
-                tread_cur_main.execute('INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)', row_sync_new_id)
+                thread_cur_main.execute('INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)', row_sync_new_id)
                 new_id_main += 1
                 added_acc_count += 1
 
-        tread_conn_main.commit()
-        tread_cur_main.close()
-        tread_cur_sync.close()
-        tread_conn_main.close()
-        tread_conn_sync.close()
+        thread_cur_sync.execute('DELETE FROM account_information')
+        all_rows_main = thread_cur_main.execute('SELECT * FROM account_information').fetchall()
+        for all_row_main in all_rows_main:
+            thread_cur_sync.execute('INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)', all_row_main)
+
+        thread_conn_main.commit()
+        thread_conn_sync.commit()
+        thread_cur_main.close()
+        thread_cur_sync.close()
+        thread_conn_main.close()
+        thread_conn_sync.close()
 
 
 def create_and_check_connection(path: str, pwd: str) -> sqlite3.Connection or None:
