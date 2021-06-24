@@ -31,34 +31,93 @@ class MyThread(QtCore.QThread):
     def run(self):
         added_acc_count = 0
         thread_conn_main = sqlite3.connect(py.MainMenu.db_dir)
+        thread_conn_main.row_factory = lambda cursor, row: list(row)
         thread_cur_main = thread_conn_main.cursor()
         thread_cur_main.execute("PRAGMA key = '{}'".format(self.pwd))
-        rows_main_db = thread_cur_main.execute('SELECT * FROM account_information').fetchall()
-        rows_main_db_without_id = []
-        last_id_main = thread_cur_main.execute('SELECT MAX(id) FROM account_information').fetchall()[0][0]
-        new_id_main = last_id_main + 1
+        rows_main_db = thread_cur_main.execute('SELECT * FROM account_information').fetchall()  # Достаем данные main
 
+        rows_main_db_decrypt = []
         for row_main in rows_main_db:
-            rows_main_db_without_id.append(row_main[1:])
+            pass_decrypt_row = decrypt(row_main[4])
+            secret_decrypt_row = decrypt(row_main[6])
+            row_decrypt = []
+            for row_index_data in range(8):
+                if row_index_data == 4:
+                    row_decrypt.append(pass_decrypt_row)
+                elif row_index_data == 6:
+                    row_decrypt.append(secret_decrypt_row)
+                else:
+                    row_decrypt.append(row_main[row_index_data])
+            rows_main_db_decrypt.append(row_decrypt)
+
+        rows_main_db_decrypt_without_id = []
+        for row_main in rows_main_db_decrypt:
+            rows_main_db_decrypt_without_id.append(row_main[1:])
 
         thread_conn_sync = sqlite3.connect(self.path)
+        thread_conn_sync.row_factory = lambda cursor, row: list(row)
         thread_cur_sync = thread_conn_sync.cursor()
         thread_cur_sync.execute("PRAGMA key = '{}'".format(self.pwd))
-        rows_sync_db = thread_cur_sync.execute('SELECT * FROM account_information').fetchall()
+        rows_sync_db = thread_cur_sync.execute('SELECT * FROM account_information').fetchall()  # Достаем данные sync
 
+        rows_sync_db_decrypt = []
         for row_sync in rows_sync_db:
-            if row_sync[1:] in rows_main_db_without_id:
-                continue
-            else:
-                row_sync_new_id = (new_id_main, ) + row_sync[1:]
-                thread_cur_main.execute('INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)', row_sync_new_id)
-                new_id_main += 1
-                added_acc_count += 1
+            pass_decrypt_row = decrypt(row_sync[4])
+            secret_decrypt_row = decrypt(row_sync[6])
+            row_decrypt = []
+            for row_index_data in range(8):
+                if row_index_data == 4:
+                    row_decrypt.append(pass_decrypt_row)
+                elif row_index_data == 6:
+                    row_decrypt.append(secret_decrypt_row)
+                else:
+                    row_decrypt.append(row_sync[row_index_data])
+            rows_sync_db_decrypt.append(row_decrypt)
 
+        rows_sync_db_decrypt_without_id = []
+        for row_sync in rows_sync_db_decrypt:
+            rows_sync_db_decrypt_without_id.append(row_sync[1:])
+
+        unique_rows_main_decrypt = rows_main_db_decrypt_without_id.copy()
+        unique_rows_sync_decrypt = rows_sync_db_decrypt_without_id.copy()
+
+        unique_rows_main = rows_main_db.copy()
+        unique_rows_sync = rows_sync_db.copy()
+
+        for index_row, row_sync in enumerate(rows_sync_db_decrypt_without_id):
+            if row_sync in rows_main_db_decrypt_without_id:
+                unique_rows_main_decrypt.remove(row_sync)
+                unique_rows_sync_decrypt.remove(row_sync)
+                unique_rows_sync[index_row] = 'not'
+
+        for index_row, row_main in enumerate(rows_main_db_decrypt_without_id):
+            if row_main in rows_sync_db_decrypt_without_id:
+                unique_rows_main[index_row] = 'not'
+
+        unique_rows_main_cp = unique_rows_main.copy()
+        unique_rows_sync_cp = unique_rows_sync.copy()
+
+        for row_main in unique_rows_main:
+            if row_main == 'not':
+                unique_rows_main_cp.remove('not')
+        for row_sync in unique_rows_sync:
+            if row_sync == 'not':
+                unique_rows_sync_cp.remove('not')
+
+        added_acc_count = len(unique_rows_main_decrypt) + len(unique_rows_sync_decrypt)
+
+        for row_main in unique_rows_main_cp:
+            rows_sync_db.append(row_main)
+        for row_sync in unique_rows_sync_cp:
+            rows_main_db.append(row_sync)
+
+        thread_cur_main.execute('DELETE FROM account_information')
         thread_cur_sync.execute('DELETE FROM account_information')
-        all_rows_main = thread_cur_main.execute('SELECT * FROM account_information').fetchall()
-        for all_row_main in all_rows_main:
-            thread_cur_sync.execute('INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)', all_row_main)
+        rows_main_db.sort()
+        for _id, row in enumerate(rows_main_db):
+            row[0] = _id + 1
+            thread_cur_main.execute('INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)', row)
+            thread_cur_sync.execute('INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)', row)
 
         thread_conn_main.commit()
         thread_conn_sync.commit()
