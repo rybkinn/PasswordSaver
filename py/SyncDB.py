@@ -23,8 +23,10 @@ finish_sync = False
 
 
 class MyThread(QtCore.QThread):
-    def __init__(self, path, pwd, parent=None):
-        QtCore.QThread.__init__(self, parent)
+    response = QtCore.pyqtSignal(int)
+
+    def __init__(self, path, pwd):
+        super().__init__()
         self.path = path
         self.pwd = pwd
 
@@ -34,7 +36,7 @@ class MyThread(QtCore.QThread):
         thread_conn_main.row_factory = lambda cursor, row: list(row)
         thread_cur_main = thread_conn_main.cursor()
         thread_cur_main.execute("PRAGMA key = '{}'".format(self.pwd))
-        rows_main_db = thread_cur_main.execute('SELECT * FROM account_information').fetchall()  # Достаем данные main
+        rows_main_db = thread_cur_main.execute('SELECT * FROM account_information').fetchall()
 
         rows_main_db_decrypt = []
         for row_main in rows_main_db:
@@ -58,7 +60,7 @@ class MyThread(QtCore.QThread):
         thread_conn_sync.row_factory = lambda cursor, row: list(row)
         thread_cur_sync = thread_conn_sync.cursor()
         thread_cur_sync.execute("PRAGMA key = '{}'".format(self.pwd))
-        rows_sync_db = thread_cur_sync.execute('SELECT * FROM account_information').fetchall()  # Достаем данные sync
+        rows_sync_db = thread_cur_sync.execute('SELECT * FROM account_information').fetchall()
 
         rows_sync_db_decrypt = []
         for row_sync in rows_sync_db:
@@ -118,6 +120,8 @@ class MyThread(QtCore.QThread):
             row[0] = _id + 1
             thread_cur_main.execute('INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)', row)
             thread_cur_sync.execute('INSERT INTO account_information VALUES (?,?,?,?,?,?,?,?)', row)
+
+        self.response.emit(added_acc_count)
 
         thread_conn_main.commit()
         thread_conn_sync.commit()
@@ -450,7 +454,9 @@ class Ui_Dialog(object):
                     self.label_7.setPixmap(QtGui.QPixmap("resource/image/cross.ico"))
                 self.mythread = MyThread(path, pwd)
                 self.mythread.started.connect(self.spinner_started)
-                self.mythread.finished.connect(self.spinner_finished)
+                self.mythread.response.connect(self.response_slot)
+                self.acc_count = 0
+                self.mythread.finished.connect(lambda: self.spinner_finished(self.acc_count))
                 self.mythread.start()
             else:
                 self.label_6.setPixmap(QtGui.QPixmap("resource/image/cross.ico"))
@@ -464,6 +470,9 @@ class Ui_Dialog(object):
             self.label_5.setPixmap(QtGui.QPixmap("resource/image/cross.ico"))
             self.lineEdit.clear()
 
+    def response_slot(self, acc_count):
+        self.acc_count = acc_count
+
     @QtCore.pyqtSlot()
     def spinner_started(self):
         self.spinner.start()
@@ -471,9 +480,9 @@ class Ui_Dialog(object):
         self.label_11.show()
 
     @QtCore.pyqtSlot()
-    def spinner_finished(self):
+    def spinner_finished(self, acc_count):
         self.spinner.stop()
-        self.label_11.setText("Синхронизация завершена")
+        self.label_11.setText(f"Синхронизированно {acc_count} аккаунтов")
         self.label_11.setStyleSheet("font-weight: 900; font-size: 16px")
         self.pushButton.setEnabled(False)
         global finish_sync
