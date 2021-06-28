@@ -115,7 +115,10 @@ class Ui_Dialog(object):
         self.lineEdit_2 = QtWidgets.QLineEdit(self.formLayoutWidget)
         self.lineEdit_2.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
         self.lineEdit_2.setAutoFillBackground(False)
-        self.lineEdit_2.setInputMethodHints(QtCore.Qt.ImhHiddenText|QtCore.Qt.ImhNoAutoUppercase|QtCore.Qt.ImhNoPredictiveText|QtCore.Qt.ImhSensitiveData)
+        self.lineEdit_2.setInputMethodHints(QtCore.Qt.ImhHiddenText |
+                                            QtCore.Qt.ImhNoAutoUppercase |
+                                            QtCore.Qt.ImhNoPredictiveText |
+                                            QtCore.Qt.ImhSensitiveData)
         self.lineEdit_2.setEchoMode(QtWidgets.QLineEdit.Password)
         self.lineEdit_2.setObjectName("lineEdit_2")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.lineEdit_2)
@@ -256,20 +259,32 @@ class Ui_Dialog(object):
                 conn = sqlite3.connect(r'data/' + name_db + '.db')
                 cur = conn.cursor()
                 cur.execute("PRAGMA key = '{}'".format(pwd))
+                cur.execute("PRAGMA foreign_keys = ON")
                 cur.execute("""CREATE TABLE IF NOT EXISTS account_information(
-                    "ID" INTEGER NOT NULL UNIQUE,
-                    "section" TEXT,
-                    "name" TEXT,
+                    "id" INTEGER NOT NULL UNIQUE PRIMARY KEY AUTOINCREMENT,
+                    "section" TEXT NOT NULL,
+                    "name" TEXT NOT NULL,
                     "login" TEXT NOT NULL,
                     "pass" TEXT NOT NULL,
-                    "email" TEXT,
-                    "secret_word" TEXT,
-                    "url" TEXT,
-                    PRIMARY KEY("ID" AUTOINCREMENT))
+                    "email" TEXT DEFAULT 'NULL',
+                    "secret_word" TEXT DEFAULT 'NULL',
+                    "url" TEXT DEFAULT 'NULL')
                 """)
                 cur.execute("""CREATE TABLE IF NOT EXISTS db_information(
-                    "name" TEXT,
-                    "value" INTEGER)
+                    "name" TEXT NOT NULL,
+                    "value" INTEGER NOT NULL)
+                """)
+                cur.execute("""CREATE TABLE IF NOT EXISTS data_change_time(
+                    "id" INTEGER NOT NULL UNIQUE REFERENCES account_information (id) ON DELETE CASCADE 
+                                                                                     ON UPDATE CASCADE,
+                    "create_account" TEXT NOT NULL,
+                    "update_account" TEXT DEFAULT 'NULL',
+                    "change_section" TEXT DEFAULT 'NULL',
+                    "change_login" TEXT DEFAULT 'NULL',
+                    "change_pass" TEXT DEFAULT 'NULL',
+                    "change_email" TEXT DEFAULT 'NULL',
+                    "change_secret_word" TEXT DEFAULT 'NULL',
+                    "change_url" TEXT DEFAULT 'NULL')
                 """)
                 cur.execute("INSERT INTO db_information (name, value) VALUES ('rsa_bit', {})".format(py.MainMenu.new_rsa_bit))
                 conn.commit()
@@ -298,9 +313,14 @@ class Ui_Dialog(object):
         createdb_ok = show_msg(1, 'База данных успешно создана.',
                                add_fields=True,
                                informative_text='Более подробно по нажатию кнопки "Show Details..."',
-                               detailed_text='- База данных: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '.db' + '\n\n'
-                                             '- Публичный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '_pubkey.pem' + '\n\n'
-                                             '- Приватный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() + '_privkey.pem')
+                               detailed_text='- База данных: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
+                                             '.db' + '\n\n'
+                                                     
+                                             '- Публичный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
+                                             '_pubkey.pem' + '\n\n'
+                                                             
+                                             '- Приватный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
+                                             '_privkey.pem')
         if createdb_ok:
             global name_created_database
             name_created_database = self.lineEdit.text()
@@ -314,4 +334,7 @@ class Ui_Dialog(object):
 
     def isvalid_pass(self, password):
         has_no = set(password).isdisjoint
-        return not (len(password) < 8 or has_no(string.digits) or has_no(string.ascii_lowercase) or has_no(string.ascii_uppercase))
+        return not (len(password) < 8 or
+                    has_no(string.digits) or
+                    has_no(string.ascii_lowercase) or
+                    has_no(string.ascii_uppercase))
