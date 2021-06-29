@@ -160,7 +160,6 @@ class Ui_Dialog(object):
 
     @QtCore.pyqtSlot()
     def show_mainwindow(self):
-        global pwd
         global db_info
         pwd = self.lineEdit_2.text()
         wrong_db_info = self.comboBox_2.currentData()
@@ -191,6 +190,8 @@ class Ui_Dialog(object):
             py.MainMenu.conn.close()
             py.MainMenu.db_dir = db_info[0]
             py.MainMenu.db_name = db_info[1]
+            py.MainMenu.pwd = pwd
+            del pwd
             py.MainMenu.Ui_MainWindow.connect_sql(self, True, start_or_load='load')
             global Close
             Close = False

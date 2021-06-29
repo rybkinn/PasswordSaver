@@ -144,7 +144,6 @@ class Ui_Dialog(object):
     @QtCore.pyqtSlot()
     def show_mainwindow(self):
         global db_info
-        global pwd
         if self.comboBox_2.currentIndex() == -1:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
@@ -179,6 +178,8 @@ class Ui_Dialog(object):
             if result:
                 py.MainMenu.db_dir = db_info[0]
                 py.MainMenu.db_name = db_info[1]
+                py.MainMenu.pwd = pwd
+                del pwd
                 py.MainMenu.Ui_MainWindow.connect_sql(self, True, start_or_load='start')
                 self.mainwindow = mainwindow()
                 self.mainwindow.show()

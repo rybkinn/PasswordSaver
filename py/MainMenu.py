@@ -31,6 +31,7 @@ new_rsa_bit = 4096  # Длина rsa ключа при создании ново
 
 db_dir = None
 db_name = None
+pwd = None
 
 
 buffer = None
@@ -61,7 +62,7 @@ class MyThread(QtCore.QThread):
     def run(self):
         conn_t1 = sqlite3.connect(db_dir)
         cur_t1 = conn_t1.cursor()
-        cur_t1.execute("PRAGMA key = '{}'".format(py.StartWindow.pwd))
+        cur_t1.execute("PRAGMA key = '{}'".format(pwd))
 
         with open('{}_privkey.pem'.format(self.toolButton.text()[:-12]), 'rb') as privfile:
             keydata_priv = privfile.read()
@@ -144,9 +145,9 @@ class Ui_MainWindow(object):
             conn = sqlite3.connect(db_dir)
             cur = conn.cursor()
             if start_or_load == 'load':
-                cur.execute("PRAGMA key = '{}'".format(py.LoadingDB.pwd))
+                cur.execute("PRAGMA key = '{}'".format(pwd))
             else:
-                cur.execute("PRAGMA key = '{}'".format(py.StartWindow.pwd))
+                cur.execute("PRAGMA key = '{}'".format(pwd))
             rsa_bit = cur.execute("SELECT value FROM db_information WHERE name='rsa_bit'").fetchone()[0]
             if rsa_bit == 4096:
                 rsa_length = 684
