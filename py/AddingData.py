@@ -3,6 +3,7 @@
 import string
 import random
 import base64
+import datetime
 from PyQt5 import QtCore, QtGui, QtWidgets
 import rsa
 import py.MainMenu
@@ -101,13 +102,12 @@ class Ui_Dialog(object):
 
         Dialog.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
 
-        global lines
         [lines], = py.MainMenu.cur.execute("SELECT Count(*) FROM account_information")
+        self.lines = lines
 
-        if lines != 0:
-            global srt_section_mm
-            srt_section_mm = py.MainMenu.srt_section
-            for _item in srt_section_mm:
+        if self.lines != 0:
+            self.srt_section_mm = py.MainMenu.srt_section
+            for _item in self.srt_section_mm:
                 exec('self.comboBox.addItem("")')
         else:
             self.add_section()
@@ -148,9 +148,9 @@ class Ui_Dialog(object):
         self.label_8.setText(_translate("Dialog", "Копировать пароль"))
         self.checkBox.setText(_translate("Dialog", "на {} секунд".format(py.MainMenu.buffer_del_sec)))
 
-        if lines != 0:
+        if self.lines != 0:
             _indexItem = 0
-            for _section in srt_section_mm:
+            for _section in self.srt_section_mm:
                 exec('self.comboBox.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _section))
                 _indexItem += 1
 
@@ -218,10 +218,25 @@ class Ui_Dialog(object):
                 secret_word = None
             if url == '':
                 url = None
-            if lines != 0:
-                exists_name = py.MainMenu.cur.execute("SELECT name FROM account_information WHERE name='{}'".format(name))
-                exists_name = py.MainMenu.cur.fetchone()
-                exists_login = py.MainMenu.cur.execute("SELECT login FROM account_information WHERE login='{}'".format(login))
+            if self.lines == 0:
+                new_id = 1
+                py.MainMenu.cur.execute("""INSERT INTO account_information
+                                           (ID, section, name, login, pass, email, secret_word, url)
+                                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                                        (new_id, section, name, login, password, email, secret_word, url))
+                py.MainMenu.cur.execute("""INSERT INTO data_change_time
+                                           (id, create_account)
+                                           VALUES (?, ?)""",
+                                        (new_id, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                if self.checkBox.isChecked():
+                    py.MainMenu.buffer = QtWidgets.QApplication.clipboard()
+                    py.MainMenu.buffer.setText(entered_password)
+                    checkbox_pass = True
+                self.close()
+            else:
+                py.MainMenu.cur.execute("SELECT name FROM account_information WHERE name='{}'".format(name))
+                exists_name = py.MainMenu.cur.fetchone()    # TODO: Нужно передовать conn работать с ним и возврощать.
+                py.MainMenu.cur.execute("SELECT login FROM account_information WHERE login='{}'".format(login))
                 exists_login = py.MainMenu.cur.fetchone()
                 if exists_name is not None and exists_login is not None:
                     msg = QtWidgets.QMessageBox()
@@ -231,27 +246,21 @@ class Ui_Dialog(object):
                     msg.exec_()
                 else:
                     [maxid], = py.MainMenu.cur.execute("SELECT ID FROM account_information ORDER BY ID DESC LIMIT 1")
-                    maxid += 1
-                    py.MainMenu.cur.execute(
-                        "INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(
-                            maxid, section, name, login, password, email, secret_word, url))
+                    new_id = maxid + 1
+                    py.MainMenu.cur.execute("""INSERT INTO account_information
+                                               (id, section, name, login, pass, email, secret_word, url)
+                                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                                            (new_id, section, name, login, password, email, secret_word, url))
+                    py.MainMenu.cur.execute("""INSERT INTO data_change_time
+                                               (id, create_account)
+                                               VALUES (?, ?)""",
+                                            (new_id, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 
                     if self.checkBox.isChecked():
                         py.MainMenu.buffer = QtWidgets.QApplication.clipboard()
                         py.MainMenu.buffer.setText(entered_password)
                         checkbox_pass = True
                     self.close()
-            else:
-                maxid = 1
-                py.MainMenu.cur.execute(
-                    "INSERT INTO account_information (ID, section, name, login, pass, email, secret_word, url) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}')".format(
-                        maxid, section, name, login, password, email, secret_word, url))
-
-                if self.checkBox.isChecked():
-                    py.MainMenu.buffer = QtWidgets.QApplication.clipboard()
-                    py.MainMenu.buffer.setText(entered_password)
-                    checkbox_pass = True
-                self.close()
 
     @QtCore.pyqtSlot()
     def add_section(self):

@@ -4,6 +4,7 @@ import os.path
 import base64
 import random
 import string
+import datetime
 from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets, QtPrintSupport
 from PyQt5.QtWidgets import QMessageBox
@@ -50,6 +51,31 @@ def show_msg(top_text, bottom_text):
     msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
     result = msg.exec_()
     return result
+
+
+def record_change_time(cursor: sqlite3.Cursor, row: tuple, change_type: str) -> bool:
+    """
+    Записывает время изменения данных в БД.
+    :param cursor: курсор текущего соединения
+    :param row: кортеж значений из выделеной строки
+    :param change_type: что меняем
+    :return: результат выполнения True/False
+    """
+    try:
+        acc_id = cursor.execute("""SELECT id
+                                   FROM account_information
+                                   WHERE name = ? AND
+                                           login = ? AND
+                                           email = ? AND
+                                           url = ? """, (row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()[0][0]
+        cursor.execute(f"""UPDATE data_change_time
+                           SET update_account = ?,
+                               {change_type} = ?
+                           WHERE id={acc_id}""", (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                                  datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        return True
+    except sqlite3.Error:
+        return False
 
 
 class MyThread(QtCore.QThread):
@@ -1060,9 +1086,14 @@ class Ui_MainWindow(object):
                     if result_close_window:
                         login = self.change.lineEdit.text()
                         if login != '':
-                            cur.execute(
-                                        "UPDATE account_information SET login='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
-                                            login, row[0][0], row[0][1], row[0][3], row[0][5]))
+                            record_change_time(cur, row, 'change_login')
+                            cur.execute("""UPDATE account_information
+                                           SET login = ?
+                                           WHERE name = ? AND
+                                                 login = ? AND
+                                                 email = ? AND
+                                                 url = ? """,
+                                        (login, row[0][0], row[0][1], row[0][3], row[0][5]))
                             self.refresh_treewidget()
                         else:
                             msg = QMessageBox()
@@ -1074,7 +1105,13 @@ class Ui_MainWindow(object):
                     self.change = change('Изменение пароля', 'Введите новый пароль', True)
                     result_close_window = self.change.exec_()
                     if result_close_window:
-                        if self.change.lineEdit.text() != '':
+                        if self.change.lineEdit.text() == '':
+                            msg = QMessageBox()
+                            msg.setIcon(QMessageBox.Critical)
+                            msg.setWindowTitle("Ошибка")
+                            msg.setText("Нельзя изменить на пустой пароль")
+                            msg.exec_()
+                        else:
                             with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
                                 keydata_pub = pubfile.read()
                                 pubfile.close()
@@ -1082,16 +1119,15 @@ class Ui_MainWindow(object):
                             pass_bin = self.change.lineEdit.text().encode()
                             crypto_pass = rsa.encrypt(pass_bin, pubkey)
                             password = base64.b64encode(crypto_pass).decode()
-                            cur.execute(
-                                "UPDATE account_information SET pass='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
-                                    password, row[0][0], row[0][1], row[0][3], row[0][5]))
+                            record_change_time(cur, row, 'change_pass')
+                            cur.execute("""UPDATE account_information
+                                           SET pass = ?
+                                           WHERE name = ? AND
+                                                 login = ? AND
+                                                 email = ? AND
+                                                 url= ? """,
+                                        (password, row[0][0], row[0][1], row[0][3], row[0][5]))
                             self.refresh_treewidget()
-                        else:
-                            msg = QMessageBox()
-                            msg.setIcon(QMessageBox.Critical)
-                            msg.setWindowTitle("Ошибка")
-                            msg.setText("Нельзя изменить на пустой пароль")
-                            msg.exec_()
                 elif action2 == rmenu_change_email:
                     self.change = change('Изменение почты', 'Введите новую почту', False)
                     result_close_window = self.change.exec_()
@@ -1099,9 +1135,14 @@ class Ui_MainWindow(object):
                         email = self.change.lineEdit.text()
                         if email == '':
                             email = None
-                        cur.execute(
-                            "UPDATE account_information SET email='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
-                                email, row[0][0], row[0][1], row[0][3], row[0][5]))
+                        record_change_time(cur, row, 'change_email')
+                        cur.execute("""UPDATE account_information
+                                       SET email = ?
+                                       WHERE name = ? AND
+                                             login = ? AND
+                                             email = ? AND
+                                             url = ? """,
+                                    (email, row[0][0], row[0][1], row[0][3], row[0][5]))
                         self.refresh_treewidget()
                 elif action2 == rmenu_change_secret:
                     self.change = change('Изменение секретного слова', 'Введите новое секретное слово', False)
@@ -1117,9 +1158,14 @@ class Ui_MainWindow(object):
                         secret_bin = secret_text.encode()
                         crypto_secret = rsa.encrypt(secret_bin, pubkey)
                         secret = base64.b64encode(crypto_secret).decode()
-                        cur.execute(
-                            "UPDATE account_information SET secret_word='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
-                                secret, row[0][0], row[0][1], row[0][3], row[0][5]))
+                        record_change_time(cur, row, 'change_secret_word')
+                        cur.execute("""UPDATE account_information
+                                       SET secret_word = ?
+                                       WHERE name = ? AND
+                                             login = ? AND
+                                             email = ? AND
+                                             url = ? """,
+                                    (secret, row[0][0], row[0][1], row[0][3], row[0][5]))
                         self.refresh_treewidget()
                 elif action2 == rmenu_change_url:
                     self.change = change('Изменение url', 'Введите новый url', False)
@@ -1128,21 +1174,26 @@ class Ui_MainWindow(object):
                         url = self.change.lineEdit.text()
                         if url == '':
                             url = None
-                        cur.execute(
-                            "UPDATE account_information SET url='{0}' WHERE name='{1}' AND login='{2}' AND email='{3}' AND url='{4}'".format(
-                                url, row[0][0], row[0][1], row[0][3], row[0][5]))
+                        record_change_time(cur, row, 'change_url')
+                        cur.execute("""UPDATE account_information
+                                       SET url = ?
+                                       WHERE name = ? AND
+                                             login = ? AND
+                                             email = ? AND
+                                             url = ? """,
+                                    (url, row[0][0], row[0][1], row[0][3], row[0][5]))
                         self.refresh_treewidget()
 
                 for item_type in sect_list:
                     if action2 is not None and action2 == item_type:
-                        cur.execute(f"""
-                        UPDATE account_information SET 
-                        section='{item_type.text()}' WHERE 
-                        name='{row[0][0]}' AND 
-                        login='{row[0][1]}' AND 
-                        email='{row[0][3]}' AND 
-                        url='{row[0][5]}'"""
-                                    )
+                        record_change_time(cur, row, 'change_section')
+                        cur.execute("""UPDATE account_information
+                                       SET section = ?
+                                       WHERE name = ? AND
+                                             login = ? AND
+                                             email = ? AND
+                                             url = ? """,
+                                    (item_type.text(), row[0][0], row[0][1], row[0][3], row[0][5]))
                         self.refresh_treewidget()
 
     def add_treewidget_item(self):
