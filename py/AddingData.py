@@ -156,7 +156,7 @@ class Ui_Dialog(object):
 
     @QtCore.pyqtSlot()
     def add_data(self):
-        global checkbox_pass
+        global checkbox_pass    # TODO: избавиться от global (передается в MainMenu)
         if self.lineEdit_7.isVisible():
             section = self.lineEdit_7.text()
         elif self.comboBox.isVisible():

@@ -106,18 +106,26 @@ class MyThread(QtCore.QThread):
                     if item.text(i) == 'None':
                         data[-1].append('')
                     elif i == 3 and item.text(i) == '**********':
-                        data3_item = cur_t1.execute(
-                            "SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
-                                item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
+                        data3_item = cur_t1.execute("""SELECT pass
+                                                       FROM account_information
+                                                       WHERE name = ? AND
+                                                             login = ? AND
+                                                             email = ? AND
+                                                             url = ? """,
+                                                    (item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
                         password_bin = (data3_item[0][0]).encode()
                         password_dec = base64.b64decode(password_bin)
                         decrypto = rsa.decrypt(password_dec, privkey)
                         password = decrypto.decode()
                         data[-1].append(password)
                     elif i == 5 and item.text(i) == '**********':
-                        data5_item = cur_t1.execute(
-                            "SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
-                                item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
+                        data5_item = cur_t1.execute("""SELECT secret_word
+                                                       FROM account_information
+                                                       WHERE name = ? AND
+                                                             login = ? AND
+                                                             email = ? AND
+                                                             url = ? """,
+                                                    (item.text(1), item.text(2), item.text(4), item.text(6))).fetchall()
                         secret_bin = (data5_item[0][0]).encode()
                         secret_dec = base64.b64decode(secret_bin)
                         decrypto = rsa.decrypt(secret_dec, privkey)
@@ -568,9 +576,13 @@ class Ui_MainWindow(object):
         if row[1] == 'item_1':
             buffer = QtWidgets.QApplication.clipboard()
             if buffer is not None:
-                data_one_section = cur.execute(
-                    "SELECT pass FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
-                        row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
+                data_one_section = cur.execute("""SELECT pass
+                                                  FROM account_information
+                                                  WHERE name = ? AND
+                                                        login = ? AND
+                                                        email = ? AND
+                                                        url = ? """,
+                                               (row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
                 if choise_privkey is not None:
                     privkey = choise_privkey
                 else:
@@ -640,8 +652,9 @@ class Ui_MainWindow(object):
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
             for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
-                    srt_section[_data_section])).fetchall()
+                data_one_section = cur.execute("""SELECT *
+                                                  FROM account_information
+                                                  WHERE section = ? """, (srt_section[_data_section])).fetchall()
                 acc_info = []
                 for _item in data_one_section:
                     acc_info.append(list(_item[2:]))
@@ -666,7 +679,7 @@ class Ui_MainWindow(object):
 
                     _i[4] = secret_word
                 exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (
-                _data_section, srt_section[_data_section]))
+                    _data_section, srt_section[_data_section]))
                 toplevelitem_iter += 1
                 child_iter = -1
                 for _index in range(len(acc_info)):
@@ -677,7 +690,7 @@ class Ui_MainWindow(object):
                         if text_iter == 3:
                             exec(
                                 'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
-                                toplevelitem_iter, child_iter, text_iter, _value))
+                                    toplevelitem_iter, child_iter, text_iter, _value))
 
         self.pushButton_5.hide()
         self.pushButton_4.show()
@@ -692,13 +705,14 @@ class Ui_MainWindow(object):
         text_iter = 0
         if lines != 0:
             for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
-                    srt_section[_data_section])).fetchall()
+                data_one_section = cur.execute("""SELECT *
+                                                  FROM account_information
+                                                  WHERE section = ? """, (srt_section[_data_section])).fetchall()
                 acc_info = []
                 for item in data_one_section:
                     acc_info.append(item[2:])
                 exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (
-                _data_section, srt_section[_data_section]))
+                    _data_section, srt_section[_data_section]))
                 toplevelitem_iter += 1
                 child_iter = -1
                 for _index in range(len(acc_info)):
@@ -709,7 +723,7 @@ class Ui_MainWindow(object):
                         if text_iter == 3:
                             exec(
                                 'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
-                                toplevelitem_iter, child_iter, text_iter, '**********'))
+                                    toplevelitem_iter, child_iter, text_iter, '**********'))
 
         self.pushButton_4.hide()
         self.pushButton_5.show()
@@ -961,7 +975,7 @@ class Ui_MainWindow(object):
             counter -= 1
             slot(counter)
             if counter >= count:
-                py.MainMenu.Ui_MainWindow.timer_sec.stop()
+                py.MainMenu.Ui_MainWindow.timer_sec.stop()  # TODO: поудолять глобалы и разобраться под windows как передовать переменные.
                 py.MainMenu.Ui_MainWindow.timer_sec.deleteLater()
 
         self.timer_sec.timeout.connect(handler)
@@ -1058,9 +1072,13 @@ class Ui_MainWindow(object):
                 elif action2 == rmenu_copy_secret:
                     buffer = QtWidgets.QApplication.clipboard()
                     if buffer is not None:
-                        data_one_section = cur.execute(
-                            "SELECT secret_word FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
-                                row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
+                        data_one_section = cur.execute("""SELECT secret_word
+                                                          FROM account_information
+                                                          WHERE name = ? AND
+                                                                login = ? AND
+                                                                email = ? AND
+                                                                url = ? """,
+                                                       (row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()
                         if choise_privkey is not None:
                             privkey = choise_privkey
                         else:
@@ -1265,13 +1283,13 @@ class Ui_MainWindow(object):
                 privkey = choise_privkey
 
             for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
-                    srt_section[_data_section])).fetchall()
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section = ? ",
+                                               (srt_section[_data_section])).fetchall()
                 acc_info = []
                 for item in data_one_section:
                     acc_info.append(item[2:])
                 exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (
-                _data_section, srt_section[_data_section]))
+                    _data_section, srt_section[_data_section]))
                 toplevelitem_iter += 1
                 child_iter = -1
                 for _index in range(len(acc_info)):
@@ -1281,8 +1299,8 @@ class Ui_MainWindow(object):
                         text_iter += 1
                         if (text_iter == 3 and hide_password) or (text_iter == 5 and hide_password):
                             exec(
-                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
-                                toplevelitem_iter, child_iter, text_iter, '**********'))
+                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))'
+                                % (toplevelitem_iter, child_iter, text_iter, '**********'))
                         elif len(_value) == rsa_length:
                             value_bin = _value.encode()
                             value_dec = base64.b64decode(value_bin)
@@ -1290,22 +1308,22 @@ class Ui_MainWindow(object):
                                 decrypto_value = rsa.decrypt(value_dec, privkey)
                                 value = decrypto_value.decode()
                                 exec(
-                                    'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
-                                    toplevelitem_iter, child_iter, text_iter, value))
+                                    'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", '
+                                    '"%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
                             except rsa.pkcs1.DecryptionError:
                                 value = '##ERRORPUBKEY##'
                                 exec(
-                                    'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
-                                    toplevelitem_iter, child_iter, text_iter, value))
+                                    'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", '
+                                    '"%s"))' % (toplevelitem_iter, child_iter, text_iter, value))
                         elif (text_iter == 3 and rsa_length == 'error') or (text_iter == 5 and rsa_length == 'error'):
                             value = '##ERRORKEYLENGTH##'
                             exec(
-                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
-                                toplevelitem_iter, child_iter, text_iter, value))
+                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))'
+                                % (toplevelitem_iter, child_iter, text_iter, value))
                         else:
                             exec(
-                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
-                                toplevelitem_iter, child_iter, text_iter, _value))
+                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))'
+                                % (toplevelitem_iter, child_iter, text_iter, _value))
 
     def refresh_treewidget(self):
         self.delete_treewidget_item()
