@@ -192,7 +192,7 @@ class Ui_Dialog(object):
             py.MainMenu.db_name = db_info[1]
             py.MainMenu.pwd = pwd
             del pwd
-            py.MainMenu.Ui_MainWindow.connect_sql(self, True, start_or_load='load')
+            py.MainMenu.connect_sql(start_or_load='load')
             global Close
             Close = False
             self.close()

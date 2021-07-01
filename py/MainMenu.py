@@ -18,6 +18,7 @@ import py.SyncDB
 import py.PrintList as PrintList
 import py.Change
 from py.waitingspinnerwidget import QtWaitingSpinner
+
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
 elif platform == "win32":
@@ -33,7 +34,6 @@ new_rsa_bit = 4096  # Длина rsa ключа при создании ново
 db_dir = None
 db_name = None
 pwd = None
-
 
 buffer = None
 choise_pubkey = None
@@ -151,43 +151,38 @@ class MyThread(QtCore.QThread):
         conn_t1.close()
 
 
+def connect_sql(start_or_load=None):  # TODO: убрать глобалы и должна возврощать sqlite3.connect
+    global conn
+    global cur
+    global rsa_length
+    conn = sqlite3.connect(db_dir)
+    cur = conn.cursor()
+    if start_or_load == 'load':
+        cur.execute("PRAGMA key = '{}'".format(pwd))
+    else:
+        cur.execute("PRAGMA key = '{}'".format(pwd))
+    rsa_bit = cur.execute("SELECT value FROM db_information WHERE name='rsa_bit'").fetchone()[0]
+    if rsa_bit == 4096:  # TODO: Отдельная функция input->rsa_bit / output->rsa_length
+        rsa_length = 684
+    elif rsa_bit == 3072:
+        rsa_length = 512
+    elif rsa_bit == 2048:
+        rsa_length = 344
+    elif rsa_bit == 1024:
+        rsa_length = 172
+    else:
+        rsa_length = 'error'
+
+
 class Ui_MainWindow(object):
     def __init__(self):
         super(Ui_MainWindow, self).__init__()
         self.createdb = createdb()
         lines = 0
-        global pubkey_file
-        global privkey_file
-        pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
+        self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
             db_name[:-3]))  # True если есть в директории data/   если нету False
-        privkey_file = os.path.isfile("data/{}_privkey.pem".format(
+        self.privkey_file = os.path.isfile("data/{}_privkey.pem".format(
             db_name[:-3]))  # True если есть в директории data/   если нету False
-
-    def connect_sql(self, connected, start_or_load=None):
-        if connected:
-            global conn
-            global cur
-            global rsa_length
-            conn = sqlite3.connect(db_dir)
-            cur = conn.cursor()
-            if start_or_load == 'load':
-                cur.execute("PRAGMA key = '{}'".format(pwd))
-            else:
-                cur.execute("PRAGMA key = '{}'".format(pwd))
-            rsa_bit = cur.execute("SELECT value FROM db_information WHERE name='rsa_bit'").fetchone()[0]
-            if rsa_bit == 4096:
-                rsa_length = 684
-            elif rsa_bit == 3072:
-                rsa_length = 512
-            elif rsa_bit == 2048:
-                rsa_length = 344
-            elif rsa_bit == 1024:
-                rsa_length = 172
-            else:
-                rsa_length = 'error'
-            return True
-        else:
-            return False
 
     def setupUi(self, MainWindow):
         MainWindow.resize(870, 600)
@@ -430,27 +425,27 @@ class Ui_MainWindow(object):
         self.pushButton_4.setText(_translate("MainWindow", "Скрыть пароли"))
         self.pushButton_5.setText(_translate("MainWindow", "Показать пароли"))
         self.label_2.setText(_translate("MainWindow", "{}".format(version)))
-        if pubkey_file and result_check_pubkey == 'ok':
+        if self.pubkey_file and result_check_pubkey == 'ok':
             self.toolButton_2.setText(_translate("MainWindow", pubkey_dir))
-        elif pubkey_file and result_check_pubkey == '!ok':
+        elif self.pubkey_file and result_check_pubkey == '!ok':
             self.toolButton_2.setText(_translate("MainWindow", 'Ключ не подходит. Укажите pubkey.pem'))
-        elif pubkey_file and result_check_pubkey is None:
+        elif self.pubkey_file and result_check_pubkey is None:
             self.toolButton_2.setText(_translate("MainWindow", pubkey_dir))
-        elif pubkey_file and result_check_pubkey == 'not privkey':
+        elif self.pubkey_file and result_check_pubkey == 'not privkey':
             self.toolButton_2.setText(_translate("MainWindow", 'Сначало укажите privkey.pem'))
         else:
             self.toolButton_2.setText(_translate("MainWindow", "Укажите pubkey.pem"))
 
-        if privkey_file and result_check_privkey == 'ok':
+        if self.privkey_file and result_check_privkey == 'ok':
             global privkey_dir
             privkey_dir = os.path.abspath("data/{}_privkey.pem".format(db_name[:-3]))
             self.toolButton.setText(_translate("MainWindow", privkey_dir))
-        elif privkey_file and result_check_privkey == '!ok':
+        elif self.privkey_file and result_check_privkey == '!ok':
             self.toolButton.setText(_translate("MainWindow", "Ключ не подходит. Укажите privkey.pem"))
-        elif privkey_file and result_check_privkey == 'privkey != pubkey':
+        elif self.privkey_file and result_check_privkey == 'privkey != pubkey':
             self.toolButton.setText(_translate("MainWindow", "Ключи разные. Укажите правильный privkey.pem"))
             self.toolButton_2.setText(_translate("MainWindow", "Ключи разные. Укажите правильный pubkey.pem"))
-        elif privkey_file and result_check_privkey == 'not pubkey':
+        elif self.privkey_file and result_check_privkey == 'not pubkey':
             self.toolButton.setText(_translate("MainWindow", "Сначало укажите pubkey.pem"))
         else:
             self.toolButton.setText(_translate("MainWindow", "Укажите privkey.pem"))
@@ -523,11 +518,9 @@ class Ui_MainWindow(object):
         self.loadingdb.exec()
         if not py.LoadingDB.Close:
             py.LoadingDB.Close = True
-            global pubkey_file
-            global privkey_file
-            pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
+            self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
                 db_name[:-3]))  # True если есть в директории data/   если нету False
-            privkey_file = os.path.isfile("data/{}_privkey.pem".format(
+            self.privkey_file = os.path.isfile("data/{}_privkey.pem".format(
                 db_name[:-3]))  # True если есть в директории data/   если нету False
             self.refresh_treewidget()
             self.result_check_privkey()
@@ -549,12 +542,12 @@ class Ui_MainWindow(object):
         self.addingdata.exec_()
         self.refresh_treewidget()
 
-        if lines != 0 and privkey_file and result_check_privkey == 'ok' or lines != 0 and result_check_choise_privkey == 'ok':
+        if lines != 0 and self.privkey_file and result_check_privkey == 'ok' or lines != 0 and result_check_choise_privkey == 'ok':
             self.pushButton.setEnabled(True)
             self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)
             self.pushButton_5.setEnabled(True)
-        elif lines != 0 and privkey_file and result_check_privkey == '!ok' or lines != 0 and result_check_choise_privkey == '!ok':
+        elif lines != 0 and self.privkey_file and result_check_privkey == '!ok' or lines != 0 and result_check_choise_privkey == '!ok':
             self.pushButton.setEnabled(True)
             self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
@@ -607,9 +600,20 @@ class Ui_MainWindow(object):
                 'Данные аккаунта <b>{}</b> с логином <b>{}</b> будут удалены.'.format(row[0][0], row[0][1]),
                 'Вы уверенны?')
             if result == QMessageBox.Yes:
-                cur.execute(
-                    "DELETE FROM account_information WHERE name='{}' AND login='{}' AND email='{}' AND url='{}'".format(
-                        row[0][0], row[0][1], row[0][3], row[0][5]))
+                acc_id = cur.execute("""SELECT id
+                                        FROM account_information
+                                        WHERE name = ? AND
+                                              login = ? AND
+                                              email = ? AND
+                                              url = ? """,
+                                     (row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()[0][0]
+                cur.execute("""DELETE FROM data_change_time WHERE id = ? """, str(acc_id))
+                cur.execute("""DELETE FROM account_information
+                               WHERE name = ? AND
+                                     login = ? AND
+                                     email = ? AND
+                                     url = ? """,
+                            (row[0][0], row[0][1], row[0][3], row[0][5]))
                 self.refresh_treewidget()
             elif result == QMessageBox.No:
                 pass
@@ -714,8 +718,6 @@ class Ui_MainWindow(object):
     def choise_pubkey(self):
         global choise_pubkey
         global result_check_choise_pubkey
-        # directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Укажите файл {}_pubkey.pem'.format(
-        #     db_name[:-3]), os.getcwd(), 'key({}_pubkey.pem)'.format(db_name[:-3]))
         directory_name = QtWidgets.QFileDialog.getOpenFileName(
             None,
             'Укажите публичный ключ-файл (.pem)',
@@ -723,7 +725,6 @@ class Ui_MainWindow(object):
             '{}_pubkey.pem;;*_pubkey.pem'.format(db_name[:-3])
         )
         if directory_name[0] != '' and directory_name[1] != '':
-        # if directory_name[0][-(len(directory_name[1]) - 5):-11] == db_name[:-3]:
             with open(directory_name[0], 'rb') as pubfile:
                 keydata_pub = pubfile.read()
                 pubfile.close()
@@ -811,7 +812,7 @@ class Ui_MainWindow(object):
 
     def result_check_privkey(self):
         global result_check_privkey
-        if lines != 0 and privkey_file:
+        if lines != 0 and self.privkey_file:
             try:
                 with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                     keydata_priv = privfile.read()
@@ -826,7 +827,7 @@ class Ui_MainWindow(object):
                 result_check_privkey = 'ok'
             except rsa.pkcs1.DecryptionError:
                 result_check_privkey = '!ok'
-        elif lines == 0 and privkey_file and pubkey_file:
+        elif lines == 0 and self.privkey_file and self.pubkey_file:
             try:
                 with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                     keydata_priv = privfile.read()
@@ -844,14 +845,14 @@ class Ui_MainWindow(object):
                 result_check_privkey = 'ok'
             except rsa.pkcs1.DecryptionError:
                 result_check_privkey = 'privkey != pubkey'
-        elif lines == 0 and privkey_file and not pubkey_file:
+        elif lines == 0 and self.privkey_file and not self.pubkey_file:
             result_check_privkey = 'not pubkey'
         else:
             result_check_privkey = None
 
     def result_check_pubkey(self):
         global result_check_pubkey
-        if pubkey_file and privkey_file and result_check_privkey == 'ok':
+        if self.pubkey_file and self.privkey_file and result_check_privkey == 'ok':
             try:
                 with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                     keydata_priv = privfile.read()
@@ -875,17 +876,17 @@ class Ui_MainWindow(object):
     def button_state(self):
         icon = QtGui.QIcon()
         icon1 = QtGui.QIcon()
-        if pubkey_file and result_check_pubkey == 'ok':
+        if self.pubkey_file and result_check_pubkey == 'ok':
             global pubkey_dir
             pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(db_name[:-3]))
             self.toolButton_2.setEnabled(False)
-        elif pubkey_file and result_check_pubkey == '!ok':
+        elif self.pubkey_file and result_check_pubkey == '!ok':
             self.toolButton_2.setEnabled(True)
             self.pushButton_2.setEnabled(False)
-        elif pubkey_file and result_check_pubkey is None:
+        elif self.pubkey_file and result_check_pubkey is None:
             pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(db_name[:-3]))
             self.toolButton_2.setEnabled(False)
-        elif pubkey_file and result_check_pubkey == 'not privkey':
+        elif self.pubkey_file and result_check_pubkey == 'not privkey':
             self.toolButton_2.setEnabled(False)
             icon.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
             self.toolButton_2.setIcon(icon)
@@ -893,22 +894,22 @@ class Ui_MainWindow(object):
             self.toolButton_2.setEnabled(True)
             self.pushButton_2.setEnabled(False)
 
-        if privkey_file and result_check_privkey == 'ok':
+        if self.privkey_file and result_check_privkey == 'ok':
             self.toolButton.setEnabled(False)
             self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)
             self.pushButton_5.setEnabled(True)
-        elif privkey_file and result_check_privkey == '!ok':
+        elif self.privkey_file and result_check_privkey == '!ok':
             self.toolButton.setEnabled(True)
             self.pushButton_2.setEnabled(False)
             self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
             self.pushButton_5.setEnabled(False)
-        elif privkey_file and result_check_privkey == 'privkey != pubkey':
+        elif self.privkey_file and result_check_privkey == 'privkey != pubkey':
             self.toolButton.setEnabled(True)
             self.toolButton_2.setEnabled(True)
             self.pushButton_2.setEnabled(False)
-        elif privkey_file and result_check_privkey == 'not pubkey':
+        elif self.privkey_file and result_check_privkey == 'not pubkey':
             self.toolButton.setEnabled(False)
             icon1.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
             self.toolButton.setIcon(icon1)
@@ -1255,7 +1256,7 @@ class Ui_MainWindow(object):
         text_iter = 0
         if lines != 0:
 
-            if privkey_file:
+            if self.privkey_file:
                 with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
@@ -1283,7 +1284,7 @@ class Ui_MainWindow(object):
                                 'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
                                 toplevelitem_iter, child_iter, text_iter, '**********'))
                         elif len(_value) == rsa_length:
-                            value_bin = (_value).encode()
+                            value_bin = _value.encode()
                             value_dec = base64.b64decode(value_bin)
                             try:
                                 decrypto_value = rsa.decrypt(value_dec, privkey)
@@ -1388,4 +1389,5 @@ class change(QtWidgets.QDialog, py.Change.Ui_Dialog):
             chars = string.ascii_letters + string.digits + '_' + '!' + '?' + '@'
             size = random.randint(8, 12)
             return ''.join(random.choice(chars) for x in range(size))
+
         self.lineEdit.setText(gen_pass())
