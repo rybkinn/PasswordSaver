@@ -26,7 +26,7 @@ elif platform == "win32":
 # elif platform == "darwin":
     # OS X
 
-version = 'v 1.3'  # Версия программы
+version = 'v 1.4'  # Версия программы
 hide_password = True  # Показазь или скрыть пароли при запуске программы: True - скрыты / False - показанны
 buffer_del_sec = 10  # Через сколько секунд будет удаляться буфер обмена после копирования пароля
 new_rsa_bit = 4096  # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
@@ -151,7 +151,7 @@ class MyThread(QtCore.QThread):
         conn_t1.close()
 
 
-def connect_sql(start_or_load=None):  # TODO: убрать глобалы и должна возврощать sqlite3.connect
+def connect_sql(start_or_load=None):  # TODO: убрать глобалы и должна возвращать sqlite3.connect
     global conn
     global cur
     global rsa_length
@@ -382,7 +382,7 @@ class Ui_MainWindow(object):
 
         self.button_state()
 
-        if self.toolButton.isEnabled():
+        if self.toolButton.isEnabled() and self.toolButton_2.isEnabled():
             self.action_6.setEnabled(False)
 
         self.retranslateUi(MainWindow)
@@ -530,7 +530,7 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def syncdb(self):
-        self.sdb = SyncDB()
+        self.sdb = SyncDB(self.toolButton.text(), self.toolButton_2.text())
         self.sdb.exec()
         if py.SyncDB.finish_sync:
             py.SyncDB.finish_sync = False
@@ -607,7 +607,7 @@ class Ui_MainWindow(object):
                                               email = ? AND
                                               url = ? """,
                                      (row[0][0], row[0][1], row[0][3], row[0][5])).fetchall()[0][0]
-                cur.execute("""DELETE FROM data_change_time WHERE id = ? """, str(acc_id))
+                cur.execute("""DELETE FROM data_change_time WHERE id = ?""", (str(acc_id),))
                 cur.execute("""DELETE FROM account_information
                                WHERE name = ? AND
                                      login = ? AND
@@ -745,6 +745,7 @@ class Ui_MainWindow(object):
                     crypto_text = rsa.encrypt(rnd_text, choise_pubkey)
                     selftest_decrypto = rsa.decrypt(crypto_text, selftest_privfile)
                     result_check_choise_pubkey = 'ok'
+                    self.action_6.setEnabled(True)
                 except rsa.pkcs1.DecryptionError:
                     self.toolButton_2.setEnabled(True)
                     self.toolButton_2.setText('Опять неправильный. Укажите pubkey.pem')
@@ -762,7 +763,6 @@ class Ui_MainWindow(object):
             '{}_privkey.pem;;*_privkey.pem'.format(db_name[:-3])
         )
         if directory_name[0] != '' and directory_name[1] != '':
-            # if directory_name[0][-(len(directory_name[1]) - 5):-12] == db_name[:-3]:
             with open(directory_name[0], 'rb') as privfile:
                 keydata_priv = privfile.read()
                 privfile.close()
@@ -784,7 +784,6 @@ class Ui_MainWindow(object):
                     self.pushButton_5.setEnabled(True)
                     self.pushButton_4.setEnabled(True)
                     self.pushButton_3.setEnabled(True)
-                    self.action_6.setEnabled(True)
                     if not self.toolButton_2.isEnabled():
                         try:
                             with open(self.toolButton_2.text(), 'rb') as pubfile:
@@ -796,6 +795,7 @@ class Ui_MainWindow(object):
                             rnd_text = rnd_text.encode()
                             crypto_text = rsa.encrypt(rnd_text, selftest_pubfile)
                             selftest_decrypto = rsa.decrypt(crypto_text, choise_privkey)
+                            self.action_6.setEnabled(True)
                         except rsa.pkcs1.DecryptionError:
                             self.toolButton_2.setEnabled(True)
                             self.toolButton_2.setText('Ключ неправильный. Укажите pubkey.pem')
@@ -1113,7 +1113,11 @@ class Ui_MainWindow(object):
                             msg.setText("Нельзя изменить на пустой пароль")
                             msg.exec_()
                         else:
-                            with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                            if not self.toolButton_2.isEnabled():
+                                path_to_pubkey = self.toolButton_2.text()
+                            else:
+                                path_to_pubkey = f"{db_dir[:-3]}_pubkey.pem"
+                            with open(path_to_pubkey, 'rb') as pubfile:
                                 keydata_pub = pubfile.read()
                                 pubfile.close()
                             pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
@@ -1152,7 +1156,11 @@ class Ui_MainWindow(object):
                         secret_text = self.change.lineEdit.text()
                         if secret_text == '':
                             secret_text = 'None'
-                        with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                        if not self.toolButton_2.isEnabled():
+                            path_to_pubkey = self.toolButton_2.text()
+                        else:
+                            path_to_pubkey = f"{db_dir[:-3]}_pubkey.pem"
+                        with open(path_to_pubkey, 'rb') as pubfile:
                             keydata_pub = pubfile.read()
                             pubfile.close()
                         pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
@@ -1271,7 +1279,7 @@ class Ui_MainWindow(object):
                 for item in data_one_section:
                     acc_info.append(item[2:])
                 exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (
-                _data_section, srt_section[_data_section]))
+                    _data_section, srt_section[_data_section]))
                 toplevelitem_iter += 1
                 child_iter = -1
                 for _index in range(len(acc_info)):
@@ -1283,6 +1291,11 @@ class Ui_MainWindow(object):
                             exec(
                                 'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
                                 toplevelitem_iter, child_iter, text_iter, '**********'))
+                        elif _value is None:
+                            value = None
+                            exec(
+                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
+                                    toplevelitem_iter, child_iter, text_iter, value))
                         elif len(_value) == rsa_length:
                             value_bin = _value.encode()
                             value_dec = base64.b64decode(value_bin)
@@ -1361,9 +1374,10 @@ class addingdata(QtWidgets.QDialog, py.AddingData.Ui_Dialog):
 
 
 class SyncDB(QtWidgets.QDialog, py.SyncDB.Ui_Dialog):
-    def __init__(self):
+    def __init__(self, path_to_privkey, path_to_pubkey):
         super().__init__()
         self.setupUi(self)
+        self.init_path_to_key(path_to_privkey, path_to_pubkey)
 
 
 class loadingdb(QtWidgets.QDialog, py.LoadingDB.Ui_Dialog):

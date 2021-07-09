@@ -213,11 +213,11 @@ class Ui_Dialog(object):
             msg.exec_()
         else:
             if email == '':
-                email = None
+                email = 'None'
             if entered_secret_word == '':
-                secret_word = None
+                secret_word = 'None'
             if url == '':
-                url = None
+                url = 'None'
             if self.lines == 0:
                 new_id = 1
                 py.MainMenu.cur.execute("""INSERT INTO account_information
@@ -235,7 +235,7 @@ class Ui_Dialog(object):
                 self.close()
             else:
                 py.MainMenu.cur.execute("SELECT name FROM account_information WHERE name='{}'".format(name))
-                exists_name = py.MainMenu.cur.fetchone()    # TODO: Нужно передовать conn работать с ним и возврощать.
+                exists_name = py.MainMenu.cur.fetchone()    # TODO: Нужно передавать conn работать с ним и возвращать.
                 py.MainMenu.cur.execute("SELECT login FROM account_information WHERE login='{}'".format(login))
                 exists_login = py.MainMenu.cur.fetchone()
                 if exists_name is not None and exists_login is not None:

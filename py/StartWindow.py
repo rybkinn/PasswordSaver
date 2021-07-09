@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import datetime
 import os
 from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -12,6 +12,75 @@ elif platform == "win32":
     import sqlite3
 # elif platform == "darwin":
     # OS X
+
+
+def check_database(connect, pwd) -> tuple:
+    """
+    Проверяет БД на корректность.
+    :param connect: sqlite3.Connection
+    :param pwd: str
+    :return: tuple(sqlite3.Connection, bool)
+    """
+    cur = connect.cursor()
+    cur.execute(f"PRAGMA key = '{pwd}'")
+    try:
+        account_information = cur.execute("""SELECT name
+                                             FROM sqlite_master
+                                             WHERE type='table' AND
+                                             name='account_information'""").fetchall()
+        data_change_time = cur.execute("""SELECT name
+                                          FROM sqlite_master
+                                          WHERE type='table' AND
+                                          name='data_change_time'""").fetchall()
+        db_information = cur.execute("""SELECT name
+                                        FROM sqlite_master
+                                        WHERE type='table' AND
+                                        name='db_information'""").fetchall()
+        if len(data_change_time) == 0:
+            cur.execute("""CREATE TABLE IF NOT EXISTS data_change_time(
+                           "id" INTEGER NOT NULL UNIQUE REFERENCES account_information (id) ON DELETE CASCADE 
+                                                                                            ON UPDATE CASCADE,
+                           "create_account" TEXT NOT NULL,
+                           "update_account" TEXT DEFAULT 'NULL',
+                           "change_section" TEXT DEFAULT 'NULL',
+                           "change_login" TEXT DEFAULT 'NULL',
+                           "change_pass" TEXT DEFAULT 'NULL',
+                           "change_email" TEXT DEFAULT 'NULL',
+                           "change_secret_word" TEXT DEFAULT 'NULL',
+                           "change_url" TEXT DEFAULT 'NULL')""")
+            if len(account_information) == 1:
+                ids_ai = cur.execute("SELECT id FROM account_information").fetchall()
+                now_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                for id_acc in ids_ai:
+                    cur.execute("""INSERT INTO data_change_time
+                                   (id, create_account)
+                                   VALUES (?,?)""", (id_acc[0], now_time))
+        if len(account_information) == 0:
+            cur.execute("""CREATE TABLE IF NOT EXISTS account_information(
+                           "id" INTEGER NOT NULL UNIQUE PRIMARY KEY AUTOINCREMENT,
+                           "section" TEXT NOT NULL,
+                           "name" TEXT NOT NULL,
+                           "login" TEXT NOT NULL,
+                           "pass" TEXT NOT NULL,
+                           "email" TEXT DEFAULT 'NULL',
+                           "secret_word" TEXT DEFAULT 'NULL',
+                           "url" TEXT DEFAULT 'NULL')""")
+        if len(db_information) == 0:
+            cur.execute("""CREATE TABLE IF NOT EXISTS db_information(
+                           "name" TEXT NOT NULL,
+                           "value" INTEGER NOT NULL)""")
+            cur.execute("INSERT INTO db_information (name, value) VALUES (?, ?)", ('rsa_bit', py.MainMenu.new_rsa_bit))
+    except sqlite3.DatabaseError as error:
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setWindowTitle("Ошибка проверки базы данных")
+        msg.setText(error)
+        msg.exec_()
+        cur.close()
+        return connect, False
+    cur.close()
+    connect.commit()
+    return connect, True
 
 
 class Ui_Dialog(object):
@@ -168,22 +237,24 @@ class Ui_Dialog(object):
             cur.execute("PRAGMA key = '{}'".format(pwd))
             try:
                 cur.execute("SELECT count(*) FROM account_information")
-                cur.close()
-                conn.close()
                 result = bool(1)
+                cur.close()
             except sqlite3.DatabaseError:
+                result = bool(0)
                 cur.close()
                 conn.close()
-                result = bool(0)
             if result:
-                py.MainMenu.db_dir = db_info[0]
-                py.MainMenu.db_name = db_info[1]
-                py.MainMenu.pwd = pwd
-                del pwd
-                py.MainMenu.connect_sql(start_or_load='start')
-                self.mainwindow = mainwindow()
-                self.mainwindow.show()
-                self.close()
+                conn, check_result = check_database(conn, pwd)
+                conn.close()
+                if check_result:
+                    py.MainMenu.db_dir = db_info[0]
+                    py.MainMenu.db_name = db_info[1]
+                    py.MainMenu.pwd = pwd
+                    del pwd
+                    py.MainMenu.connect_sql(start_or_load='start')
+                    self.mainwindow = mainwindow()
+                    self.mainwindow.show()
+                    self.close()
             else:
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Critical)
