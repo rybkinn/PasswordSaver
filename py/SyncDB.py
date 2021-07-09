@@ -14,11 +14,12 @@ from py.waitingspinnerwidget import QtWaitingSpinner
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
+    from pysqlcipher3.dbapi2 import Error
 elif platform == "win32":
     import sqlite3
+    from sqlite3.dbapi2 import Error
 # elif platform == "darwin":
 #     OS X
-from pysqlcipher3.dbapi2 import Error
 import py.MainMenu
 
 finish_sync = False
