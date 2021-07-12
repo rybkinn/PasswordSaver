@@ -333,6 +333,7 @@ class Ui_MainWindow(object):
         self.action_6 = QtWidgets.QAction(MainWindow)
         self.action_6.setObjectName("action_6")
         self.action_6.setIcon(QtGui.QIcon('resource/image/sync_db.ico'))
+        self.action_6.setEnabled(False)
         self.action_7 = QtWidgets.QAction(MainWindow)
         self.action_7.setObjectName("action_6")
         self.action_7.setIcon(QtGui.QIcon('resource/image/print.ico'))
@@ -382,8 +383,8 @@ class Ui_MainWindow(object):
 
         self.button_state()
 
-        if self.toolButton.isEnabled() and self.toolButton_2.isEnabled():
-            self.action_6.setEnabled(False)
+        if not self.toolButton.isEnabled() and not self.toolButton_2.isEnabled():
+            self.action_6.setEnabled(True)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -808,7 +809,8 @@ class Ui_MainWindow(object):
                 self.toolButton.setEnabled(False)
                 self.toolButton.setText(directory_name[0])
                 result_check_choise_privkey = 'ok'
-                self.action_6.setEnabled(True)
+                if not self.toolButton_2.isEnabled():
+                    self.action_6.setEnabled(True)
 
     def result_check_privkey(self):
         global result_check_privkey
