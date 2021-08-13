@@ -1,162 +1,57 @@
 # -*- coding: utf-8 -*-
-
 import string
 import random
 import base64
 import datetime
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets
 import rsa
-import py.MainMenu
-import py.StartWindow
+import py.MainMenu as MainMenu
+import py.AddingData_ui as AddingData_ui
 
 checkbox_pass = False
 
 
-class Ui_Dialog(object):
-    def setupUi(self, Dialog):
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(400, 300)
-        Dialog.setMinimumSize(QtCore.QSize(400, 300))
-        Dialog.setMaximumSize(QtCore.QSize(400, 300))
-        self.gridLayoutWidget = QtWidgets.QWidget(Dialog)
-        self.gridLayoutWidget.setGeometry(QtCore.QRect(50, 20, 301, 221))
-        self.gridLayoutWidget.setObjectName("gridLayoutWidget")
-        self.gridLayout = QtWidgets.QGridLayout(self.gridLayoutWidget)
-        self.gridLayout.setContentsMargins(0, 0, 0, 0)
-        self.gridLayout.setObjectName("gridLayout")
-        self.lineEdit_5 = QtWidgets.QLineEdit(self.gridLayoutWidget)
-        self.lineEdit_5.setObjectName("lineEdit_5")
-        self.gridLayout.addWidget(self.lineEdit_5, 5, 1, 1, 1)
-        self.label_6 = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label_6.setObjectName("label_6")
-        self.gridLayout.addWidget(self.label_6, 5, 0, 1, 1)
-        self.pushButton = QtWidgets.QPushButton(self.gridLayoutWidget)
-        self.pushButton.setObjectName("pushButton")
-        self.gridLayout.addWidget(self.pushButton, 0, 2, 1, 1)
-        self.lineEdit = QtWidgets.QLineEdit(self.gridLayoutWidget)
-        self.lineEdit.setObjectName("lineEdit")
-        self.gridLayout.addWidget(self.lineEdit, 1, 1, 1, 1)
-        self.label_3 = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label_3.setObjectName("label_3")
-        self.gridLayout.addWidget(self.label_3, 2, 0, 1, 1)
-        self.label = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label.setObjectName("label")
-        self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
-        self.label_2 = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label_2.setObjectName("label_2")
-        self.gridLayout.addWidget(self.label_2, 1, 0, 1, 1)
-        self.comboBox = QtWidgets.QComboBox(self.gridLayoutWidget)
-        self.comboBox.setObjectName("comboBox")
-        self.gridLayout.addWidget(self.comboBox, 0, 1, 1, 1)
-        self.label_4 = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label_4.setObjectName("label_4")
-        self.gridLayout.addWidget(self.label_4, 3, 0, 1, 1)
-        self.lineEdit_3 = QtWidgets.QLineEdit(self.gridLayoutWidget)
-        self.lineEdit_3.setObjectName("lineEdit_3")
-        self.lineEdit_3.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.gridLayout.addWidget(self.lineEdit_3, 3, 1, 1, 1)
-        self.lineEdit_2 = QtWidgets.QLineEdit(self.gridLayoutWidget)
-        self.lineEdit_2.setObjectName("lineEdit_2")
-        self.gridLayout.addWidget(self.lineEdit_2, 2, 1, 1, 1)
-        self.label_5 = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label_5.setObjectName("label_5")
-        self.lineEdit_5.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.gridLayout.addWidget(self.label_5, 4, 0, 1, 1)
-        self.pushButton_2 = QtWidgets.QPushButton(self.gridLayoutWidget)
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.gridLayout.addWidget(self.pushButton_2, 3, 2, 1, 1)
-        self.lineEdit_4 = QtWidgets.QLineEdit(self.gridLayoutWidget)
-        self.lineEdit_4.setObjectName("lineEdit_4")
-        self.gridLayout.addWidget(self.lineEdit_4, 4, 1, 1, 1)
-        self.label_7 = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label_7.setObjectName("label_7")
-        self.gridLayout.addWidget(self.label_7, 6, 0, 1, 1)
-        self.lineEdit_6 = QtWidgets.QLineEdit(self.gridLayoutWidget)
-        self.lineEdit_6.setObjectName("lineEdit_6")
-        self.gridLayout.addWidget(self.lineEdit_6, 6, 1, 1, 1)
+class AddingData(QtWidgets.QDialog, AddingData_ui.Ui_Dialog):
+
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+
         self.lineEdit_7 = QtWidgets.QLineEdit(self.gridLayoutWidget)
-        self.lineEdit_7.setObjectName("lineEdit")
+        self.lineEdit_7.setObjectName("lineEdit_7")
         self.gridLayout.addWidget(self.lineEdit_7, 0, 1, 1, 1)
         self.lineEdit_7.hide()
-        self.horizontalLayoutWidget = QtWidgets.QWidget(Dialog)
-        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(179, 260, 171, 25))
-        self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
-        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.pushButton_4 = QtWidgets.QPushButton(self.horizontalLayoutWidget)
-        self.pushButton_4.setObjectName("pushButton_4")
-        self.horizontalLayout.addWidget(self.pushButton_4)
-        self.pushButton_3 = QtWidgets.QPushButton(self.horizontalLayoutWidget)
-        self.pushButton_3.setObjectName("pushButton_3")
-        self.horizontalLayout.addWidget(self.pushButton_3)
+        self.lineEdit_3.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.pushButton_5.setEnabled(False)
 
-        self.checkBox = QtWidgets.QCheckBox(self.gridLayoutWidget)
-        self.checkBox.setObjectName("checkBox")
-        self.checkBox.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.gridLayout.addWidget(self.checkBox, 7, 1, 1, 1)
-        self.checkBox.setTristate(False)
-        self.label_8 = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label_8.setObjectName("label_8")
-        self.gridLayout.addWidget(self.label_8, 7, 0, 1, 1)
-
-        Dialog.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
-
-        [lines], = py.MainMenu.cur.execute("SELECT Count(*) FROM account_information")
+        [lines], = MainMenu.cur.execute("SELECT Count(*) FROM account_information")
         self.lines = lines
 
         if self.lines != 0:
-            self.srt_section_mm = py.MainMenu.srt_section
+            self.srt_section_mm = MainMenu.srt_section
             for _item in self.srt_section_mm:
-                exec('self.comboBox.addItem("")')
+                self.comboBox.addItem("")
         else:
             self.add_section()
 
-        self.retranslateUi(Dialog)
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
-        Dialog.setTabOrder(self.lineEdit, self.lineEdit_2)
-        Dialog.setTabOrder(self.lineEdit_2, self.lineEdit_3)
-        Dialog.setTabOrder(self.lineEdit_3, self.lineEdit_4)
-        Dialog.setTabOrder(self.lineEdit_4, self.lineEdit_5)
-        Dialog.setTabOrder(self.lineEdit_5, self.lineEdit_6)
-        Dialog.setTabOrder(self.lineEdit_6, self.comboBox)
-        Dialog.setTabOrder(self.comboBox, self.pushButton)
-        Dialog.setTabOrder(self.pushButton, self.pushButton_2)
-        Dialog.setTabOrder(self.pushButton_2, self.pushButton_4)
-        Dialog.setTabOrder(self.pushButton_4, self.pushButton_3)
+        self.checkBox.setText(f"на {MainMenu.buffer_del_sec} секунд")
+        if self.lines != 0:
+            for _indexItem, _section in enumerate(self.srt_section_mm):
+                self.comboBox.setItemText(_indexItem, str(_section))
 
         self.pushButton.clicked.connect(self.add_section)
         self.pushButton_2.clicked.connect(self.generate_password)
         self.pushButton_3.clicked.connect(self.add_data)
         self.pushButton_4.clicked.connect(self.close)
+        self.pushButton_5.clicked.connect(self.copy_pass)
 
-    def retranslateUi(self, Dialog):
-        _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Добавление данных"))
-        self.label_6.setText(_translate("Dialog", "Секретное слово"))
-        self.pushButton.setText(_translate("Dialog", "Создать"))
-        self.label_3.setText(_translate("Dialog", "Логин*"))
-        self.label.setText(_translate("Dialog", "Раздел*"))
-        self.label_2.setText(_translate("Dialog", "Название*"))
-        self.label_4.setText(_translate("Dialog", "Пароль*"))
-        self.label_5.setText(_translate("Dialog", "Почта"))
-        self.pushButton_2.setText(_translate("Dialog", "Сгенерировать"))
-        self.label_7.setText(_translate("Dialog", "URL"))
-        self.pushButton_4.setText(_translate("Dialog", "Отмена"))
-        self.pushButton_3.setText(_translate("Dialog", "Добавить"))
-
-        self.label_8.setText(_translate("Dialog", "Копировать пароль"))
-        self.checkBox.setText(_translate("Dialog", "на {} секунд".format(py.MainMenu.buffer_del_sec)))
-
-        if self.lines != 0:
-            _indexItem = 0
-            for _section in self.srt_section_mm:
-                exec('self.comboBox.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _section))
-                _indexItem += 1
+        self.lineEdit_3.textChanged.connect(self.copy_pass_visible)
 
     @QtCore.pyqtSlot()
     def add_data(self):
         global checkbox_pass
+        section = None
         if self.lineEdit_7.isVisible():
             section = self.lineEdit_7.text()
         elif self.comboBox.isVisible():
@@ -166,10 +61,10 @@ class Ui_Dialog(object):
         entered_password = self.lineEdit_3.text()
         password_bin = entered_password.encode()
 
-        if py.MainMenu.choise_pubkey is not None:
-            pubkey = py.MainMenu.choise_pubkey
+        if MainMenu.choise_pubkey is not None:
+            pubkey = MainMenu.choise_pubkey
         else:
-            with open('{}_pubkey.pem'.format(py.MainMenu.db_dir[:-3]), 'rb') as pubfile:
+            with open('{}_pubkey.pem'.format(MainMenu.db_dir[:-3]), 'rb') as pubfile:
                 keydata_pub = pubfile.read()
                 pubfile.close()
             pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
@@ -220,24 +115,24 @@ class Ui_Dialog(object):
                 url = 'None'
             if self.lines == 0:
                 new_id = 1
-                py.MainMenu.cur.execute("""INSERT INTO account_information
+                MainMenu.cur.execute("""INSERT INTO account_information
                                            (ID, section, name, login, pass, email, secret_word, url)
                                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                                        (new_id, section, name, login, password, email, secret_word, url))
-                py.MainMenu.cur.execute("""INSERT INTO data_change_time
+                                     (new_id, section, name, login, password, email, secret_word, url))
+                MainMenu.cur.execute("""INSERT INTO data_change_time
                                            (id, create_account)
                                            VALUES (?, ?)""",
-                                        (new_id, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                                     (new_id, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
                 if self.checkBox.isChecked():
-                    py.MainMenu.buffer = QtWidgets.QApplication.clipboard()
-                    py.MainMenu.buffer.setText(entered_password)
+                    MainMenu.buffer = QtWidgets.QApplication.clipboard()
+                    MainMenu.buffer.setText(entered_password)
                     checkbox_pass = True
                 self.close()
             else:
-                py.MainMenu.cur.execute("SELECT name FROM account_information WHERE name='{}'".format(name))
-                exists_name = py.MainMenu.cur.fetchone()    # TODO: Нужно передавать conn работать с ним и возвращать.
-                py.MainMenu.cur.execute("SELECT login FROM account_information WHERE login='{}'".format(login))
-                exists_login = py.MainMenu.cur.fetchone()
+                MainMenu.cur.execute("SELECT name FROM account_information WHERE name='{}'".format(name))
+                exists_name = MainMenu.cur.fetchone()    # TODO: Нужно передавать conn работать с ним и возвращать.
+                MainMenu.cur.execute("SELECT login FROM account_information WHERE login='{}'".format(login))
+                exists_login = MainMenu.cur.fetchone()
                 if exists_name is not None and exists_login is not None:
                     msg = QtWidgets.QMessageBox()
                     msg.setIcon(QtWidgets.QMessageBox.Critical)
@@ -245,20 +140,20 @@ class Ui_Dialog(object):
                     msg.setText("Такой аккаунт уже существует")
                     msg.exec_()
                 else:
-                    [maxid], = py.MainMenu.cur.execute("SELECT ID FROM account_information ORDER BY ID DESC LIMIT 1")
+                    [maxid], = MainMenu.cur.execute("SELECT ID FROM account_information ORDER BY ID DESC LIMIT 1")
                     new_id = maxid + 1
-                    py.MainMenu.cur.execute("""INSERT INTO account_information
+                    MainMenu.cur.execute("""INSERT INTO account_information
                                                (id, section, name, login, pass, email, secret_word, url)
                                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                                            (new_id, section, name, login, password, email, secret_word, url))
-                    py.MainMenu.cur.execute("""INSERT INTO data_change_time
+                                         (new_id, section, name, login, password, email, secret_word, url))
+                    MainMenu.cur.execute("""INSERT INTO data_change_time
                                                (id, create_account)
                                                VALUES (?, ?)""",
-                                            (new_id, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                                         (new_id, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 
                     if self.checkBox.isChecked():
-                        py.MainMenu.buffer = QtWidgets.QApplication.clipboard()
-                        py.MainMenu.buffer.setText(entered_password)
+                        MainMenu.buffer = QtWidgets.QApplication.clipboard()
+                        MainMenu.buffer.setText(entered_password)
                         checkbox_pass = True
                     self.close()
 
@@ -273,5 +168,15 @@ class Ui_Dialog(object):
         def gen_pass():
             chars = string.ascii_letters + string.digits + '_' + '!' + '?' + '@'
             size = random.randint(8, 12)
-            return ''.join(random.choice(chars) for x in range(size))
+            return ''.join(random.choice(chars) for _ in range(size))
         self.lineEdit_3.setText(gen_pass())
+
+    def copy_pass(self):    # TODO: Сделать функцию таймера по времени и перенести в отдельный файл.
+        buffer = QtWidgets.QApplication.clipboard()
+        buffer.setText(self.lineEdit_3.text())
+
+    def copy_pass_visible(self):
+        if len(self.lineEdit_3.text()) > 0:
+            self.pushButton_5.setEnabled(True)
+        else:
+            self.pushButton_5.setEnabled(False)

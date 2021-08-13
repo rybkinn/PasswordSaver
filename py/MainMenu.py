@@ -10,7 +10,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets, QtPrintSupport
 from PyQt5.QtWidgets import QMessageBox
 import rsa
 import py.DatabaseCreation
-import py.AddingData
+import py.AddingData as AddingData
 import py.StartWindow
 import py.res_rc
 import py.LoadingDB
@@ -26,7 +26,7 @@ elif platform == "win32":
 # elif platform == "darwin":
     # OS X
 
-version = 'v 1.4'  # Версия программы
+version = 'v 1.5'  # Версия программы
 hide_password = True  # Показазь или скрыть пароли при запуске программы: True - скрыты / False - показанны
 buffer_del_sec = 10  # Через сколько секунд будет удаляться буфер обмена после копирования пароля
 new_rsa_bit = 4096  # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
@@ -40,6 +40,9 @@ choise_pubkey = None
 choise_privkey = None
 result_check_choise_privkey = None
 result_check_choise_pubkey = None
+
+srt_section = None
+cur = None
 
 
 def show_msg(top_text, bottom_text):
@@ -539,7 +542,7 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def show_addingdata(self):
-        self.addingdata = addingdata()
+        self.addingdata = AddingData.AddingData()
         self.addingdata.exec_()
         self.refresh_treewidget()
 
@@ -1369,10 +1372,11 @@ class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):
         self.setupUi(self)
 
 
-class addingdata(QtWidgets.QDialog, py.AddingData.Ui_Dialog):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
+# Переехал в отдельный файл
+# class addingdata(QtWidgets.QDialog, py.AddingData.Ui_Dialog):
+#     def __init__(self):
+#         super().__init__()
+#         self.setupUi(self)
 
 
 class SyncDB(QtWidgets.QDialog, py.SyncDB.Ui_Dialog):
