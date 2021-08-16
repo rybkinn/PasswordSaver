@@ -9,7 +9,7 @@ from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets, QtPrintSupport
 from PyQt5.QtWidgets import QMessageBox
 import rsa
-import py.DatabaseCreation
+import py.DatabaseCreation as DatabaseCreation
 import py.AddingData as AddingData
 import py.StartWindow
 import py.res_rc
@@ -31,7 +31,7 @@ hide_password = True  # Показазь или скрыть пароли при
 buffer_del_sec = 10  # Через сколько секунд будет удаляться буфер обмена после копирования пароля
 new_rsa_bit = 4096  # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
 
-db_dir = None
+db_dir = str()
 db_name = None
 pwd = None
 
@@ -180,7 +180,7 @@ def connect_sql(start_or_load=None):  # TODO: убрать глобалы и д�
 class Ui_MainWindow(object):
     def __init__(self):
         super(Ui_MainWindow, self).__init__()
-        self.createdb = createdb()
+        self.create_db = None
         lines = 0
         self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
             db_name[:-3]))  # True если есть в директории data/   если нету False
@@ -514,7 +514,8 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def show_createdb(self):
-        self.createdb.exec_()
+        self.create_db = DatabaseCreation.CreateDB()
+        self.create_db.exec_()
 
     @QtCore.pyqtSlot()
     def loadbd(self):
@@ -1365,11 +1366,11 @@ class Ui_MainWindow(object):
         else:
             event.ignore()
 
-
-class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
+# Переехал в отдельный файл
+# class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):
+#     def __init__(self):
+#         super().__init__()
+#         self.setupUi(self)
 
 
 # Переехал в отдельный файл
