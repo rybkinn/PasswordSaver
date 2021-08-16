@@ -13,7 +13,7 @@ import py.DatabaseCreation as DatabaseCreation
 import py.AddingData as AddingData
 import py.StartWindow
 import py.res_rc
-import py.LoadingDB
+import py.LoadingDB as LoadingDB
 import py.SyncDB
 import py.PrintList as PrintList
 import py.Change
@@ -43,6 +43,7 @@ result_check_choise_pubkey = None
 
 srt_section = None
 cur = None
+conn = None
 
 
 def show_msg(top_text, bottom_text):
@@ -181,6 +182,7 @@ class Ui_MainWindow(object):
     def __init__(self):
         super(Ui_MainWindow, self).__init__()
         self.create_db = None
+        self.loading_db = None
         lines = 0
         self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
             db_name[:-3]))  # True если есть в директории data/   если нету False
@@ -392,8 +394,8 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         self.action_3.triggered.connect(self.savebd)
-        self.action_4.triggered.connect(self.show_createdb)
-        self.action_5.triggered.connect(self.loadbd)
+        self.action_4.triggered.connect(self.show_create_db)
+        self.action_5.triggered.connect(self.show_load_db)
         self.action_6.triggered.connect(self.syncdb)
         self.action_7.triggered.connect(self.print)
         self.action_8.triggered.connect(self.close)
@@ -513,20 +515,20 @@ class Ui_MainWindow(object):
             pass
 
     @QtCore.pyqtSlot()
-    def show_createdb(self):
+    def show_create_db(self):
         self.create_db = DatabaseCreation.CreateDB()
         self.create_db.exec_()
 
     @QtCore.pyqtSlot()
-    def loadbd(self):
-        self.loadingdb = loadingdb()
-        self.loadingdb.exec()
+    def show_load_db(self):
+        self.loading_db = LoadingDB.LoadingDB()
+        self.loading_db.exec()
         if not py.LoadingDB.Close:
             py.LoadingDB.Close = True
             self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
-                db_name[:-3]))  # True если есть в директории data/   если нету False
+                db_name[:-3]))
             self.privkey_file = os.path.isfile("data/{}_privkey.pem".format(
-                db_name[:-3]))  # True если есть в директории data/   если нету False
+                db_name[:-3]))
             self.refresh_treewidget()
             self.result_check_privkey()
             self.result_check_pubkey()
@@ -1386,15 +1388,15 @@ class SyncDB(QtWidgets.QDialog, py.SyncDB.Ui_Dialog):
         self.setupUi(self)
         self.init_path_to_key(path_to_privkey, path_to_pubkey)
 
-
-class loadingdb(QtWidgets.QDialog, py.LoadingDB.Ui_Dialog):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
+# Переехал в отдельный файл
+# class loadingdb(QtWidgets.QDialog, py.LoadingDB.Ui_Dialog):
+#     def __init__(self):
+#         super().__init__()
+#         self.setupUi(self)
 
 
 class change(QtWidgets.QDialog, py.Change.Ui_Dialog):
-    def __init__(self, title=str, label_text=str, pushbutton=bool):
+    def __init__(self, title: str, label_text: str, pushbutton: bool):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle(title)
