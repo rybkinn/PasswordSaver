@@ -16,7 +16,7 @@ import py.res_rc
 import py.LoadingDB as LoadingDB
 import py.SyncDB as SyncDB
 import py.PrintList as PrintList
-import py.Change
+import py.Change as Change
 from py.waitingspinnerwidget import QtWaitingSpinner
 
 if platform == "linux" or platform == "linux2":
@@ -1096,7 +1096,7 @@ class Ui_MainWindow(object):
                             buffer.setText(secret)
                             self.delete_buffer()
                 elif action2 == rmenu_change_log:
-                    self.change = change('Изменение логина', 'Введите новый логин', False)
+                    self.change = Change.Change('Изменение логина', 'Введите новый логин', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         login = self.change.lineEdit.text()
@@ -1117,7 +1117,7 @@ class Ui_MainWindow(object):
                             msg.setText("Нельзя изменить на пустой логин")
                             msg.exec_()
                 elif action2 == rmenu_change_pass:
-                    self.change = change('Изменение пароля', 'Введите новый пароль', True)
+                    self.change = Change.Change('Изменение пароля', 'Введите новый пароль', True)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         if self.change.lineEdit.text() == '':
@@ -1148,7 +1148,7 @@ class Ui_MainWindow(object):
                                         (password, row[0][0], row[0][1], row[0][3], row[0][5]))
                             self.refresh_treewidget()
                 elif action2 == rmenu_change_email:
-                    self.change = change('Изменение почты', 'Введите новую почту', False)
+                    self.change = Change.Change('Изменение почты', 'Введите новую почту', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         email = self.change.lineEdit.text()
@@ -1164,7 +1164,7 @@ class Ui_MainWindow(object):
                                     (email, row[0][0], row[0][1], row[0][3], row[0][5]))
                         self.refresh_treewidget()
                 elif action2 == rmenu_change_secret:
-                    self.change = change('Изменение секретного слова', 'Введите новое секретное слово', False)
+                    self.change = Change.Change('Изменение секретного слова', 'Введите новое секретное слово', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         secret_text = self.change.lineEdit.text()
@@ -1191,7 +1191,7 @@ class Ui_MainWindow(object):
                                     (secret, row[0][0], row[0][1], row[0][3], row[0][5]))
                         self.refresh_treewidget()
                 elif action2 == rmenu_change_url:
-                    self.change = change('Изменение url', 'Введите новый url', False)
+                    self.change = Change.Change('Изменение url', 'Введите новый url', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         url = self.change.lineEdit.text()
@@ -1373,50 +1373,3 @@ class Ui_MainWindow(object):
             event.accept()
         else:
             event.ignore()
-
-# Переехал в отдельный файл
-# class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):
-#     def __init__(self):
-#         super().__init__()
-#         self.setupUi(self)
-
-
-# Переехал в отдельный файл
-# class addingdata(QtWidgets.QDialog, py.AddingData.Ui_Dialog):
-#     def __init__(self):
-#         super().__init__()
-#         self.setupUi(self)
-
-# Переехал в отдельный файл
-# class SyncDB(QtWidgets.QDialog, py.SyncDB.Ui_Dialog):
-#     def __init__(self, path_to_privkey, path_to_pubkey):
-#         super().__init__()
-#         self.setupUi(self)
-#         self.init_path_to_key(path_to_privkey, path_to_pubkey)
-
-# Переехал в отдельный файл
-# class loadingdb(QtWidgets.QDialog, py.LoadingDB.Ui_Dialog):
-#     def __init__(self):
-#         super().__init__()
-#         self.setupUi(self)
-
-
-class change(QtWidgets.QDialog, py.Change.Ui_Dialog):
-    def __init__(self, title: str, label_text: str, pushbutton: bool):
-        super().__init__()
-        self.setupUi(self)
-        self.setWindowTitle(title)
-        self.label.setText(label_text)
-        if not pushbutton:
-            self.pushButton.hide()
-        if title == 'Изменение секретного слова' or title == 'Изменение пароля':
-            self.lineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.pushButton.clicked.connect(self.generate_password)
-
-    def generate_password(self):
-        def gen_pass():
-            chars = string.ascii_letters + string.digits + '_' + '!' + '?' + '@'
-            size = random.randint(8, 12)
-            return ''.join(random.choice(chars) for x in range(size))
-
-        self.lineEdit.setText(gen_pass())
