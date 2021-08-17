@@ -1,5 +1,5 @@
 <RCC>
-  <qresource prefix="image">
+  <qresource prefix="resource">
     <file>image/Icon-Copy.ico</file>
     <file>image/question.ico</file>
     <file>image/checkmark.ico</file>

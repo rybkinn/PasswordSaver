@@ -73,8 +73,8 @@
     <widget class="QLineEdit" name="lineEdit">
      <property name="minimumSize">
       <size>
-       <width>145</width>
-       <height>30</height>
+       <width>150</width>
+       <height>35</height>
       </size>
      </property>
      <property name="echoMode">
@@ -132,7 +132,7 @@
       <string/>
      </property>
      <property name="pixmap">
-      <pixmap resource="../resource/res.qrc">:/image/image/question.ico</pixmap>
+      <pixmap resource="../resource/res.qrc">:/resource/image/question.ico</pixmap>
      </property>
      <property name="scaledContents">
       <bool>true</bool>
@@ -172,7 +172,7 @@
       <string/>
      </property>
      <property name="pixmap">
-      <pixmap resource="../resource/res.qrc">:/image/image/question.ico</pixmap>
+      <pixmap resource="../resource/res.qrc">:/resource/image/question.ico</pixmap>
      </property>
      <property name="scaledContents">
       <bool>true</bool>
@@ -240,14 +240,14 @@
      </property>
      <property name="minimumSize">
       <size>
-       <width>145</width>
-       <height>25</height>
+       <width>150</width>
+       <height>30</height>
       </size>
      </property>
      <property name="maximumSize">
       <size>
-       <width>185</width>
-       <height>25</height>
+       <width>190</width>
+       <height>30</height>
       </size>
      </property>
      <property name="sizeIncrement">
@@ -304,7 +304,7 @@
       <string/>
      </property>
      <property name="pixmap">
-      <pixmap resource="../resource/res.qrc">:/image/image/question.ico</pixmap>
+      <pixmap resource="../resource/res.qrc">:/resource/image/question.ico</pixmap>
      </property>
      <property name="scaledContents">
       <bool>true</bool>
@@ -389,8 +389,8 @@
      </property>
      <property name="minimumSize">
       <size>
-       <width>145</width>
-       <height>30</height>
+       <width>150</width>
+       <height>35</height>
       </size>
      </property>
      <property name="currentText">
@@ -404,10 +404,10 @@
    <item row="13" column="0" colspan="3" alignment="Qt::AlignHCenter|Qt::AlignBottom">
     <widget class="QLabel" name="label_11">
      <property name="styleSheet">
-      <string notr="true">з</string>
+      <string notr="true"/>
      </property>
      <property name="text">
-      <string>Добавлено 10 аккаунтов</string>
+      <string>Добавлено 0 аккаунтов</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignBottom|Qt::AlignHCenter</set>

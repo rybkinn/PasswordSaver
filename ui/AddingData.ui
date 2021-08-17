@@ -154,7 +154,7 @@
       </property>
       <property name="icon">
        <iconset resource="../resource/res.qrc">
-        <normaloff>:/image/image/Icon-Copy.ico</normaloff>:/image/image/Icon-Copy.ico</iconset>
+        <normaloff>:/resource/image/Icon-Copy.ico</normaloff>:/resource/image/Icon-Copy.ico</iconset>
       </property>
       <property name="autoRepeat">
        <bool>false</bool>

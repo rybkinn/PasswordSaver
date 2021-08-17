@@ -4,7 +4,7 @@ import copy
 import datetime
 import os
 from sys import platform
-
+import py.ui.SyncDB_ui as SyncDB_ui
 import rsa
 from PyQt5 import QtCore
 from PyQt5 import QtGui
@@ -25,7 +25,7 @@ import py.MainMenu
 finish_sync = False
 
 
-class MyThread(QtCore.QThread):
+class SyncDBThread(QtCore.QThread):
     response = QtCore.pyqtSignal(int)
 
     def __init__(self, path, pwd, path_to_privkey, path_to_pubkey):
@@ -277,176 +277,30 @@ def decrypt(crypt_s: str) -> str:
         return 'error'
 
 
-class Ui_Dialog(object):
-    def __init__(self):
-        self.databases_from_dir = []
+class SyncDB(QtWidgets.QDialog, SyncDB_ui.Ui_Dialog):
+    def __init__(self, path_to_privkey, path_to_pubkey):
+        super().__init__()
+        self.setupUi(self)
 
-    def setupUi(self, Dialog):
-        path_dir = os.getcwd()
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(400, 450)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(Dialog.sizePolicy().hasHeightForWidth())
-        Dialog.setSizePolicy(sizePolicy)
-        Dialog.setMinimumSize(QtCore.QSize(400, 450))
-        Dialog.setMaximumSize(QtCore.QSize(400, 450))
-        self.gridLayout = QtWidgets.QGridLayout(Dialog)
-        self.gridLayout.setContentsMargins(30, 10, 30, 50)
-        self.gridLayout.setHorizontalSpacing(30)
-        self.gridLayout.setVerticalSpacing(0)
-        self.gridLayout.setObjectName("gridLayout")
-        self.label_2 = QtWidgets.QLabel(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_2.sizePolicy().hasHeightForWidth())
-        self.label_2.setSizePolicy(sizePolicy)
-        self.label_2.setStyleSheet("padding-bottom: 70px;")
-        self.label_2.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
-        self.label_2.setObjectName("label_2")
-        self.gridLayout.addWidget(self.label_2, 1, 0, 1, 3)
-        self.lineEdit = QtWidgets.QLineEdit(Dialog)
-        self.lineEdit.setMinimumSize(QtCore.QSize(150, 35))
-        self.lineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.lineEdit.setObjectName("lineEdit")
-        self.lineEdit.setStyleSheet("")
-        self.gridLayout.addWidget(self.lineEdit, 4, 1, 1, 1)
-        spacerItem = QtWidgets.QSpacerItem(20, 60, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.gridLayout.addItem(spacerItem, 6, 1, 1, 1)
-        self.label_9 = QtWidgets.QLabel(Dialog)
-        self.label_9.setStyleSheet("margin: 5px 0px 5px 0px;")
-        self.label_9.setObjectName("label_9")
-        self.gridLayout.addWidget(self.label_9, 8, 1, 1, 1)
-        self.label_7 = QtWidgets.QLabel(Dialog)
-        self.label_7.setMinimumSize(QtCore.QSize(20, 20))
-        self.label_7.setMaximumSize(QtCore.QSize(20, 20))
-        self.label_7.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_7.setAutoFillBackground(False)
-        self.label_7.setText("")
-        self.label_7.setPixmap(QtGui.QPixmap("resource/image/question.ico"))
-        self.label_7.setScaledContents(True)
-        self.label_7.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
-        self.label_7.setWordWrap(False)
-        self.label_7.setOpenExternalLinks(False)
-        self.label_7.setObjectName("label_7")
-        self.gridLayout.addWidget(self.label_7, 9, 0, 1, 1, QtCore.Qt.AlignRight)
-        self.label_6 = QtWidgets.QLabel(Dialog)
-        self.label_6.setMinimumSize(QtCore.QSize(20, 20))
-        self.label_6.setMaximumSize(QtCore.QSize(20, 20))
-        self.label_6.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_6.setAutoFillBackground(False)
-        self.label_6.setText("")
-        self.label_6.setPixmap(QtGui.QPixmap("resource/image/question.ico"))
-        self.label_6.setScaledContents(True)
-        self.label_6.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
-        self.label_6.setWordWrap(False)
-        self.label_6.setOpenExternalLinks(False)
-        self.label_6.setObjectName("label_6")
-        self.gridLayout.addWidget(self.label_6, 8, 0, 1, 1, QtCore.Qt.AlignRight)
-        self.label_3 = QtWidgets.QLabel(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_3.sizePolicy().hasHeightForWidth())
-        self.label_3.setSizePolicy(sizePolicy)
-        self.label_3.setObjectName("label_3")
-        self.gridLayout.addWidget(self.label_3, 3, 0, 1, 1)
-        self.label_8 = QtWidgets.QLabel(Dialog)
-        self.label_8.setStyleSheet("margin: 5px 0px 5px 0px;")
-        self.label_8.setObjectName("label_8")
-        self.gridLayout.addWidget(self.label_8, 7, 1, 1, 1)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 10, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        self.gridLayout.addItem(spacerItem1, 10, 1, 1, 1)
-        self.pushButton = QtWidgets.QPushButton(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(1)
-        sizePolicy.setHeightForWidth(self.pushButton.sizePolicy().hasHeightForWidth())
-        self.pushButton.setSizePolicy(sizePolicy)
-        self.pushButton.setMinimumSize(QtCore.QSize(150, 30))
-        self.pushButton.setMaximumSize(QtCore.QSize(190, 30))
-        self.pushButton.setSizeIncrement(QtCore.QSize(0, 0))
-        self.pushButton.setBaseSize(QtCore.QSize(0, 0))
-        self.pushButton.setStyleSheet("")
-        self.pushButton.setAutoDefault(False)
-        self.pushButton.setObjectName("pushButton")
-        self.gridLayout.addWidget(self.pushButton, 5, 1, 1, 1)
-        self.label_4 = QtWidgets.QLabel(Dialog)
-        self.label_4.setObjectName("label_4")
-        self.gridLayout.addWidget(self.label_4, 4, 0, 1, 1)
-        self.label_5 = QtWidgets.QLabel(Dialog)
-        self.label_5.setMinimumSize(QtCore.QSize(20, 20))
-        self.label_5.setMaximumSize(QtCore.QSize(20, 20))
-        self.label_5.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_5.setAutoFillBackground(False)
-        self.label_5.setText("")
-        self.label_5.setPixmap(QtGui.QPixmap("resource/image/question.ico"))
-        self.label_5.setScaledContents(True)
-        self.label_5.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
-        self.label_5.setWordWrap(False)
-        self.label_5.setIndent(-1)
-        self.label_5.setOpenExternalLinks(False)
-        self.label_5.setObjectName("label_5")
-        self.gridLayout.addWidget(self.label_5, 7, 0, 1, 1, QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.label_10 = QtWidgets.QLabel(Dialog)
-        self.label_10.setStyleSheet("margin: 5px 0px 5px 0px;")
-        self.label_10.setObjectName("label_10")
-        self.gridLayout.addWidget(self.label_10, 9, 1, 1, 1)
-        self.toolButton = QtWidgets.QToolButton(Dialog)
-        self.toolButton.setArrowType(QtCore.Qt.NoArrow)
-        self.toolButton.setObjectName("toolButton")
-        self.gridLayout.addWidget(self.toolButton, 3, 2, 1, 1)
-        self.label = QtWidgets.QLabel(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
-        self.label.setSizePolicy(sizePolicy)
-        font = QtGui.QFont()
-        font.setFamily("Arial Black")
-        font.setPointSize(16)
-        font.setBold(True)
-        font.setItalic(False)
-        font.setUnderline(False)
-        font.setWeight(75)
-        font.setStrikeOut(False)
-        self.label.setFont(font)
-        self.label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
-        self.label.setWordWrap(False)
-        self.label.setObjectName("label")
-        self.gridLayout.addWidget(self.label, 0, 0, 1, 3)
-        self.comboBox = QtWidgets.QComboBox(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox.sizePolicy().hasHeightForWidth())
-        self.comboBox.setSizePolicy(sizePolicy)
-        self.comboBox.setMinimumSize(QtCore.QSize(150, 35))
-        self.comboBox.setCurrentText("")
-        self.comboBox.setInsertPolicy(QtWidgets.QComboBox.InsertAtBottom)
-        self.comboBox.setObjectName("comboBox")
-        self.comboBox.setStyleSheet("")
-        data_files_name = os.listdir(path="data")
+        self.path_to_privkey = path_to_privkey
+        self.path_to_pubkey = path_to_pubkey
+        self.acc_count = None
+        self.sync_db_thread = None
+
+        self.label_11.setHidden(True)
+
+        self.databases_from_dir = []
         self.databases_from_dir.clear()
+        data_files_name = os.listdir(path="data")
         for _name_db in data_files_name:
             type_file = _name_db[_name_db.find("."):]
             if type_file == '.db':
                 self.databases_from_dir.append(_name_db)
+
+        path_dir = os.getcwd()
         for _addItem in self.databases_from_dir:
             path_to_db = [path_dir + '/data/' + _addItem, _addItem]  # changed \\data\\ => /data/ from linux
-            exec('self.comboBox.addItem("", path_to_db)')
-        self.gridLayout.addWidget(self.comboBox, 3, 1, 1, 1)
-        self.label_11 = QtWidgets.QLabel(Dialog)
-        self.label_11.setStyleSheet("")
-        self.label_11.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignHCenter)
-        self.label_11.setWordWrap(False)
-        self.label_11.setIndent(-1)
-        self.label_11.setOpenExternalLinks(False)
-        self.label_11.setObjectName("label_11")
-        self.label_11.setHidden(True)
-        self.gridLayout.addWidget(self.label_11, 13, 0, 1, 3, QtCore.Qt.AlignHCenter | QtCore.Qt.AlignBottom)
+            self.comboBox.addItem(_addItem, path_to_db)
 
         self.spinner = QtWaitingSpinner(self, centerOnParent=False, disableParentWhenSpinning=True)
         self.spinner.setGeometry(QtCore.QRect(180, 240, 121, 16))
@@ -460,36 +314,8 @@ class Ui_Dialog(object):
         self.spinner.setRevolutionsPerSecond(1)
         self.spinner.setColor(QtGui.QColor(0, 0, 0))
 
-        self.retranslateUi(Dialog)
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
-        Dialog.setTabOrder(self.pushButton, self.comboBox)
-        Dialog.setTabOrder(self.comboBox, self.toolButton)
-        Dialog.setTabOrder(self.toolButton, self.lineEdit)
-
         self.toolButton.clicked.connect(self.push_tool_button)
         self.pushButton.clicked.connect(self.start_sync)
-
-    def retranslateUi(self, Dialog):
-        _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Синхронизация БД"))
-        self.label_2.setText(_translate("Dialog", "Синхронизация базы данных"))
-        self.label_9.setText(_translate("Dialog", "БД не пустая"))
-        self.label_3.setText(_translate("Dialog", "Выберете базу"))
-        self.label_8.setText(_translate("Dialog", "Пароль подходит"))
-        self.pushButton.setText(_translate("Dialog", "Синхронизировать"))
-        self.label_4.setText(_translate("Dialog", "Введите пароль"))
-        self.label_10.setText(_translate("Dialog", "Совпадают ключи"))
-        self.toolButton.setText(_translate("Dialog", "..."))
-        self.label.setText(_translate("Dialog", "Password Saver"))
-        self.label_11.setText(_translate("Dialog", "Добавлено 0 аккаунтов"))
-        _indexItem = 0
-        for _addItem in self.databases_from_dir:
-            exec('self.comboBox.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _addItem))
-            _indexItem += 1
-
-    def init_path_to_key(self, path_to_privkey, path_to_pubkey):
-        self.path_to_privkey = path_to_privkey
-        self.path_to_pubkey = path_to_pubkey
 
     @QtCore.pyqtSlot()
     def push_tool_button(self):
@@ -509,32 +335,32 @@ class Ui_Dialog(object):
 
     @QtCore.pyqtSlot()
     def start_sync(self):
-        self.label_5.setPixmap(QtGui.QPixmap("resource/image/question.ico"))
-        self.label_6.setPixmap(QtGui.QPixmap("resource/image/question.ico"))
-        self.label_7.setPixmap(QtGui.QPixmap("resource/image/question.ico"))
+        self.label_5.setPixmap(QtGui.QPixmap(":/resource/image/question.ico"))
+        self.label_6.setPixmap(QtGui.QPixmap(":/resource/image/question.ico"))
+        self.label_7.setPixmap(QtGui.QPixmap(":/resource/image/question.ico"))
         path = self.comboBox.currentData()[0]
         pwd = self.lineEdit.text()
         conn_sync = create_and_check_connection(path, pwd)
         if conn_sync is not None:
-            self.label_5.setPixmap(QtGui.QPixmap("resource/image/checkmark.ico"))
+            self.label_5.setPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"))
             check_empty = "SELECT * from account_information"
             rows = execute_read_query(conn_sync, check_empty)
             if len(rows) != 0:
-                self.label_6.setPixmap(QtGui.QPixmap("resource/image/checkmark.ico"))
+                self.label_6.setPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"))
                 decrypt_result = decrypt(rows[0][4])
                 if decrypt_result != 'error':
-                    self.label_7.setPixmap(QtGui.QPixmap("resource/image/checkmark.ico"))
+                    self.label_7.setPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"))
                 else:
-                    self.label_7.setPixmap(QtGui.QPixmap("resource/image/cross.ico"))
+                    self.label_7.setPixmap(QtGui.QPixmap(":/resource/image/cross.ico"))
                 path_to_privkey, path_to_pubkey = self.path_to_privkey, self.path_to_pubkey
-                self.mythread = MyThread(path, pwd, path_to_privkey, path_to_pubkey)
-                self.mythread.started.connect(self.spinner_started)
-                self.mythread.response.connect(self.response_slot)
+                self.sync_db_thread = SyncDBThread(path, pwd, path_to_privkey, path_to_pubkey)
+                self.sync_db_thread.started.connect(self.spinner_started)
+                self.sync_db_thread.response.connect(self.response_slot)
                 self.acc_count = 0
-                self.mythread.finished.connect(lambda: self.spinner_finished(self.acc_count))
-                self.mythread.start()
+                self.sync_db_thread.finished.connect(lambda: self.spinner_finished(self.acc_count))
+                self.sync_db_thread.start()
             else:
-                self.label_6.setPixmap(QtGui.QPixmap("resource/image/cross.ico"))
+                self.label_6.setPixmap(QtGui.QPixmap(":/resource/image/cross.ico"))
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Critical)
                 msg.setWindowTitle("Ошибка синхронизации")
@@ -542,7 +368,7 @@ class Ui_Dialog(object):
                 msg.exec_()
             conn_sync.close()
         else:
-            self.label_5.setPixmap(QtGui.QPixmap("resource/image/cross.ico"))
+            self.label_5.setPixmap(QtGui.QPixmap(":/resource/image/cross.ico"))
             self.lineEdit.clear()
 
     def response_slot(self, acc_count):

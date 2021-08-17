@@ -14,7 +14,7 @@ import py.AddingData as AddingData
 import py.StartWindow
 import py.res_rc
 import py.LoadingDB as LoadingDB
-import py.SyncDB
+import py.SyncDB as SyncDB
 import py.PrintList as PrintList
 import py.Change
 from py.waitingspinnerwidget import QtWaitingSpinner
@@ -44,6 +44,7 @@ result_check_choise_pubkey = None
 srt_section = None
 cur = None
 conn = None
+privkey_dir = None
 
 
 def show_msg(top_text, bottom_text):
@@ -183,6 +184,11 @@ class Ui_MainWindow(object):
         super(Ui_MainWindow, self).__init__()
         self.create_db = None
         self.loading_db = None
+        self.addingdata = None
+        self.sdb = None
+        self.timer = None
+        self.timer_sec = None
+        self.step = None
         lines = 0
         self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
             db_name[:-3]))  # True если есть в директории data/   если нету False
@@ -292,8 +298,8 @@ class Ui_MainWindow(object):
         self.toolButton_2.setStyleSheet("")
         self.toolButton_2.setInputMethodHints(QtCore.Qt.ImhNone)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        icon.addPixmap(QtGui.QPixmap(":/image/image/checkmark.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
         self.toolButton_2.setIcon(icon)
         self.toolButton_2.setAutoRepeat(False)
         self.toolButton_2.setAutoExclusive(False)
@@ -307,8 +313,8 @@ class Ui_MainWindow(object):
         font.setWeight(75)
         self.toolButton.setFont(font)
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        icon1.addPixmap(QtGui.QPixmap(":/image/image/checkmark.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+        icon1.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
         self.toolButton.setIcon(icon1)
         self.toolButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
         self.toolButton.setAutoRaise(True)
@@ -393,10 +399,10 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-        self.action_3.triggered.connect(self.savebd)
+        self.action_3.triggered.connect(self.save_db)
         self.action_4.triggered.connect(self.show_create_db)
         self.action_5.triggered.connect(self.show_load_db)
-        self.action_6.triggered.connect(self.syncdb)
+        self.action_6.triggered.connect(self.sync_db)
         self.action_7.triggered.connect(self.print)
         self.action_8.triggered.connect(self.close)
         self.pushButton.clicked.connect(self.delete_data)
@@ -502,7 +508,7 @@ class Ui_MainWindow(object):
         self.statusbar.showMessage("Печать завершена")
 
     @QtCore.pyqtSlot()
-    def savebd(self):
+    def save_db(self):
         result = show_msg('Вы действительно хотите сохранить изменения в базе данных?', '')
         if result == QMessageBox.Yes:
             conn.commit()
@@ -536,8 +542,8 @@ class Ui_MainWindow(object):
             self.retranslateUi(self)
 
     @QtCore.pyqtSlot()
-    def syncdb(self):
-        self.sdb = SyncDB(self.toolButton.text(), self.toolButton_2.text())
+    def sync_db(self):
+        self.sdb = SyncDB.SyncDB(self.toolButton.text(), self.toolButton_2.text())
         self.sdb.exec()
         if py.SyncDB.finish_sync:
             py.SyncDB.finish_sync = False
@@ -896,7 +902,7 @@ class Ui_MainWindow(object):
             self.toolButton_2.setEnabled(False)
         elif self.pubkey_file and result_check_pubkey == 'not privkey':
             self.toolButton_2.setEnabled(False)
-            icon.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
             self.toolButton_2.setIcon(icon)
         else:
             self.toolButton_2.setEnabled(True)
@@ -919,7 +925,7 @@ class Ui_MainWindow(object):
             self.pushButton_2.setEnabled(False)
         elif self.privkey_file and result_check_privkey == 'not pubkey':
             self.toolButton.setEnabled(False)
-            icon1.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+            icon1.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
             self.toolButton.setIcon(icon1)
         else:
             self.toolButton.setEnabled(True)
@@ -969,8 +975,8 @@ class Ui_MainWindow(object):
             counter -= 1
             slot(counter)
             if counter >= count:
-                py.MainMenu.Ui_MainWindow.timer_sec.stop()
-                py.MainMenu.Ui_MainWindow.timer_sec.deleteLater()
+                self.timer_sec.stop()
+                self.timer_sec.deleteLater()
 
         self.timer_sec.timeout.connect(handler)
         self.timer_sec.start(interval)
@@ -1381,12 +1387,12 @@ class Ui_MainWindow(object):
 #         super().__init__()
 #         self.setupUi(self)
 
-
-class SyncDB(QtWidgets.QDialog, py.SyncDB.Ui_Dialog):
-    def __init__(self, path_to_privkey, path_to_pubkey):
-        super().__init__()
-        self.setupUi(self)
-        self.init_path_to_key(path_to_privkey, path_to_pubkey)
+# Переехал в отдельный файл
+# class SyncDB(QtWidgets.QDialog, py.SyncDB.Ui_Dialog):
+#     def __init__(self, path_to_privkey, path_to_pubkey):
+#         super().__init__()
+#         self.setupUi(self)
+#         self.init_path_to_key(path_to_privkey, path_to_pubkey)
 
 # Переехал в отдельный файл
 # class loadingdb(QtWidgets.QDialog, py.LoadingDB.Ui_Dialog):
