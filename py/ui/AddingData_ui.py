@@ -85,7 +85,7 @@ class Ui_Dialog(object):
         self.pushButton_5.setMaximumSize(QtCore.QSize(17, 16777215))
         self.pushButton_5.setText("")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/image/image/Icon-Copy.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/resource/image/Icon-Copy.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.pushButton_5.setIcon(icon)
         self.pushButton_5.setAutoRepeat(False)
         self.pushButton_5.setAutoExclusive(False)

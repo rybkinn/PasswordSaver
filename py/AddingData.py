@@ -7,7 +7,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 import rsa
 import py.MainMenu as MainMenu
-import py.AddingData_ui as AddingData_ui
+import py.ui.AddingData_ui as AddingData_ui
 
 checkbox_pass = False
 

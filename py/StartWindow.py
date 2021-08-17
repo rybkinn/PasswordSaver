@@ -5,7 +5,7 @@ from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import py.MainMenu
-import py.DatabaseCreation
+import py.DatabaseCreation as DatabaseCreation
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
 elif platform == "win32":
@@ -86,7 +86,7 @@ def check_database(connect, pwd) -> tuple:
 class Ui_Dialog(object):
     def __init__(self):
         super(Ui_Dialog, self).__init__()
-        self.createdb = createdb()
+        self.create_db = None
 
     def setupUi(self, Dialog):
         global data_files_name
@@ -151,7 +151,7 @@ class Ui_Dialog(object):
             if type_file == '.db':
                 name_bd.append(_name_bd)
         for _addItem in name_bd:
-            db_data = [path_dir + '\\data\\' + _addItem , _addItem]
+            db_data = [path_dir + '\\data\\' + _addItem, _addItem]
             exec('self.comboBox_2.addItem("", db_data)')
         self.gridLayout.addWidget(self.comboBox_2, 0, 1, 1, 1)
         self.toolButton = QtWidgets.QToolButton(self.gridLayoutWidget)
@@ -173,7 +173,7 @@ class Ui_Dialog(object):
 
         self.toolButton.clicked.connect(self.push_tool_button)
         self.pushButton_3.clicked.connect(self.show_mainwindow)
-        self.pushButton_2.clicked.connect(self.show_createdb)
+        self.pushButton_2.clicked.connect(self.show_create_db)
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
@@ -197,7 +197,8 @@ class Ui_Dialog(object):
         global filename
         global file_info
 
-        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Открытие базы данных', os.getcwd(), 'database files(*.db)')
+        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Открытие базы данных', os.getcwd(),
+                                                               'database files(*.db)')
         if directory_name[0] != '':
             self.comboBox_2.clear()
             filename = ''
@@ -264,10 +265,11 @@ class Ui_Dialog(object):
                 self.lineEdit_2.clear()
 
     @QtCore.pyqtSlot()
-    def show_createdb(self):
-        self.createdb.exec_()
-        if py.DatabaseCreation.name_created_database:
-            namedb = py.DatabaseCreation.name_created_database + '.db'
+    def show_create_db(self):
+        self.create_db = DatabaseCreation.CreateDB()
+        self.create_db.exec_()
+        if DatabaseCreation.name_created_database:
+            namedb = DatabaseCreation.name_created_database + '.db'
             db_data = [os.getcwd() + '\\data\\' + namedb, namedb]
             self.comboBox_2.addItem("", db_data)
             combo_count = self.comboBox_2.count()
@@ -276,12 +278,6 @@ class Ui_Dialog(object):
 
 
 class mainwindow(QtWidgets.QMainWindow, py.MainMenu.Ui_MainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-
-
-class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):
     def __init__(self):
         super().__init__()
         self.setupUi(self)

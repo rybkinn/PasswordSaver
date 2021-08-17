@@ -9,14 +9,14 @@ from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets, QtPrintSupport
 from PyQt5.QtWidgets import QMessageBox
 import rsa
-import py.DatabaseCreation
+import py.DatabaseCreation as DatabaseCreation
 import py.AddingData as AddingData
 import py.StartWindow
 import py.res_rc
-import py.LoadingDB
-import py.SyncDB
+import py.LoadingDB as LoadingDB
+import py.SyncDB as SyncDB
 import py.PrintList as PrintList
-import py.Change
+import py.Change as Change
 from py.waitingspinnerwidget import QtWaitingSpinner
 
 if platform == "linux" or platform == "linux2":
@@ -31,7 +31,7 @@ hide_password = True  # Показазь или скрыть пароли при
 buffer_del_sec = 10  # Через сколько секунд будет удаляться буфер обмена после копирования пароля
 new_rsa_bit = 4096  # Длина rsa ключа при создании новой базы (1024 / 2048 / 3072 / 4096)
 
-db_dir = None
+db_dir = str()
 db_name = None
 pwd = None
 
@@ -43,6 +43,8 @@ result_check_choise_pubkey = None
 
 srt_section = None
 cur = None
+conn = None
+privkey_dir = None
 
 
 def show_msg(top_text, bottom_text):
@@ -180,7 +182,13 @@ def connect_sql(start_or_load=None):  # TODO: убрать глобалы и д�
 class Ui_MainWindow(object):
     def __init__(self):
         super(Ui_MainWindow, self).__init__()
-        self.createdb = createdb()
+        self.create_db = None
+        self.loading_db = None
+        self.addingdata = None
+        self.sdb = None
+        self.timer = None
+        self.timer_sec = None
+        self.step = None
         lines = 0
         self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
             db_name[:-3]))  # True если есть в директории data/   если нету False
@@ -290,8 +298,8 @@ class Ui_MainWindow(object):
         self.toolButton_2.setStyleSheet("")
         self.toolButton_2.setInputMethodHints(QtCore.Qt.ImhNone)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        icon.addPixmap(QtGui.QPixmap(":/image/image/checkmark.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
         self.toolButton_2.setIcon(icon)
         self.toolButton_2.setAutoRepeat(False)
         self.toolButton_2.setAutoExclusive(False)
@@ -305,8 +313,8 @@ class Ui_MainWindow(object):
         font.setWeight(75)
         self.toolButton.setFont(font)
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        icon1.addPixmap(QtGui.QPixmap(":/image/image/checkmark.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+        icon1.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
         self.toolButton.setIcon(icon1)
         self.toolButton.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
         self.toolButton.setAutoRaise(True)
@@ -391,10 +399,10 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-        self.action_3.triggered.connect(self.savebd)
-        self.action_4.triggered.connect(self.show_createdb)
-        self.action_5.triggered.connect(self.loadbd)
-        self.action_6.triggered.connect(self.syncdb)
+        self.action_3.triggered.connect(self.save_db)
+        self.action_4.triggered.connect(self.show_create_db)
+        self.action_5.triggered.connect(self.show_load_db)
+        self.action_6.triggered.connect(self.sync_db)
         self.action_7.triggered.connect(self.print)
         self.action_8.triggered.connect(self.close)
         self.pushButton.clicked.connect(self.delete_data)
@@ -500,7 +508,7 @@ class Ui_MainWindow(object):
         self.statusbar.showMessage("Печать завершена")
 
     @QtCore.pyqtSlot()
-    def savebd(self):
+    def save_db(self):
         result = show_msg('Вы действительно хотите сохранить изменения в базе данных?', '')
         if result == QMessageBox.Yes:
             conn.commit()
@@ -513,19 +521,20 @@ class Ui_MainWindow(object):
             pass
 
     @QtCore.pyqtSlot()
-    def show_createdb(self):
-        self.createdb.exec_()
+    def show_create_db(self):
+        self.create_db = DatabaseCreation.CreateDB()
+        self.create_db.exec_()
 
     @QtCore.pyqtSlot()
-    def loadbd(self):
-        self.loadingdb = loadingdb()
-        self.loadingdb.exec()
+    def show_load_db(self):
+        self.loading_db = LoadingDB.LoadingDB()
+        self.loading_db.exec()
         if not py.LoadingDB.Close:
             py.LoadingDB.Close = True
             self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
-                db_name[:-3]))  # True если есть в директории data/   если нету False
+                db_name[:-3]))
             self.privkey_file = os.path.isfile("data/{}_privkey.pem".format(
-                db_name[:-3]))  # True если есть в директории data/   если нету False
+                db_name[:-3]))
             self.refresh_treewidget()
             self.result_check_privkey()
             self.result_check_pubkey()
@@ -533,8 +542,8 @@ class Ui_MainWindow(object):
             self.retranslateUi(self)
 
     @QtCore.pyqtSlot()
-    def syncdb(self):
-        self.sdb = SyncDB(self.toolButton.text(), self.toolButton_2.text())
+    def sync_db(self):
+        self.sdb = SyncDB.SyncDB(self.toolButton.text(), self.toolButton_2.text())
         self.sdb.exec()
         if py.SyncDB.finish_sync:
             py.SyncDB.finish_sync = False
@@ -893,7 +902,7 @@ class Ui_MainWindow(object):
             self.toolButton_2.setEnabled(False)
         elif self.pubkey_file and result_check_pubkey == 'not privkey':
             self.toolButton_2.setEnabled(False)
-            icon.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
             self.toolButton_2.setIcon(icon)
         else:
             self.toolButton_2.setEnabled(True)
@@ -916,7 +925,7 @@ class Ui_MainWindow(object):
             self.pushButton_2.setEnabled(False)
         elif self.privkey_file and result_check_privkey == 'not pubkey':
             self.toolButton.setEnabled(False)
-            icon1.addPixmap(QtGui.QPixmap(":/image/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
+            icon1.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"), QtGui.QIcon.Disabled, QtGui.QIcon.Off)
             self.toolButton.setIcon(icon1)
         else:
             self.toolButton.setEnabled(True)
@@ -966,8 +975,8 @@ class Ui_MainWindow(object):
             counter -= 1
             slot(counter)
             if counter >= count:
-                py.MainMenu.Ui_MainWindow.timer_sec.stop()
-                py.MainMenu.Ui_MainWindow.timer_sec.deleteLater()
+                self.timer_sec.stop()
+                self.timer_sec.deleteLater()
 
         self.timer_sec.timeout.connect(handler)
         self.timer_sec.start(interval)
@@ -1087,7 +1096,7 @@ class Ui_MainWindow(object):
                             buffer.setText(secret)
                             self.delete_buffer()
                 elif action2 == rmenu_change_log:
-                    self.change = change('Изменение логина', 'Введите новый логин', False)
+                    self.change = Change.Change('Изменение логина', 'Введите новый логин', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         login = self.change.lineEdit.text()
@@ -1108,7 +1117,7 @@ class Ui_MainWindow(object):
                             msg.setText("Нельзя изменить на пустой логин")
                             msg.exec_()
                 elif action2 == rmenu_change_pass:
-                    self.change = change('Изменение пароля', 'Введите новый пароль', True)
+                    self.change = Change.Change('Изменение пароля', 'Введите новый пароль', True)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         if self.change.lineEdit.text() == '':
@@ -1139,7 +1148,7 @@ class Ui_MainWindow(object):
                                         (password, row[0][0], row[0][1], row[0][3], row[0][5]))
                             self.refresh_treewidget()
                 elif action2 == rmenu_change_email:
-                    self.change = change('Изменение почты', 'Введите новую почту', False)
+                    self.change = Change.Change('Изменение почты', 'Введите новую почту', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         email = self.change.lineEdit.text()
@@ -1155,7 +1164,7 @@ class Ui_MainWindow(object):
                                     (email, row[0][0], row[0][1], row[0][3], row[0][5]))
                         self.refresh_treewidget()
                 elif action2 == rmenu_change_secret:
-                    self.change = change('Изменение секретного слова', 'Введите новое секретное слово', False)
+                    self.change = Change.Change('Изменение секретного слова', 'Введите новое секретное слово', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         secret_text = self.change.lineEdit.text()
@@ -1182,7 +1191,7 @@ class Ui_MainWindow(object):
                                     (secret, row[0][0], row[0][1], row[0][3], row[0][5]))
                         self.refresh_treewidget()
                 elif action2 == rmenu_change_url:
-                    self.change = change('Изменение url', 'Введите новый url', False)
+                    self.change = Change.Change('Изменение url', 'Введите новый url', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         url = self.change.lineEdit.text()
@@ -1364,50 +1373,3 @@ class Ui_MainWindow(object):
             event.accept()
         else:
             event.ignore()
-
-
-class createdb(QtWidgets.QDialog, py.DatabaseCreation.Ui_Dialog):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-
-
-# Переехал в отдельный файл
-# class addingdata(QtWidgets.QDialog, py.AddingData.Ui_Dialog):
-#     def __init__(self):
-#         super().__init__()
-#         self.setupUi(self)
-
-
-class SyncDB(QtWidgets.QDialog, py.SyncDB.Ui_Dialog):
-    def __init__(self, path_to_privkey, path_to_pubkey):
-        super().__init__()
-        self.setupUi(self)
-        self.init_path_to_key(path_to_privkey, path_to_pubkey)
-
-
-class loadingdb(QtWidgets.QDialog, py.LoadingDB.Ui_Dialog):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-
-
-class change(QtWidgets.QDialog, py.Change.Ui_Dialog):
-    def __init__(self, title=str, label_text=str, pushbutton=bool):
-        super().__init__()
-        self.setupUi(self)
-        self.setWindowTitle(title)
-        self.label.setText(label_text)
-        if not pushbutton:
-            self.pushButton.hide()
-        if title == 'Изменение секретного слова' or title == 'Изменение пароля':
-            self.lineEdit.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.pushButton.clicked.connect(self.generate_password)
-
-    def generate_password(self):
-        def gen_pass():
-            chars = string.ascii_letters + string.digits + '_' + '!' + '?' + '@'
-            size = random.randint(8, 12)
-            return ''.join(random.choice(chars) for x in range(size))
-
-        self.lineEdit.setText(gen_pass())

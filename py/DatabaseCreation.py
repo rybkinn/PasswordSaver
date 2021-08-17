@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import os
 import string
 from sys import platform
@@ -8,6 +7,7 @@ from PyQt5.QtWidgets import QMessageBox
 import rsa
 import py.MainMenu
 from py.waitingspinnerwidget import QtWaitingSpinner
+import py.ui.DatabaseCreation_ui as DatabaseCreation_ui
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
 elif platform == "win32":
@@ -48,7 +48,7 @@ def show_msg(value, text_show, add_fields=False, informative_text=None, detailed
         return result
 
 
-class MyThread(QtCore.QThread):
+class ThreadCreateKeys(QtCore.QThread):
     def __init__(self, name_db, parent=None):
         QtCore.QThread.__init__(self, parent)
         self.name_db = name_db
@@ -60,79 +60,20 @@ class MyThread(QtCore.QThread):
         with open('data/{0}_pubkey.pem'.format(self.name_db), mode='w+') as pubfile:
             pubfile.write(pubkey_pem.decode())
             pubfile.close()
-        with open('data/{0}_privkey.pem'.format(self.name_db), mode='w+') as privatefile:
-            privatefile.write(privkey_pem.decode())
-            privatefile.close()
+        with open('data/{0}_privkey.pem'.format(self.name_db), mode='w+') as privfile:
+            privfile.write(privkey_pem.decode())
+            privfile.close()
 
 
-class Ui_Dialog(object):
+class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
+
     def __init__(self):
         super().__init__()
+        self.setupUi(self)
 
-    def setupUi(self, Dialog):
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(400, 300)
-        Dialog.setMinimumSize(QtCore.QSize(400, 300))
-        Dialog.setMaximumSize(QtCore.QSize(400, 300))
-        self.label_5 = QtWidgets.QLabel(Dialog)
-        self.label_5.setGeometry(QtCore.QRect(140, 50, 121, 16))
-        self.label_5.setObjectName("label_5")
-        self.label_7 = QtWidgets.QLabel(Dialog)
-        self.label_7.setGeometry(QtCore.QRect(140, 270, 140, 20))
-        self.label_7.setObjectName("label_7")
-        self.label_7.setFont(QtGui.QFont("MS Shell Dlg 2", 10, QtGui.QFont.Bold))
-        self.label_7.hide()
-        self.label = QtWidgets.QLabel(Dialog)
-        self.label.setGeometry(QtCore.QRect(115, 20, 190, 30))
-        font = QtGui.QFont()
-        font.setFamily("Arial Black")
-        font.setPointSize(16)
-        font.setBold(True)
-        font.setItalic(False)
-        font.setUnderline(False)
-        font.setWeight(75)
-        font.setStrikeOut(False)
-        self.label.setFont(font)
-        self.label.setObjectName("label")
-        self.formLayoutWidget = QtWidgets.QWidget(Dialog)
-        self.formLayoutWidget.setGeometry(QtCore.QRect(70, 120, 251, 103))
-        self.formLayoutWidget.setObjectName("formLayoutWidget")
-        self.formLayout = QtWidgets.QFormLayout(self.formLayoutWidget)
-        self.formLayout.setContentsMargins(0, 0, 0, 0)
-        self.formLayout.setObjectName("formLayout")
-        self.label_2 = QtWidgets.QLabel(self.formLayoutWidget)
-        self.label_2.setObjectName("label_2")
-        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_2)
-        self.label_3 = QtWidgets.QLabel(self.formLayoutWidget)
-        self.label_3.setObjectName("label_3")
-        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_3)
-        self.lineEdit = QtWidgets.QLineEdit(self.formLayoutWidget)
-        self.lineEdit.setObjectName("lineEdit")
+        self.label_6.hide()
 
         # self.lineEdit.setPlaceholderText('Введите название БД')
-
-        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.lineEdit)
-        self.lineEdit_2 = QtWidgets.QLineEdit(self.formLayoutWidget)
-        self.lineEdit_2.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
-        self.lineEdit_2.setAutoFillBackground(False)
-        self.lineEdit_2.setInputMethodHints(QtCore.Qt.ImhHiddenText |
-                                            QtCore.Qt.ImhNoAutoUppercase |
-                                            QtCore.Qt.ImhNoPredictiveText |
-                                            QtCore.Qt.ImhSensitiveData)
-        self.lineEdit_2.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.lineEdit_2.setObjectName("lineEdit_2")
-        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.lineEdit_2)
-        self.lineEdit_3 = QtWidgets.QLineEdit(self.formLayoutWidget)
-        self.lineEdit_3.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.lineEdit_3.setObjectName("lineEdit_3")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.lineEdit_3)
-        self.label_6 = QtWidgets.QLabel(self.formLayoutWidget)
-        self.label_6.setObjectName("label_6")
-        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_6)
-        self.pushButton = QtWidgets.QPushButton(self.formLayoutWidget)
-        self.pushButton.setMaximumSize(QtCore.QSize(100, 25))
-        self.pushButton.setObjectName("pushButton")
-        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.pushButton)
 
         self.spinner = QtWaitingSpinner(self, centerOnParent=False, disableParentWhenSpinning=True)
         self.spinner.setGeometry(QtCore.QRect(180, 230, 121, 16))
@@ -146,26 +87,14 @@ class Ui_Dialog(object):
         self.spinner.setRevolutionsPerSecond(1)
         self.spinner.setColor(QtGui.QColor(0, 0, 0))
 
-        Dialog.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
-
-        self.retranslateUi(Dialog)
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
+        self.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
 
         self.pushButton.clicked.connect(self.create_database)
         self.lineEdit.textChanged.connect(self.valid_namedb)
         self.lineEdit_2.textChanged.connect(self.valid_passwd)
         self.lineEdit_3.textChanged.connect(self.confirm_passwd)
 
-    def retranslateUi(self, Dialog):
-        _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Создание базы данных"))
-        self.label_5.setText(_translate("Dialog", "Создание базы данных"))
-        self.label.setText(_translate("Dialog", "Password Saver"))
-        self.label_2.setText(_translate("Dialog", "Введите название"))
-        self.label_3.setText(_translate("Dialog", "Введите пароль"))
-        self.label_6.setText(_translate("Dialog", "Подтвердите пароль"))
-        self.label_7.setText(_translate("Dialog", "Генерирую ключи..."))
-        self.pushButton.setText(_translate("Dialog", "Создать"))
+        self.create_keys = None
 
     @QtCore.pyqtSlot()
     def valid_namedb(self):
@@ -193,7 +122,7 @@ class Ui_Dialog(object):
         global validate_password
         password = self.lineEdit_2.text()
         confirm_pass = self.lineEdit_3.text()
-        if self.isvalid_pass(password):
+        if self._isvalid_pass(password):
             self.lineEdit_2.setStyleSheet("border: 1px solid green")
             validate_password = True
         else:
@@ -286,14 +215,15 @@ class Ui_Dialog(object):
                     "change_secret_word" TEXT DEFAULT 'NULL',
                     "change_url" TEXT DEFAULT 'NULL')
                 """)
-                cur.execute("INSERT INTO db_information (name, value) VALUES ('rsa_bit', {})".format(py.MainMenu.new_rsa_bit))
+                cur.execute("INSERT INTO db_information (name, value) VALUES ('rsa_bit', {})".format(
+                    py.MainMenu.new_rsa_bit))
                 conn.commit()
                 cur.close()
                 conn.close()
-                self.mythread = MyThread(name_db=self.lineEdit.text())
-                self.mythread.started.connect(self.spinner_started)
-                self.mythread.finished.connect(self.spinner_finished)
-                self.mythread.start()
+                self.create_keys = ThreadCreateKeys(name_db=self.lineEdit.text())
+                self.create_keys.started.connect(self.spinner_started)
+                self.create_keys.finished.connect(self.spinner_finished)
+                self.create_keys.start()
             else:
                 show_msg(0, 'Пароли не совпадают')
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
@@ -304,24 +234,24 @@ class Ui_Dialog(object):
     @QtCore.pyqtSlot()
     def spinner_started(self):
         self.spinner.start()
-        self.label_7.show()
+        self.label_6.show()
 
     @QtCore.pyqtSlot()
     def spinner_finished(self):
         self.spinner.stop()
-        self.label_7.hide()
-        createdb_ok = show_msg(1, 'База данных успешно создана.',
-                               add_fields=True,
-                               informative_text='Более подробно по нажатию кнопки "Show Details..."',
-                               detailed_text='- База данных: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
-                                             '.db' + '\n\n'
-                                                     
-                                             '- Публичный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
-                                             '_pubkey.pem' + '\n\n'
-                                                             
-                                             '- Приватный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
-                                             '_privkey.pem')
-        if createdb_ok:
+        self.label_6.hide()
+        created_db = show_msg(1, 'База данных успешно создана.',
+                              add_fields=True,
+                              informative_text='Более подробно по нажатию кнопки "Show Details..."',
+                              detailed_text='- База данных: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
+                                            '.db' + '\n\n'
+                                                    
+                                            '- Публичный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
+                                            '_pubkey.pem' + '\n\n'
+                                                            
+                                            '- Приватный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
+                                            '_privkey.pem')
+        if created_db:
             global name_created_database
             name_created_database = self.lineEdit.text()
         self.lineEdit.clear()
@@ -332,7 +262,8 @@ class Ui_Dialog(object):
         self.lineEdit_3.setStyleSheet("border: 1px solid gray")
         self.close()
 
-    def isvalid_pass(self, password):
+    @staticmethod
+    def _isvalid_pass(password):
         has_no = set(password).isdisjoint
         return not (len(password) < 8 or
                     has_no(string.digits) or
