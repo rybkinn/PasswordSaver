@@ -2,8 +2,11 @@
 import os
 import string
 from sys import platform
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
+import py.res_rc
 import rsa
 import py.MainMenu
 from py.waitingspinnerwidget import QtWaitingSpinner
@@ -21,8 +24,11 @@ name_created_database = None
 
 def show_msg(value, text_show, add_fields=False, informative_text=None, detailed_text=None):
     width = 500
+    msg = QMessageBox()
+    icon = QtGui.QIcon()
+    icon.addPixmap(QtGui.QPixmap(":/resource/image/key.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+    msg.setWindowIcon(icon)
     if value:
-        msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
         if add_fields:
             msg.setText(text_show + ' ' * width)
@@ -36,7 +42,6 @@ def show_msg(value, text_show, add_fields=False, informative_text=None, detailed
         result = True
         return result
     else:
-        msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
         msg.setText(text_show)
         msg.setWindowTitle("Ошибка")
