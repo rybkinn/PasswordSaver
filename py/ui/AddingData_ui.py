@@ -9,6 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import py.res_rc
 
 
 class Ui_Dialog(object):
@@ -112,6 +113,18 @@ class Ui_Dialog(object):
 
         self.retranslateUi(Dialog)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
+        Dialog.setTabOrder(self.comboBox, self.pushButton)
+        Dialog.setTabOrder(self.pushButton, self.lineEdit)
+        Dialog.setTabOrder(self.lineEdit, self.lineEdit_2)
+        Dialog.setTabOrder(self.lineEdit_2, self.lineEdit_3)
+        Dialog.setTabOrder(self.lineEdit_3, self.pushButton_2)
+        Dialog.setTabOrder(self.pushButton_2, self.pushButton_5)
+        Dialog.setTabOrder(self.pushButton_5, self.lineEdit_4)
+        Dialog.setTabOrder(self.lineEdit_4, self.lineEdit_5)
+        Dialog.setTabOrder(self.lineEdit_5, self.lineEdit_6)
+        Dialog.setTabOrder(self.lineEdit_6, self.checkBox)
+        Dialog.setTabOrder(self.checkBox, self.pushButton_4)
+        Dialog.setTabOrder(self.pushButton_4, self.pushButton_3)
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
