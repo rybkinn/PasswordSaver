@@ -41,7 +41,7 @@ choise_privkey = None
 result_check_choise_privkey = None
 result_check_choise_pubkey = None
 
-srt_section = None
+srt_section = list()
 cur = None
 conn = None
 privkey_dir = None
@@ -83,7 +83,7 @@ def record_change_time(cursor: sqlite3.Cursor, row: tuple, change_type: str) -> 
         return False
 
 
-class MyThread(QtCore.QThread):
+class PrintThread(QtCore.QThread):
     def __init__(self, toolButton, treeWidget, pl, parent=None):
         QtCore.QThread.__init__(self, parent)
         self.toolButton = toolButton
@@ -156,6 +156,61 @@ class MyThread(QtCore.QThread):
         conn_t1.close()
 
 
+class ShowPassThread(QtCore.QThread):
+    response = QtCore.pyqtSignal(list, list)
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        acc_info_list = []
+        _data_section_list = []
+
+        show_pass_conn = sqlite3.connect(db_dir)
+        show_pass_cur = show_pass_conn.cursor()
+        show_pass_cur.execute("PRAGMA key = '{}'".format(pwd))
+
+        if lines != 0:
+            if choise_privkey is not None:
+                privkey = choise_privkey
+            else:
+                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+
+            for _data_section in range(amount_item_0):
+                data_one_section = show_pass_cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
+                    srt_section[_data_section])).fetchall()
+                acc_info = []
+                for _item in data_one_section:
+                    acc_info.append(list(_item[2:]))
+                for _i in acc_info:
+                    password_bin = (_i[2]).encode()
+                    password_dec = base64.b64decode(password_bin)
+                    try:
+                        decrypto = rsa.decrypt(password_dec, privkey)
+                        password = decrypto.decode()
+                    except rsa.pkcs1.DecryptionError:
+                        password = '##ERRORPUBKEY##'
+                    _i[2] = password
+
+                    secret_word_bin = (_i[4]).encode()
+
+                    secret_word_dec = base64.b64decode(secret_word_bin)
+                    try:
+                        decrypto_secret = rsa.decrypt(secret_word_dec, privkey)
+                        secret_word = decrypto_secret.decode()
+                    except rsa.pkcs1.DecryptionError:
+                        secret_word = '##ERRORPUBKEY##'
+                    _i[4] = secret_word
+                _data_section_list.append(_data_section)
+                acc_info_list.append(acc_info)
+        self.response.emit(_data_section_list, acc_info_list)
+        show_pass_cur.close()
+        show_pass_conn.close()
+
+
 def connect_sql(start_or_load=None):  # TODO: убрать глобалы и должна возвращать sqlite3.connect
     global conn
     global cur
@@ -189,6 +244,10 @@ class Ui_MainWindow(object):
         self.timer = None
         self.timer_sec = None
         self.step = None
+        self.show_pass_thread = None
+        self.print_thread = None
+        self.data_section_list = None
+        self.acc_info_list = None
         lines = 0
         self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
             db_name[:-3]))  # True если есть в директории data/   если нету False
@@ -485,10 +544,10 @@ class Ui_MainWindow(object):
             result = pd.exec_()
 
             if result == 1:
-                self.mythread = MyThread(toolButton=self.toolButton, treeWidget=self.treeWidget, pl=pl)
-                self.mythread.started.connect(self.spinner_started)
-                self.mythread.finished.connect(lambda: self.spinner_finished(pl=self.mythread.pl))
-                self.mythread.start()
+                self.print_thread = PrintThread(toolButton=self.toolButton, treeWidget=self.treeWidget, pl=pl)
+                self.print_thread.started.connect(self.print_spinner_started)
+                self.print_thread.finished.connect(lambda: self.print_spinner_finished(pl=self.print_thread.pl))
+                self.print_thread.start()
         else:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
@@ -497,15 +556,42 @@ class Ui_MainWindow(object):
             msg.exec_()
 
     @QtCore.pyqtSlot()
-    def spinner_started(self):
+    def print_spinner_started(self):
         self.spinner.start()
-        self.statusbar.showMessage("Готовлюсь к печати")
+        self.statusbar.showMessage("Готовлюсь к печати...")
 
     @QtCore.pyqtSlot()
-    def spinner_finished(self, pl):
+    def print_spinner_finished(self, pl):
         pl.printData()
         self.spinner.stop()
-        self.statusbar.showMessage("Печать завершена")
+        self.statusbar.showMessage("Печать завершена.")
+
+    @QtCore.pyqtSlot()
+    def show_pass_spinner_started(self):
+        self.spinner.start()
+        self.statusbar.showMessage("Расшифровываю пароли...")
+
+    @QtCore.pyqtSlot()
+    def show_pass_spinner_finished(self):
+        self.spinner.stop()
+        self.statusbar.showMessage("Пароли расшифрованы.", msecs=10000)
+        top_level_item_iter = -1
+        for _data_section, acc_info in zip(self.data_section_list, self.acc_info_list):
+            self.treeWidget.topLevelItem(_data_section).setText(0, str(srt_section[_data_section]))
+            top_level_item_iter += 1
+            child_iter = -1
+            for _index in range(len(acc_info)):
+                child_iter += 1
+                text_iter = 0
+                for _value in acc_info[_index]:
+                    text_iter += 1
+                    if text_iter == 3:
+                        self.treeWidget.topLevelItem(top_level_item_iter).child(child_iter).setText(text_iter,
+                                                                                                    str(_value))
+
+    def show_pass_response(self, data_section_list, acc_info_list):
+        self.data_section_list = data_section_list
+        self.acc_info_list = acc_info_list
 
     @QtCore.pyqtSlot()
     def save_db(self):
@@ -640,69 +726,20 @@ class Ui_MainWindow(object):
     def password_show(self):
         global hide_password
         hide_password = False
-        _translate = QtCore.QCoreApplication.translate
-        toplevelitem_iter = -1
-        child_iter = -1
-        text_iter = 0
         if lines != 0:
-            if choise_privkey is not None:
-                privkey = choise_privkey
-            else:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
-                    keydata_priv = privfile.read()
-                    privfile.close()
-                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-            for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
-                    srt_section[_data_section])).fetchall()
-                acc_info = []
-                for _item in data_one_section:
-                    acc_info.append(list(_item[2:]))
-                for _i in acc_info:
-                    password_bin = (_i[2]).encode()
-                    password_dec = base64.b64decode(password_bin)
-                    try:
-                        decrypto = rsa.decrypt(password_dec, privkey)
-                        password = decrypto.decode()
-                    except rsa.pkcs1.DecryptionError:
-                        password = '##ERRORPUBKEY##'
-                    _i[2] = password
-
-                    secret_word_bin = (_i[4]).encode()
-
-                    secret_word_dec = base64.b64decode(secret_word_bin)
-                    try:
-                        decrypto_secret = rsa.decrypt(secret_word_dec, privkey)
-                        secret_word = decrypto_secret.decode()
-                    except rsa.pkcs1.DecryptionError:
-                        secret_word = '##ERRORPUBKEY##'
-
-                    _i[4] = secret_word
-                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (
-                _data_section, srt_section[_data_section]))
-                toplevelitem_iter += 1
-                child_iter = -1
-                for _index in range(len(acc_info)):
-                    child_iter += 1
-                    text_iter = 0
-                    for _value in acc_info[_index]:
-                        text_iter += 1
-                        if text_iter == 3:
-                            exec(
-                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
-                                toplevelitem_iter, child_iter, text_iter, _value))
-
-        self.pushButton_5.hide()
-        self.pushButton_4.show()
+            self.show_pass_thread = ShowPassThread()
+            self.show_pass_thread.started.connect(self.show_pass_spinner_started)
+            self.show_pass_thread.response.connect(self.show_pass_response)
+            self.show_pass_thread.finished.connect(self.show_pass_spinner_finished)
+            self.show_pass_thread.start()
+            self.pushButton_5.hide()
+            self.pushButton_4.show()
 
     @QtCore.pyqtSlot()
     def password_hide(self):
         global hide_password
         hide_password = True
-        _translate = QtCore.QCoreApplication.translate
-        toplevelitem_iter = -1
-        child_iter = -1
-        text_iter = 0
+        top_level_item_iter = -1
         if lines != 0:
             for _data_section in range(amount_item_0):
                 data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
@@ -710,9 +747,8 @@ class Ui_MainWindow(object):
                 acc_info = []
                 for item in data_one_section:
                     acc_info.append(item[2:])
-                exec('self.treeWidget.topLevelItem(%d).setText(0, _translate("MainWindow", "%s"))' % (
-                _data_section, srt_section[_data_section]))
-                toplevelitem_iter += 1
+                self.treeWidget.topLevelItem(_data_section).setText(0, str(srt_section[_data_section]))
+                top_level_item_iter += 1
                 child_iter = -1
                 for _index in range(len(acc_info)):
                     child_iter += 1
@@ -720,10 +756,8 @@ class Ui_MainWindow(object):
                     for _value in acc_info[_index]:
                         text_iter += 1
                         if text_iter == 3:
-                            exec(
-                                'self.treeWidget.topLevelItem(%d).child(%d).setText(%d, _translate("MainWindow", "%s"))' % (
-                                toplevelitem_iter, child_iter, text_iter, '**********'))
-
+                            self.treeWidget.topLevelItem(top_level_item_iter).child(child_iter).setText(text_iter,
+                                                                                                        '**********')
         self.pushButton_4.hide()
         self.pushButton_5.show()
 
