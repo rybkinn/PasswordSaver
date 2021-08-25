@@ -47,13 +47,45 @@ conn = None
 privkey_dir = None
 
 
-def show_msg(top_text, bottom_text):
+def show_msg(title="Сообщение",
+             top_text="TopText",
+             bottom_text="BottomText",
+             window_type="Information",
+             buttons="yes_no") -> int:
+    """
+    Создание и вывод окна.
+    :param title: заголовок окна
+    :param top_text: текст вверху
+    :param bottom_text: текст внизу
+    :param window_type: тип выводимого окна (Information, Warning, Critical)
+    :param buttons: какие кнопки выводить
+    :return: статус после закрытия окна
+    """
     msg = QMessageBox()
-    msg.setIcon(QMessageBox.Information)
-    msg.setText(top_text)
-    msg.setInformativeText(bottom_text)
-    msg.setWindowTitle("Сообщение")
-    msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+    msg_icon = QtGui.QIcon()
+    msg_icon.addPixmap(QtGui.QPixmap(":/resource/image/key.ico"))
+    msg.setWindowIcon(msg_icon)
+    if window_type == 'Information':
+        msg.setIcon(QMessageBox.Information)
+    elif window_type == 'Warning':
+        msg.setIcon(QMessageBox.Warning)
+    elif window_type == 'Critical':
+        msg.setIcon(QMessageBox.Critical)
+    if top_text == "TopText":
+        pass
+    else:
+        msg.setText(top_text)
+    if bottom_text == "BottomText":
+        pass
+    else:
+        msg.setInformativeText(bottom_text)
+    msg.setWindowTitle(title)
+    if buttons == 'yes_no':
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+    elif buttons == 'yes':
+        msg.setStandardButtons(QMessageBox.Yes)
+    elif buttons == 'ok':
+        msg.setStandardButtons(QMessageBox.Ok)
     result = msg.exec_()
     return result
 
@@ -157,58 +189,34 @@ class PrintThread(QtCore.QThread):
 
 
 class ShowPassThread(QtCore.QThread):
-    response = QtCore.pyqtSignal(list, list)
+    response = QtCore.pyqtSignal(dict)
 
-    def __init__(self):
+    def __init__(self, acc_secret_info, privkey):
         super().__init__()
+        self.acc_secret_info = acc_secret_info
+        self.privkey = privkey
 
     def run(self):
-        acc_info_list = []
-        _data_section_list = []
+        acc_secret_info_result = dict()
+        for _key, _value in self.acc_secret_info.items():
+            password_bin = (_value[0]).encode()
+            password_dec = base64.b64decode(password_bin)
+            try:
+                decrypto = rsa.decrypt(password_dec, self.privkey)
+                password = decrypto.decode()
+            except rsa.pkcs1.DecryptionError:
+                password = '##ERRORPUBKEY##'
 
-        show_pass_conn = sqlite3.connect(db_dir)
-        show_pass_cur = show_pass_conn.cursor()
-        show_pass_cur.execute("PRAGMA key = '{}'".format(pwd))
+            secret_word_bin = (_value[1]).encode()
 
-        if lines != 0:
-            if choise_privkey is not None:
-                privkey = choise_privkey
-            else:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
-                    keydata_priv = privfile.read()
-                    privfile.close()
-                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-
-            for _data_section in range(amount_item_0):
-                data_one_section = show_pass_cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
-                    srt_section[_data_section])).fetchall()
-                acc_info = []
-                for _item in data_one_section:
-                    acc_info.append(list(_item[2:]))
-                for _i in acc_info:
-                    password_bin = (_i[2]).encode()
-                    password_dec = base64.b64decode(password_bin)
-                    try:
-                        decrypto = rsa.decrypt(password_dec, privkey)
-                        password = decrypto.decode()
-                    except rsa.pkcs1.DecryptionError:
-                        password = '##ERRORPUBKEY##'
-                    _i[2] = password
-
-                    secret_word_bin = (_i[4]).encode()
-
-                    secret_word_dec = base64.b64decode(secret_word_bin)
-                    try:
-                        decrypto_secret = rsa.decrypt(secret_word_dec, privkey)
-                        secret_word = decrypto_secret.decode()
-                    except rsa.pkcs1.DecryptionError:
-                        secret_word = '##ERRORPUBKEY##'
-                    _i[4] = secret_word
-                _data_section_list.append(_data_section)
-                acc_info_list.append(acc_info)
-        self.response.emit(_data_section_list, acc_info_list)
-        show_pass_cur.close()
-        show_pass_conn.close()
+            secret_word_dec = base64.b64decode(secret_word_bin)
+            try:
+                decrypto_secret = rsa.decrypt(secret_word_dec, self.privkey)
+                secret_word = decrypto_secret.decode()
+            except rsa.pkcs1.DecryptionError:
+                secret_word = '##ERRORPUBKEY##'
+            acc_secret_info_result[_key] = password, secret_word
+        self.response.emit(acc_secret_info_result)
 
 
 def connect_sql(start_or_load=None):  # TODO: убрать глобалы и должна возвращать sqlite3.connect
@@ -246,8 +254,8 @@ class Ui_MainWindow(object):
         self.step = None
         self.show_pass_thread = None
         self.print_thread = None
-        self.data_section_list = None
-        self.acc_info_list = None
+        self.acc_info_list = list()
+        self.acc_secret_info_result = dict()
         lines = 0
         self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
             db_name[:-3]))  # True если есть в директории data/   если нету False
@@ -549,11 +557,10 @@ class Ui_MainWindow(object):
                 self.print_thread.finished.connect(lambda: self.print_spinner_finished(pl=self.print_thread.pl))
                 self.print_thread.start()
         else:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText('Сначало укажите privkey.pem')
-            msg.setWindowTitle("Нельзя распечатать")
-            msg.exec_()
+            show_msg(title='Нельзя распечатать',
+                     top_text='Сначало укажите privkey.pem',
+                     window_type='Critical',
+                     buttons='ok')
 
     @QtCore.pyqtSlot()
     def print_spinner_started(self):
@@ -573,36 +580,35 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def show_pass_spinner_finished(self):
+        section_iter = 0
+        for _data_section in self.acc_info_list:
+            item_iter = 0
+            for _data_item in _data_section:
+                if _data_item[1] in self.acc_secret_info_result:
+                    self.treeWidget.topLevelItem(section_iter).child(item_iter).setText(
+                        3, self.acc_secret_info_result[_data_item[1]][0])
+                item_iter += 1
+            section_iter += 1
+
+        self.pushButton_5.hide()
+        self.pushButton_4.show()
+        self.acc_info_list.clear()
         self.spinner.stop()
         self.statusbar.showMessage("Пароли расшифрованы.", msecs=10000)
-        top_level_item_iter = -1
-        for _data_section, acc_info in zip(self.data_section_list, self.acc_info_list):
-            self.treeWidget.topLevelItem(_data_section).setText(0, str(srt_section[_data_section]))
-            top_level_item_iter += 1
-            child_iter = -1
-            for _index in range(len(acc_info)):
-                child_iter += 1
-                text_iter = 0
-                for _value in acc_info[_index]:
-                    text_iter += 1
-                    if text_iter == 3:
-                        self.treeWidget.topLevelItem(top_level_item_iter).child(child_iter).setText(text_iter,
-                                                                                                    str(_value))
 
-    def show_pass_response(self, data_section_list, acc_info_list):
-        self.data_section_list = data_section_list
-        self.acc_info_list = acc_info_list
+    def show_pass_response(self, acc_secret_info_result):
+        self.acc_secret_info_result = acc_secret_info_result
 
     @QtCore.pyqtSlot()
     def save_db(self):
-        result = show_msg('Вы действительно хотите сохранить изменения в базе данных?', '')
+        result = show_msg(title='Сохранение изменений',
+                          top_text='Вы действительно хотите сохранить изменения в базе данных?'
+                          )
         if result == QMessageBox.Yes:
             conn.commit()
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setWindowTitle("Сообщение")
-            msg.setText("База данных сохранена")
-            msg.exec_()
+            show_msg(title='Password Saver',
+                     top_text='База данных сохранена',
+                     buttons='ok')
         elif result == QMessageBox.No:
             pass
 
@@ -637,6 +643,9 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def show_addingdata(self):
+        global hide_password
+        if not hide_password:
+            self.password_hide()
         self.addingdata = AddingData.AddingData()
         self.addingdata.exec_()
         self.refresh_treewidget()
@@ -688,16 +697,17 @@ class Ui_MainWindow(object):
     def delete_data(self):
         row = self.current_row()
         if row[1] == 'item_0 first' or row[1] == 'item_0':
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setWindowTitle("Сообщение")
-            msg.setText("Нельзя удалить раздел")
-            msg.setInformativeText("Если хотите удалить раздел, то удалите все аккаунты в нём")
-            msg.exec_()
+            show_msg(title='Ошибка',
+                     top_text='Нельзя удалить раздел.',
+                     bottom_text='Если хотите удалить раздел, то удалите все аккаунты в нём.',
+                     window_type='Critical',
+                     buttons='ok'
+                     )
         elif row[1] == 'item_1':
-            result = show_msg(
-                'Данные аккаунта <b>{}</b> с логином <b>{}</b> будут удалены.'.format(row[0][0], row[0][1]),
-                'Вы уверенны?')
+            result = show_msg(title='Удаление аккаунта',
+                              top_text=f'Данные аккаунта <b>{row[0][0]}</b> с логином <b>{row[0][1]}</b> будут удалены',
+                              bottom_text='Вы уверенны?'
+                              )
             if result == QMessageBox.Yes:
                 acc_id = cur.execute("""SELECT id
                                         FROM account_information
@@ -726,14 +736,35 @@ class Ui_MainWindow(object):
     def password_show(self):
         global hide_password
         hide_password = False
+
         if lines != 0:
-            self.show_pass_thread = ShowPassThread()
+            if choise_privkey is not None:
+                privkey = choise_privkey
+            else:
+                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+
+            for _data_section in range(amount_item_0):
+                data_one_section = cur.execute("SELECT * FROM account_information WHERE section='{}'".format(
+                    srt_section[_data_section])).fetchall()
+                acc_info = []
+                for _item in data_one_section:
+                    acc_info.append(list(_item[2:]))
+
+                self.acc_info_list.append(acc_info)
+
+            __acc_secret_info = dict()
+            for _data_section in self.acc_info_list:
+                for _data_item in _data_section:
+                    __acc_secret_info[_data_item[1]] = _data_item[2], _data_item[4]
+
+            self.show_pass_thread = ShowPassThread(__acc_secret_info, privkey)
             self.show_pass_thread.started.connect(self.show_pass_spinner_started)
             self.show_pass_thread.response.connect(self.show_pass_response)
             self.show_pass_thread.finished.connect(self.show_pass_spinner_finished)
             self.show_pass_thread.start()
-            self.pushButton_5.hide()
-            self.pushButton_4.show()
 
     @QtCore.pyqtSlot()
     def password_hide(self):
@@ -1081,11 +1112,10 @@ class Ui_MainWindow(object):
                     buffer = QtWidgets.QApplication.clipboard()
                     if buffer is not None:
                         if row[0][3] == 'None':
-                            msg = QMessageBox()
-                            msg.setIcon(QMessageBox.Warning)
-                            msg.setWindowTitle("Сообщение")
-                            msg.setText("На этом аккаунте нету почты")
-                            msg.exec_()
+                            show_msg(title='Ошибка',
+                                     top_text='На этом аккаунте нету почты',
+                                     window_type='Critical',
+                                     buttons='ok')
                         else:
                             buffer.setText(row[0][3])
                             self.delete_buffer()
@@ -1093,11 +1123,10 @@ class Ui_MainWindow(object):
                     buffer = QtWidgets.QApplication.clipboard()
                     if buffer is not None:
                         if row[0][5] == 'None':
-                            msg = QMessageBox()
-                            msg.setIcon(QMessageBox.Warning)
-                            msg.setWindowTitle("Сообщение")
-                            msg.setText("На этом аккаунте не указан url")
-                            msg.exec_()
+                            show_msg(title='Ошибка',
+                                     top_text='На этом аккаунте не указан url',
+                                     window_type='Critical',
+                                     buttons='ok')
                         else:
                             buffer.setText(row[0][5])
                             self.delete_buffer()
@@ -1121,11 +1150,10 @@ class Ui_MainWindow(object):
                         decrypto = rsa.decrypt(secret_dec, privkey)
                         secret = decrypto.decode()
                         if secret == 'None':
-                            msg = QMessageBox()
-                            msg.setIcon(QMessageBox.Warning)
-                            msg.setWindowTitle("Сообщение")
-                            msg.setText("На этом аккаунте не указанно секретное слово")
-                            msg.exec_()
+                            show_msg(title='Ошибка',
+                                     top_text='На этом аккаунте не указанно секретное слово',
+                                     window_type='Critical',
+                                     buttons='ok')
                         else:
                             buffer.setText(secret)
                             self.delete_buffer()
@@ -1145,21 +1173,19 @@ class Ui_MainWindow(object):
                                         (login, row[0][0], row[0][1], row[0][3], row[0][5]))
                             self.refresh_treewidget()
                         else:
-                            msg = QMessageBox()
-                            msg.setIcon(QMessageBox.Critical)
-                            msg.setWindowTitle("Ошибка")
-                            msg.setText("Нельзя изменить на пустой логин")
-                            msg.exec_()
+                            show_msg(title='Ошибка',
+                                     top_text='Нельзя изменить на пустой логин',
+                                     window_type='Critical',
+                                     buttons='ok')
                 elif action2 == rmenu_change_pass:
                     self.change = Change.Change('Изменение пароля', 'Введите новый пароль', True)
                     result_close_window = self.change.exec_()
                     if result_close_window:
                         if self.change.lineEdit.text() == '':
-                            msg = QMessageBox()
-                            msg.setIcon(QMessageBox.Critical)
-                            msg.setWindowTitle("Ошибка")
-                            msg.setText("Нельзя изменить на пустой пароль")
-                            msg.exec_()
+                            show_msg(title='Ошибка',
+                                     top_text='Нельзя изменить на пустой пароль',
+                                     window_type='Critical',
+                                     buttons='ok')
                         else:
                             if not self.toolButton_2.isEnabled():
                                 path_to_pubkey = self.toolButton_2.text()
@@ -1396,9 +1422,9 @@ class Ui_MainWindow(object):
         return row_data, item_type
 
     def closeEvent(self, event):
-        close = QtWidgets.QMessageBox.question(self, "Выход",
-                                               "Все несохраненные изменения будут потеряны.\nВсе ровно выйти?",
-                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+        close = show_msg(title='Выход',
+                         top_text='Все несохраненные изменения будут потеряны.\n\n'
+                                  'Все ровно выйти?')
         if close == QtWidgets.QMessageBox.Yes:
             if buffer is not None:
                 buffer.clear()
