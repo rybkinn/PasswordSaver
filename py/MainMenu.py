@@ -474,7 +474,7 @@ class Ui_MainWindow(object):
         self.action_8.triggered.connect(self.close)
         self.pushButton.clicked.connect(self.delete_data)
         self.pushButton_2.clicked.connect(self.show_addingdata)
-        self.pushButton_3.clicked.connect(self.copy_buffer)
+        self.pushButton_3.clicked.connect(self.show_hide_all_sections)
         self.pushButton_4.clicked.connect(self.password_hide)
         self.pushButton_5.clicked.connect(self.password_show)
         self.toolButton.clicked.connect(self.choise_privkey)
@@ -498,7 +498,7 @@ class Ui_MainWindow(object):
         self.treeWidget.setSortingEnabled(False)
         self.add_treewidget_item_text()
         self.treeWidget.setSortingEnabled(__sortingEnabled)
-        self.pushButton_3.setText(_translate("MainWindow", "Копировать пароль в буфер"))
+        self.pushButton_3.setText(_translate("MainWindow", "Развернуть все разделы"))
         self.pushButton.setText(_translate("MainWindow", "Удалить"))
         self.pushButton_2.setText(_translate("MainWindow", "Добавить"))
         self.pushButton_4.setText(_translate("MainWindow", "Скрыть пароли"))
@@ -668,6 +668,16 @@ class Ui_MainWindow(object):
         if py.AddingData.checkbox_pass is True:
             self.delete_buffer()
             py.AddingData.checkbox_pass = False
+
+    @QtCore.pyqtSlot()
+    def show_hide_all_sections(self):
+        __text = self.pushButton_3.text()
+        if __text == 'Развернуть все разделы':
+            self.treeWidget.expandAll()
+            self.pushButton_3.setText('Свернуть все разделы')
+        else:
+            self.treeWidget.collapseAll()
+            self.pushButton_3.setText('Развернуть все разделы')
 
     @QtCore.pyqtSlot()
     def copy_buffer(self):
