@@ -1,16 +1,19 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 import os
 import string
+import rsa
 from sys import platform
+
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
+
 import py.res_rc
-import rsa
 import py.MainMenu
 from py.waitingspinnerwidget import QtWaitingSpinner
 import py.ui.DatabaseCreation_ui as DatabaseCreation_ui
+
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
 elif platform == "win32":
@@ -18,15 +21,27 @@ elif platform == "win32":
 # elif platform == "darwin":
     # OS X
 
-validate_password = None
-name_created_database = None
+VALIDATE_PASSWORD = None
+NAME_CREATED_DATABASE = None
 
 
-def show_msg(value, text_show, add_fields=False, informative_text=None, detailed_text=None):
+def show_msg(
+        value: bool, text_show: str, add_fields: bool = False,
+        informative_text: str = None, detailed_text: str = None) -> int:
+    """
+    Creation of a modal message box.
+    :param value: True - success message.  False - error message.
+    :param text_show: Set text message.
+    :param add_fields: Add informative and detailed fields to the window.
+    :param informative_text: Set informative text.
+    :param detailed_text: Set detailed text.
+    :return: Window work status.
+    """
     width = 500
     msg = QMessageBox()
     icon = QtGui.QIcon()
-    icon.addPixmap(QtGui.QPixmap(":/resource/image/key.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+    icon.addPixmap(QtGui.QPixmap(":/resource/image/key.ico"),
+                   QtGui.QIcon.Normal, QtGui.QIcon.Off)
     msg.setWindowIcon(icon)
     if value:
         msg.setIcon(QMessageBox.Information)
@@ -54,18 +69,21 @@ def show_msg(value, text_show, add_fields=False, informative_text=None, detailed
 
 
 class ThreadCreateKeys(QtCore.QThread):
+
     def __init__(self, name_db, parent=None):
         QtCore.QThread.__init__(self, parent)
         self.name_db = name_db
 
     def run(self):
-        (pubkey, privkey) = rsa.newkeys(py.MainMenu.new_rsa_bit)
+        (pubkey, privkey) = rsa.newkeys(py.MainMenu.NEW_RSA_BIT)
         pubkey_pem = pubkey.save_pkcs1('PEM')
         privkey_pem = privkey.save_pkcs1('PEM')
-        with open('data/{0}_pubkey.pem'.format(self.name_db), mode='w+') as pubfile:
+        with open('data/{0}_pubkey.pem'.format(self.name_db), mode='w+')\
+                as pubfile:
             pubfile.write(pubkey_pem.decode())
             pubfile.close()
-        with open('data/{0}_privkey.pem'.format(self.name_db), mode='w+') as privfile:
+        with open('data/{0}_privkey.pem'.format(self.name_db), mode='w+')\
+                as privfile:
             privfile.write(privkey_pem.decode())
             privfile.close()
 
@@ -78,9 +96,8 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
 
         self.label_6.hide()
 
-        # self.lineEdit.setPlaceholderText('Введите название БД')
-
-        self.spinner = QtWaitingSpinner(self, centerOnParent=False, disableParentWhenSpinning=True)
+        self.spinner = QtWaitingSpinner(self, centerOnParent=False,
+                                        disableParentWhenSpinning=True)
         self.spinner.setGeometry(QtCore.QRect(180, 230, 121, 16))
         self.spinner.setRoundness(70.0)
         self.spinner.setMinimumTrailOpacity(15.0)
@@ -95,26 +112,26 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
         self.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
 
         self.pushButton.clicked.connect(self.create_database)
-        self.lineEdit.textChanged.connect(self.valid_namedb)
-        self.lineEdit_2.textChanged.connect(self.valid_passwd)
-        self.lineEdit_3.textChanged.connect(self.confirm_passwd)
+        self.lineEdit.textChanged.connect(self.valid_name_db)
+        self.lineEdit_2.textChanged.connect(self.valid_password)
+        self.lineEdit_3.textChanged.connect(self.confirm_password)
 
         self.create_keys = None
 
     @QtCore.pyqtSlot()
-    def valid_namedb(self):
+    def valid_name_db(self):
         data_files = os.listdir(path="data")
         name_db = self.lineEdit.text()
-        new_name_bd = []
-        for _name_bd in data_files:
-            type_file = _name_bd[_name_bd.find("."):]
+        new_name_db = []
+        for name_db_ in data_files:
+            type_file = name_db_[name_db_.find("."):]
             if type_file == '.db':
-                new_name_bd.append(_name_bd[:-3])
-        if len(new_name_bd) == 0:
+                new_name_db.append(name_db_[:-3])
+        if len(new_name_db) == 0:
             self.lineEdit.setStyleSheet("border: 1px solid green")
         else:
-            for _name_bd_new in new_name_bd:
-                if name_db == _name_bd_new:
+            for item_db in new_name_db:
+                if name_db == item_db:
                     self.lineEdit.setStyleSheet("border: 1px solid red")
                     break
                 else:
@@ -123,16 +140,16 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
             self.lineEdit.setStyleSheet("border: 1px solid red")
 
     @QtCore.pyqtSlot()
-    def valid_passwd(self):
-        global validate_password
+    def valid_password(self):
+        global VALIDATE_PASSWORD
         password = self.lineEdit_2.text()
         confirm_pass = self.lineEdit_3.text()
-        if self._isvalid_pass(password):
+        if self._isvalid_password(password):
             self.lineEdit_2.setStyleSheet("border: 1px solid green")
-            validate_password = True
+            VALIDATE_PASSWORD = True
         else:
             self.lineEdit_2.setStyleSheet("border: 1px solid red")
-            validate_password = False
+            VALIDATE_PASSWORD = False
         if confirm_pass == '':
             pass
         elif confirm_pass == password:
@@ -141,7 +158,7 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
             self.lineEdit_3.setStyleSheet("border: 1px solid red")
 
     @QtCore.pyqtSlot()
-    def confirm_passwd(self):
+    def confirm_password(self):
         password = self.lineEdit_2.text()
         confirm_pass = self.lineEdit_3.text()
         if confirm_pass == password:
@@ -151,34 +168,37 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
 
     @QtCore.pyqtSlot()
     def create_database(self):
-        global validate_password
+        global VALIDATE_PASSWORD
         data_files = os.listdir(path="data")
         name_db = self.lineEdit.text()
         pwd = self.lineEdit_2.text()
         pwd_re = self.lineEdit_3.text()
-        if name_db != '':
+        if name_db == '':
+            show_msg(False, 'Введите название БД')
+            self.lineEdit.setStyleSheet("border: 1px solid red")
+        else:
             result = False
-            new_name_bd = []
-            for _name_bd in data_files:
-                type_file = _name_bd[_name_bd.find("."):]
+            new_name_db = []
+            for name_db_ in data_files:
+                type_file = name_db_[name_db_.find("."):]
                 if type_file == '.db':
-                    new_name_bd.append(_name_bd[:-3])
-            for _name_bd_new in new_name_bd:
-                if name_db == _name_bd_new:
+                    new_name_db.append(name_db_[:-3])
+            for item_db in new_name_db:
+                if name_db == item_db:
                     result = True
                     break
             if result:
-                show_msg(0, 'Такая база данных уже существует')
+                show_msg(False, 'Такая база данных уже существует')
                 self.lineEdit.setStyleSheet("border: 1px solid red")
             elif pwd == '' and pwd_re == '':
-                show_msg(0, 'Заполните поля ввода паролей')
+                show_msg(False, 'Заполните поля ввода паролей')
                 self.lineEdit_2.setStyleSheet("border: 1px solid red")
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd == '':
-                show_msg(0, 'Поле введите пароль пустое')
+                show_msg(False, 'Поле введите пароль пустое')
                 self.lineEdit_2.setStyleSheet("border: 1px solid red")
-            elif validate_password is None or not validate_password:
-                show_msg(0, 'Неправильный пароль',
+            elif VALIDATE_PASSWORD is None or not VALIDATE_PASSWORD:
+                show_msg(False, 'Неправильный пароль',
                          add_fields=True,
                          informative_text='- 8 символов или больше\n'
                                           '- Верхний и нижний регистр\n'
@@ -187,14 +207,18 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
                 self.lineEdit_2.setStyleSheet("border: 1px solid red")
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd_re == '':
-                show_msg(0, 'Поле Подтвердите пароль пустое')
+                show_msg(False, 'Поле Подтвердите пароль пустое')
+                self.lineEdit_3.setStyleSheet("border: 1px solid red")
+            elif pwd != pwd_re:
+                show_msg(False, 'Пароли не совпадают')
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd == pwd_re:
-                conn = sqlite3.connect(r'data/' + name_db + '.db')
-                cur = conn.cursor()
-                cur.execute("PRAGMA key = '{}'".format(pwd))
-                cur.execute("PRAGMA foreign_keys = ON")
-                cur.execute("""CREATE TABLE IF NOT EXISTS account_information(
+                conn_db_creation = sqlite3.connect(r'data/' + name_db + '.db')
+                cur_db_creation = conn_db_creation.cursor()
+                cur_db_creation.execute("PRAGMA key = '{}'".format(pwd))
+                cur_db_creation.execute("PRAGMA foreign_keys = ON")
+                cur_db_creation.execute("""
+                CREATE TABLE IF NOT EXISTS account_information(
                     "id" INTEGER NOT NULL UNIQUE PRIMARY KEY AUTOINCREMENT,
                     "section" TEXT NOT NULL,
                     "name" TEXT NOT NULL,
@@ -202,15 +226,16 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
                     "pass" TEXT NOT NULL,
                     "email" TEXT DEFAULT 'NULL',
                     "secret_word" TEXT DEFAULT 'NULL',
-                    "url" TEXT DEFAULT 'NULL')
-                """)
-                cur.execute("""CREATE TABLE IF NOT EXISTS db_information(
+                    "url" TEXT DEFAULT 'NULL')""")
+                cur_db_creation.execute("""
+                CREATE TABLE IF NOT EXISTS db_information(
                     "name" TEXT NOT NULL,
-                    "value" INTEGER NOT NULL)
-                """)
-                cur.execute("""CREATE TABLE IF NOT EXISTS data_change_time(
-                    "id" INTEGER NOT NULL UNIQUE REFERENCES account_information (id) ON DELETE CASCADE 
-                                                                                     ON UPDATE CASCADE,
+                    "value" INTEGER NOT NULL)""")
+                cur_db_creation.execute("""
+                CREATE TABLE IF NOT EXISTS data_change_time(
+                    "id" INTEGER NOT NULL UNIQUE 
+                        REFERENCES account_information (id) ON DELETE CASCADE 
+                                                            ON UPDATE CASCADE,
                     "create_account" TEXT NOT NULL,
                     "update_account" TEXT DEFAULT 'NULL',
                     "change_section" TEXT DEFAULT 'NULL',
@@ -218,23 +243,20 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
                     "change_pass" TEXT DEFAULT 'NULL',
                     "change_email" TEXT DEFAULT 'NULL',
                     "change_secret_word" TEXT DEFAULT 'NULL',
-                    "change_url" TEXT DEFAULT 'NULL')
-                """)
-                cur.execute("INSERT INTO db_information (name, value) VALUES ('rsa_bit', {})".format(
-                    py.MainMenu.new_rsa_bit))
-                conn.commit()
-                cur.close()
-                conn.close()
+                    "change_url" TEXT DEFAULT 'NULL')""")
+                cur_db_creation.execute("""
+                INSERT INTO db_information (name, value) 
+                VALUES ('rsa_bit', {})""".format(py.MainMenu.NEW_RSA_BIT))
+                conn_db_creation.commit()
+                cur_db_creation.close()
+                conn_db_creation.close()
                 self.create_keys = ThreadCreateKeys(name_db=self.lineEdit.text())
                 self.create_keys.started.connect(self.spinner_started)
                 self.create_keys.finished.connect(self.spinner_finished)
                 self.create_keys.start()
             else:
-                show_msg(0, 'Пароли не совпадают')
+                show_msg(False, 'Неизвестная ошибка. Обратитесь к разработчику.')
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
-        else:
-            show_msg(0, 'Введите название БД')
-            self.lineEdit.setStyleSheet("border: 1px solid red")
 
     @QtCore.pyqtSlot()
     def spinner_started(self):
@@ -245,20 +267,27 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
     def spinner_finished(self):
         self.spinner.stop()
         self.label_6.hide()
-        created_db = show_msg(1, 'База данных успешно создана.',
+        created_db = show_msg(True, 'База данных успешно создана.',
                               add_fields=True,
-                              informative_text='Более подробно по нажатию кнопки "Show Details..."',
-                              detailed_text='- База данных: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
-                                            '.db' + '\n\n'
+                              informative_text='Более подробно по нажатию '
+                                               'кнопки "Show Details..."',
+                              detailed_text='- База данных: \n'
+                                            + os.getcwd() + '\\data\\'
+                                            + self.lineEdit.text() + '.db'
+                                            + '\n\n'
                                                     
-                                            '- Публичный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
+                                            '- Публичный ключ: \n'
+                                            + os.getcwd() + '\\data\\'
+                                            + self.lineEdit.text() +
                                             '_pubkey.pem' + '\n\n'
                                                             
-                                            '- Приватный ключ: \n' + os.getcwd() + '\\data\\' + self.lineEdit.text() +
+                                            '- Приватный ключ: \n'
+                                            + os.getcwd() + '\\data\\'
+                                            + self.lineEdit.text() +
                                             '_privkey.pem')
         if created_db:
-            global name_created_database
-            name_created_database = self.lineEdit.text()
+            global NAME_CREATED_DATABASE
+            NAME_CREATED_DATABASE = self.lineEdit.text()
         self.lineEdit.clear()
         self.lineEdit_2.clear()
         self.lineEdit_3.clear()
@@ -268,7 +297,12 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
         self.close()
 
     @staticmethod
-    def _isvalid_pass(password):
+    def _isvalid_password(password: str) -> bool:
+        """
+        Checking the password for correctness.
+        :param password: Set password.
+        :return: Result of checking.
+        """
         has_no = set(password).isdisjoint
         return not (len(password) < 8 or
                     has_no(string.digits) or
