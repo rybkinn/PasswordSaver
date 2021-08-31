@@ -1,12 +1,20 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 import string
 import random
+
 from PyQt5 import QtWidgets
+
 import py.ui.Change_ui as Change_ui
 
 
 class Change(QtWidgets.QDialog, Change_ui.Ui_Dialog):
     def __init__(self, title: str, label_text: str, pushbutton: bool):
+        """
+        Initialize an instance.
+        :param title: set window title
+        :param label_text: set label text
+        :param pushbutton: On / Off generate password button
+        """
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle(title)
