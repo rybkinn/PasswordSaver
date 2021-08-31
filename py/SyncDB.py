@@ -1,15 +1,18 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 import base64
 import copy
 import datetime
 import os
-from sys import platform
-import py.ui.SyncDB_ui as SyncDB_ui
 import rsa
+from sys import platform
+
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
+
+import py.MainMenu
+import py.ui.SyncDB_ui as SyncDB_ui
 from py.waitingspinnerwidget import QtWaitingSpinner
 
 if platform == "linux" or platform == "linux2":
@@ -20,9 +23,6 @@ elif platform == "win32":
     from sqlite3.dbapi2 import Error
 # elif platform == "darwin":
 #     OS X
-import py.MainMenu
-
-finish_sync = False
 
 
 class SyncDBThread(QtCore.QThread):
@@ -35,12 +35,14 @@ class SyncDBThread(QtCore.QThread):
         self.path_to_privkey = path_to_privkey
         self.path_to_pubkey = path_to_pubkey
 
-    def run(self):  # TODO: Восстанавливает удаленные аккаунты при синхронизации. исправить
+    # TODO: Восстанавливает удаленные аккаунты при синхронизации. исправить
+    def run(self):
         thread_conn_main = sqlite3.connect(py.MainMenu.db_dir)
         thread_conn_main.row_factory = lambda cursor, row: list(row)
         thread_cur_main = thread_conn_main.cursor()
         thread_cur_main.execute("PRAGMA key = '{}'".format(self.pwd))
-        rows_main_db = thread_cur_main.execute("SELECT * FROM account_information").fetchall()
+        rows_main_db = thread_cur_main.execute(
+            "SELECT * FROM account_information").fetchall()
 
         rows_main_db_decrypt = []
         for row_main in rows_main_db:
@@ -60,7 +62,8 @@ class SyncDBThread(QtCore.QThread):
         thread_conn_sync.row_factory = lambda cursor, row: list(row)
         thread_cur_sync = thread_conn_sync.cursor()
         thread_cur_sync.execute("PRAGMA key = '{}'".format(self.pwd))
-        rows_sync_db = thread_cur_sync.execute("SELECT * FROM account_information").fetchall()
+        rows_sync_db = thread_cur_sync.execute(
+            "SELECT * FROM account_information").fetchall()
 
         rows_sync_db_decrypt = []
         for row_sync in rows_sync_db:
@@ -84,49 +87,67 @@ class SyncDBThread(QtCore.QThread):
         sync_list_decrypt = copy.deepcopy(rows_main_db_decrypt)
 
         indexes_mutable_columns = [1, 3, 4, 5, 6, 7]
-        names_mutable_columns = ['change_section', 'change_login', 'change_pass', 'change_email', 'change_secret_word',
-                                 'change_url']
+        names_mutable_columns = ['change_section', 'change_login',
+                                 'change_pass', 'change_email',
+                                 'change_secret_word', 'change_url']
         for unique_row in unique_rows_sync_db:
             for index_row_main, row_main in enumerate(rows_main_db_decrypt):
                 if unique_row[0] == row_main[0] and unique_row[2] == row_main[2]:
-                    for index_column, name_column in zip(indexes_mutable_columns, names_mutable_columns):
+                    for index_column, name_column in zip(indexes_mutable_columns,
+                                                         names_mutable_columns):
                         if unique_row[index_column] != row_main[index_column]:
-                            data_change_time_sync = thread_cur_sync.execute(f"""SELECT {name_column}
-                                                                                FROM data_change_time
-                                                                                WHERE id = ?""",
-                                                                            (str(row_main[0]))).fetchall()[0][0]
-                            data_change_time_main = thread_cur_main.execute(f"""SELECT {name_column}
-                                                                                FROM data_change_time
-                                                                                WHERE id = ?""",
-                                                                            (str(row_main[0]))).fetchall()[0][0]
-                            if data_change_time_sync != 'NULL' and data_change_time_main != 'NULL':
-                                if datetime.datetime.strptime(data_change_time_main, "%Y-%m-%d %H:%M:%S") < \
-                                        datetime.datetime.strptime(data_change_time_sync, "%Y-%m-%d %H:%M:%S"):
-                                    thread_cur_main.execute(f"""UPDATE data_change_time
-                                                                SET {name_column} = ?
-                                                                WHERE id = ? """,
-                                                            (data_change_time_sync, str(row_main[0])))
-                                    sync_list_decrypt[index_row_main][index_column] = unique_row[index_column]
+                            data_change_time_sync = thread_cur_sync.execute(f"""
+                                SELECT {name_column}
+                                FROM data_change_time
+                                WHERE id = ?""", (
+                                str(row_main[0]))).fetchall()[0][0]
+                            data_change_time_main = thread_cur_main.execute(f"""
+                                SELECT {name_column}
+                                FROM data_change_time
+                                WHERE id = ?""", (
+                                str(row_main[0]))).fetchall()[0][0]
+                            if data_change_time_sync != 'NULL' and\
+                                    data_change_time_main != 'NULL':
+                                if datetime.datetime.strptime(
+                                        data_change_time_main,
+                                        "%Y-%m-%d %H:%M:%S") < \
+                                        datetime.datetime.strptime(
+                                            data_change_time_sync,
+                                            "%Y-%m-%d %H:%M:%S"):
+                                    thread_cur_main.execute(f"""
+                                        UPDATE data_change_time
+                                        SET {name_column} = ?
+                                        WHERE id = ? """, (data_change_time_sync,
+                                                           str(row_main[0])))
+                                    sync_list_decrypt[index_row_main][index_column]\
+                                        = unique_row[index_column]
                             elif data_change_time_main == 'NULL':
-                                thread_cur_main.execute(f"""UPDATE data_change_time
-                                                           SET {name_column} = ?
-                                                           WHERE id = ? """, (data_change_time_sync, str(row_main[0])))
-                                sync_list_decrypt[index_row_main][index_column] = unique_row[index_column]
+                                thread_cur_main.execute(f"""
+                                    UPDATE data_change_time
+                                    SET {name_column} = ?
+                                    WHERE id = ? """, (data_change_time_sync,
+                                                       str(row_main[0])))
+                                sync_list_decrypt[index_row_main][index_column]\
+                                    = unique_row[index_column]
                     break
                 elif index_row_main + 1 == len(rows_main_db_decrypt):
-                    dct_sync_info = thread_cur_sync.execute("SELECT * FROM data_change_time WHERE id = ?",
-                                                            (str(unique_row[0]),)).fetchall()
+                    dct_sync_info = thread_cur_sync.execute(
+                        "SELECT * FROM data_change_time WHERE id = ?", (
+                            str(unique_row[0]),)).fetchall()
                     last_id_main = sync_list_decrypt[-1][0]
                     unique_row[0] = last_id_main + 1
                     sync_list_decrypt.append(unique_row)
-                    thread_cur_main.execute("""INSERT INTO data_change_time
-                                               (id, create_account, update_account, change_section, change_login,
-                                               change_pass, change_email, change_secret_word, change_url)
-                                               VALUES (?,?,?,?,?,?,?,?,?)""",
-                                            (unique_row[0], dct_sync_info[0][1],
-                                             datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                             dct_sync_info[0][3], dct_sync_info[0][4], dct_sync_info[0][5],
-                                             dct_sync_info[0][6], dct_sync_info[0][7], dct_sync_info[0][8]))
+                    thread_cur_main.execute("""
+                        INSERT INTO data_change_time
+                        (id, create_account, update_account, change_section, 
+                        change_login, change_pass, change_email, 
+                        change_secret_word, change_url)
+                        VALUES (?,?,?,?,?,?,?,?,?)""", (
+                            unique_row[0], dct_sync_info[0][1],
+                            datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            dct_sync_info[0][3], dct_sync_info[0][4],
+                            dct_sync_info[0][5], dct_sync_info[0][6],
+                            dct_sync_info[0][7], dct_sync_info[0][8]))
 
         sync_list_decrypt_unique = sync_list_decrypt.copy()
         for list_item in sync_list_decrypt:
@@ -153,46 +174,55 @@ class SyncDBThread(QtCore.QThread):
 
         for list_item in sync_list:
             if list_item[0] in id_main_db:
-                thread_cur_main.execute("""UPDATE account_information
-                                           SET section = ?,
-                                               name = ?,
-                                               login = ?,
-                                               pass = ?,
-                                               email = ?,
-                                               secret_word = ?,
-                                               url = ?
-                                           WHERE id = ?""",
-                                        (list_item[1], list_item[2], list_item[3], list_item[4],
-                                         list_item[5], list_item[6], list_item[7], list_item[0]))
+                thread_cur_main.execute("""
+                    UPDATE account_information
+                    SET section = ?,
+                        name = ?,
+                        login = ?,
+                        pass = ?,
+                        email = ?,
+                        secret_word = ?,
+                        url = ?
+                    WHERE id = ?""", (
+                        list_item[1], list_item[2], list_item[3], list_item[4],
+                        list_item[5], list_item[6], list_item[7], list_item[0]))
             else:
-                thread_cur_main.execute("""INSERT INTO account_information
-                                           (id, section, name, login, pass, email, secret_word, url)
-                                           VALUES (?,?,?,?,?,?,?,?)""",
-                                        (list_item[0], list_item[1], list_item[2], list_item[3],
-                                         list_item[4], list_item[5], list_item[6], list_item[7]))
+                thread_cur_main.execute("""
+                    INSERT INTO account_information
+                    (id, section, name, login, pass, email, secret_word, url)
+                    VALUES (?,?,?,?,?,?,?,?)""", (
+                        list_item[0], list_item[1], list_item[2], list_item[3],
+                        list_item[4], list_item[5], list_item[6], list_item[7]))
 
         thread_cur_sync.execute("DELETE FROM account_information")
         thread_cur_sync.execute("DELETE FROM data_change_time")
-        duplicate_sync_db_ai = thread_cur_main.execute("SELECT * FROM account_information").fetchall()
-        duplicate_sync_db_dct = thread_cur_main.execute("SELECT * FROM data_change_time").fetchall()
+        duplicate_sync_db_ai = thread_cur_main.execute(
+            "SELECT * FROM account_information").fetchall()
+        duplicate_sync_db_dct = thread_cur_main.execute(
+            "SELECT * FROM data_change_time").fetchall()
 
         for list_item in duplicate_sync_db_ai:
-            thread_cur_sync.execute("""INSERT INTO account_information
-                                       (id, section, name, login, pass, email, secret_word, url)
-                                       VALUES (?,?,?,?,?,?,?,?)""", list_item)
+            thread_cur_sync.execute("""
+                INSERT INTO account_information
+                (id, section, name, login, pass, email, secret_word, url)
+                VALUES (?,?,?,?,?,?,?,?)""", list_item)
         for list_item in duplicate_sync_db_dct:
-            thread_cur_sync.execute("""INSERT INTO data_change_time
-                                       (id, create_account, update_account, change_section, change_login,
-                                       change_pass, change_email, change_secret_word, change_url)
-                                       VALUES (?,?,?,?,?,?,?,?,?)""", list_item)
+            thread_cur_sync.execute("""
+                INSERT INTO data_change_time
+                (id, create_account, update_account, change_section, change_login,
+                change_pass, change_email, change_secret_word, change_url)
+                VALUES (?,?,?,?,?,?,?,?,?)""", list_item)
 
         added_acc_count = 0
         for list_item in sync_list_decrypt_unique:
-            if list_item not in rows_main_db_decrypt or list_item not in rows_sync_db_decrypt:
+            if list_item not in rows_main_db_decrypt or \
+                    list_item not in rows_sync_db_decrypt:
                 added_acc_count += 1
 
-        self.response.emit(added_acc_count)   # TODO: Считает при добавлении и изменении с sync в main.
-                                              #  Нужно чтобы и с main в sync.
+        # TODO: Считает при добавлении и изменении с sync в main.
+        #  Нужно чтобы и с main в sync.
+        self.response.emit(added_acc_count)
+
         thread_conn_main.commit()
         thread_conn_sync.commit()
         thread_cur_main.close()
@@ -201,9 +231,12 @@ class SyncDBThread(QtCore.QThread):
         thread_conn_sync.close()
 
 
-def create_and_check_connection(path: str, pwd: str) -> sqlite3.Connection or None:
+def create_and_check_connection(path: str, pwd: str) \
+        -> sqlite3.Connection or None:
     """
-    Соединяется с БД и проверяет пароль. Возврощает None или объект соединения.
+    Connects to the database and verifies the password.
+    Returns None or a connection object.
+
     :param path: path to database file
     :param pwd: input password for database
     :return: sqlite3.Connection object / None
@@ -227,7 +260,8 @@ def create_and_check_connection(path: str, pwd: str) -> sqlite3.Connection or No
 
 def execute_read_query(conn_sync: sqlite3.Connection, query: str) -> list:
     """
-    Выполняет переданный sql запрос к БД и возврощает результат.
+    Executes the passed sql database query and returns the result.
+
     :param conn_sync: sqlite3.Connection object
     :param query: sql query string
     :return: list
@@ -251,12 +285,13 @@ def execute_read_query(conn_sync: sqlite3.Connection, query: str) -> list:
 
 def decrypt(crypt_s: str) -> str:
     """
-    Расшифровывает строку по приватному ключу и возврощает её.
+    Decrypts the string with the private key and returns it.
+
     :param crypt_s: Input crypto string
     :return: Output decrypt string or 'error'
     """
-    if py.MainMenu.result_check_choise_privkey == 'ok':
-        privkey = py.MainMenu.choise_privkey
+    if py.MainMenu.result_check_choice_privkey == 'ok':
+        privkey = py.MainMenu.choice_privkey
     else:
         with open(py.MainMenu.privkey_dir, 'rb') as privfile:
             keydata_priv = privfile.read()
@@ -268,11 +303,11 @@ def decrypt(crypt_s: str) -> str:
         decrypto = rsa.decrypt(password_dec, privkey)
         result = decrypto.decode()
         return result
-    except rsa.pkcs1.DecryptionError:
+    except rsa.pkcs1.DecryptionError as error:
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
         msg.setWindowTitle("Ошибка синхронизации")
-        msg.setText("password decode error")
+        msg.setText(str(error))
         msg.exec_()
         return 'error'
 
@@ -286,6 +321,7 @@ class SyncDB(QtWidgets.QDialog, SyncDB_ui.Ui_Dialog):
         self.path_to_pubkey = path_to_pubkey
         self.acc_count = None
         self.sync_db_thread = None
+        self.sync_db_finished = 0
 
         self.label_11.setHidden(True)
 
@@ -299,10 +335,12 @@ class SyncDB(QtWidgets.QDialog, SyncDB_ui.Ui_Dialog):
 
         path_dir = os.getcwd()
         for _addItem in self.databases_from_dir:
-            path_to_db = [path_dir + '/data/' + _addItem, _addItem]  # changed \\data\\ => /data/ from linux
+            # need fix \\data\\ => /data/ from linux
+            path_to_db = [path_dir + '/data/' + _addItem, _addItem]
             self.comboBox.addItem(_addItem, path_to_db)
 
-        self.spinner = QtWaitingSpinner(self, centerOnParent=False, disableParentWhenSpinning=True)
+        self.spinner = QtWaitingSpinner(self, centerOnParent=False,
+                                        disableParentWhenSpinning=True)
         self.spinner.setGeometry(QtCore.QRect(180, 240, 121, 16))
         self.spinner.setRoundness(70.0)
         self.spinner.setMinimumTrailOpacity(15.0)
@@ -342,25 +380,34 @@ class SyncDB(QtWidgets.QDialog, SyncDB_ui.Ui_Dialog):
         pwd = self.lineEdit.text()
         conn_sync = create_and_check_connection(path, pwd)
         if conn_sync is not None:
-            self.label_5.setPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"))
+            self.label_5.setPixmap(
+                QtGui.QPixmap(":/resource/image/checkmark.ico"))
             check_empty = "SELECT * from account_information"
             rows = execute_read_query(conn_sync, check_empty)
             if len(rows) != 0:
-                self.label_6.setPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"))
+                self.label_6.setPixmap(
+                    QtGui.QPixmap(":/resource/image/checkmark.ico"))
                 decrypt_result = decrypt(rows[0][4])
-                if decrypt_result != 'error':
-                    self.label_7.setPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"))
+                if decrypt_result == 'error':
+                    self.label_7.setPixmap(
+                        QtGui.QPixmap(":/resource/image/cross.ico"))
                 else:
-                    self.label_7.setPixmap(QtGui.QPixmap(":/resource/image/cross.ico"))
-                path_to_privkey, path_to_pubkey = self.path_to_privkey, self.path_to_pubkey
-                self.sync_db_thread = SyncDBThread(path, pwd, path_to_privkey, path_to_pubkey)
-                self.sync_db_thread.started.connect(self.spinner_started)
-                self.sync_db_thread.response.connect(self.response_slot)
-                self.acc_count = 0
-                self.sync_db_thread.finished.connect(lambda: self.spinner_finished(self.acc_count))
-                self.sync_db_thread.start()
+                    self.label_7.setPixmap(
+                        QtGui.QPixmap(":/resource/image/checkmark.ico"))
+                    path_to_privkey, path_to_pubkey = \
+                        self.path_to_privkey, self.path_to_pubkey
+                    self.sync_db_thread = SyncDBThread(path, pwd,
+                                                       path_to_privkey,
+                                                       path_to_pubkey)
+                    self.sync_db_thread.started.connect(self.spinner_started)
+                    self.sync_db_thread.response.connect(self.response_slot)
+                    self.acc_count = 0
+                    self.sync_db_thread.finished.connect(
+                        lambda: self.spinner_finished(self.acc_count))
+                    self.sync_db_thread.start()
             else:
-                self.label_6.setPixmap(QtGui.QPixmap(":/resource/image/cross.ico"))
+                self.label_6.setPixmap(
+                    QtGui.QPixmap(":/resource/image/cross.ico"))
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Critical)
                 msg.setWindowTitle("Ошибка синхронизации")
@@ -386,5 +433,7 @@ class SyncDB(QtWidgets.QDialog, SyncDB_ui.Ui_Dialog):
         self.label_11.setText(f"Синхронизированно {acc_count} аккаунтов")
         self.label_11.setStyleSheet("font-weight: 900; font-size: 16px")
         self.pushButton.setEnabled(False)
-        global finish_sync
-        finish_sync = True
+        self.sync_db_finished = 1
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.done(self.sync_db_finished)

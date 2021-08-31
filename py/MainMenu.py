@@ -532,7 +532,7 @@ class Ui_MainWindow(object):
                 db_name)))
         self.label.setText(_translate("MainWindow", "Password Saver"))
         self.treeWidget.headerItem().setText(0, _translate(
-            "MainWindow","Раздел"))
+            "MainWindow", "Раздел"))
         self.treeWidget.headerItem().setText(1, _translate(
             "MainWindow", "Название"))
         self.treeWidget.headerItem().setText(2, _translate(
@@ -703,9 +703,8 @@ class Ui_MainWindow(object):
     def show_sync_db(self):
         self.sync_db = SyncDB.SyncDB(self.toolButton.text(),
                                      self.toolButton_2.text())
-        self.sync_db.exec()
-        if py.SyncDB.finish_sync:
-            py.SyncDB.finish_sync = False
+        finished_sync_db = self.sync_db.exec()
+        if finished_sync_db:
             self.refresh_tree_widget()
 
     @QtCore.pyqtSlot()
