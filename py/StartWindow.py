@@ -1,11 +1,16 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 import datetime
 import os
 from sys import platform
-from PyQt5 import QtCore, QtGui, QtWidgets
+
+from PyQt5 import QtCore
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
+
 import py.MainMenu
 import py.DatabaseCreation as DatabaseCreation
+
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
 elif platform == "win32":
@@ -14,84 +19,93 @@ elif platform == "win32":
     # OS X
 
 
-def check_database(connect, pwd) -> tuple:
+def check_database(connect: sqlite3.Connection, pwd: str) -> tuple:
     """
-    Проверяет БД на корректность.
-    :param connect: sqlite3.Connection
-    :param pwd: str
+    Validates the database and returns a tuple.
+    :param connect: sqlite3.Connection object
+    :param pwd: pragma key password
     :return: tuple(sqlite3.Connection, bool)
     """
-    cur = connect.cursor()
-    cur.execute(f"PRAGMA key = '{pwd}'")
+    cur_check_db = connect.cursor()
+    cur_check_db.execute(f"PRAGMA key = '{pwd}'")
     try:
-        account_information = cur.execute("""SELECT name
-                                             FROM sqlite_master
-                                             WHERE type='table' AND
-                                             name='account_information'""").fetchall()
-        data_change_time = cur.execute("""SELECT name
-                                          FROM sqlite_master
-                                          WHERE type='table' AND
-                                          name='data_change_time'""").fetchall()
-        db_information = cur.execute("""SELECT name
-                                        FROM sqlite_master
-                                        WHERE type='table' AND
-                                        name='db_information'""").fetchall()
+        account_information = cur_check_db.execute("""
+        SELECT name
+        FROM sqlite_master
+        WHERE type='table' AND
+        name='account_information'""").fetchall()
+        data_change_time = cur_check_db.execute("""
+        SELECT name
+        FROM sqlite_master
+        WHERE type='table' AND
+        name='data_change_time'""").fetchall()
+        db_information = cur_check_db.execute("""
+        SELECT name
+        FROM sqlite_master
+        WHERE type='table' AND
+        name='db_information'""").fetchall()
         if len(data_change_time) == 0:
-            cur.execute("""CREATE TABLE IF NOT EXISTS data_change_time(
-                           "id" INTEGER NOT NULL UNIQUE REFERENCES account_information (id) ON DELETE CASCADE 
-                                                                                            ON UPDATE CASCADE,
-                           "create_account" TEXT NOT NULL,
-                           "update_account" TEXT DEFAULT 'NULL',
-                           "change_section" TEXT DEFAULT 'NULL',
-                           "change_login" TEXT DEFAULT 'NULL',
-                           "change_pass" TEXT DEFAULT 'NULL',
-                           "change_email" TEXT DEFAULT 'NULL',
-                           "change_secret_word" TEXT DEFAULT 'NULL',
-                           "change_url" TEXT DEFAULT 'NULL')""")
+            cur_check_db.execute("""
+            CREATE TABLE IF NOT EXISTS data_change_time(
+                "id" INTEGER NOT NULL UNIQUE 
+                    REFERENCES account_information (id) ON DELETE CASCADE 
+                                                        ON UPDATE CASCADE,
+                "create_account" TEXT NOT NULL,
+                "update_account" TEXT DEFAULT 'NULL',
+                "change_section" TEXT DEFAULT 'NULL',
+                "change_login" TEXT DEFAULT 'NULL',
+                "change_pass" TEXT DEFAULT 'NULL',
+                "change_email" TEXT DEFAULT 'NULL',
+                "change_secret_word" TEXT DEFAULT 'NULL',
+                "change_url" TEXT DEFAULT 'NULL')""")
             if len(account_information) == 1:
-                ids_ai = cur.execute("SELECT id FROM account_information").fetchall()
+                id_account_information = cur_check_db.execute("""
+                SELECT id FROM account_information""").fetchall()
                 now_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                for id_acc in ids_ai:
-                    cur.execute("""INSERT INTO data_change_time
-                                   (id, create_account)
-                                   VALUES (?,?)""", (id_acc[0], now_time))
+                for id_ in id_account_information:
+                    cur_check_db.execute("""
+                    INSERT INTO data_change_time (id, create_account) 
+                    VALUES (?,?)""", (id_[0], now_time))
         if len(account_information) == 0:
-            cur.execute("""CREATE TABLE IF NOT EXISTS account_information(
-                           "id" INTEGER NOT NULL UNIQUE PRIMARY KEY AUTOINCREMENT,
-                           "section" TEXT NOT NULL,
-                           "name" TEXT NOT NULL,
-                           "login" TEXT NOT NULL,
-                           "pass" TEXT NOT NULL,
-                           "email" TEXT DEFAULT 'NULL',
-                           "secret_word" TEXT DEFAULT 'NULL',
-                           "url" TEXT DEFAULT 'NULL')""")
+            cur_check_db.execute("""
+            CREATE TABLE IF NOT EXISTS account_information(
+                "id" INTEGER NOT NULL UNIQUE PRIMARY KEY AUTOINCREMENT,
+                "section" TEXT NOT NULL,
+                "name" TEXT NOT NULL,
+                "login" TEXT NOT NULL,
+                "pass" TEXT NOT NULL,
+                "email" TEXT DEFAULT 'NULL',
+                "secret_word" TEXT DEFAULT 'NULL',
+                "url" TEXT DEFAULT 'NULL')""")
         if len(db_information) == 0:
-            cur.execute("""CREATE TABLE IF NOT EXISTS db_information(
-                           "name" TEXT NOT NULL,
-                           "value" INTEGER NOT NULL)""")
-            cur.execute("INSERT INTO db_information (name, value) VALUES (?, ?)", ('rsa_bit', py.MainMenu.new_rsa_bit))
+            cur_check_db.execute("""
+            CREATE TABLE IF NOT EXISTS db_information(
+                "name" TEXT NOT NULL,
+                "value" INTEGER NOT NULL)""")
+            cur_check_db.execute("""
+            INSERT INTO db_information (name, value) 
+            VALUES (?, ?)""", ('rsa_bit', py.MainMenu.NEW_RSA_BIT))
     except sqlite3.DatabaseError as error:
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
         msg.setWindowTitle("Ошибка проверки базы данных")
         msg.setText(error)
         msg.exec_()
-        cur.close()
+        cur_check_db.close()
         return connect, False
-    cur.close()
+    cur_check_db.close()
     connect.commit()
     return connect, True
 
 
 class Ui_Dialog(object):
     def __init__(self):
-        super(Ui_Dialog, self).__init__()
+        super().__init__()
+        self.main_window = None
         self.create_db = None
+        self.names_db = []
 
     def setupUi(self, Dialog):
-        global data_files_name
-        data_files_name = os.listdir(path="data")
-        path_dir = os.getcwd()
         Dialog.setObjectName("Dialog")
         Dialog.resize(400, 300)
         Dialog.setMinimumSize(QtCore.QSize(400, 300))
@@ -121,10 +135,12 @@ class Ui_Dialog(object):
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
         self.gridLayout.setObjectName("gridLayout")
         self.pushButton_3 = QtWidgets.QPushButton(self.gridLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                                           QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(1)
-        sizePolicy.setHeightForWidth(self.pushButton_3.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_3.sizePolicy().hasHeightForWidth())
         self.pushButton_3.setSizePolicy(sizePolicy)
         self.pushButton_3.setMinimumSize(QtCore.QSize(0, 0))
         self.pushButton_3.setMaximumSize(QtCore.QSize(100, 25))
@@ -144,15 +160,16 @@ class Ui_Dialog(object):
         self.comboBox_2 = QtWidgets.QComboBox(self.gridLayoutWidget)
         self.comboBox_2.setCurrentText("")
         self.comboBox_2.setObjectName("comboBox_2")
-        global name_bd
-        name_bd = []
-        for _name_bd in data_files_name:
-            type_file = _name_bd[_name_bd.find("."):]
+
+        path_dir = os.getcwd()
+        data_files_name = os.listdir(path="data")
+        for file_name in data_files_name:
+            type_file = file_name[file_name.find("."):]
             if type_file == '.db':
-                name_bd.append(_name_bd)
-        for _addItem in name_bd:
-            db_data = [path_dir + '\\data\\' + _addItem, _addItem]
-            exec('self.comboBox_2.addItem("", db_data)')
+                self.names_db.append(file_name)
+        for name_db in self.names_db:
+            db_data = [path_dir + '\\data\\' + name_db, name_db]
+            self.comboBox_2.addItem("", db_data)
         self.gridLayout.addWidget(self.comboBox_2, 0, 1, 1, 1)
         self.toolButton = QtWidgets.QToolButton(self.gridLayoutWidget)
         self.toolButton.setObjectName("toolButton")
@@ -172,7 +189,7 @@ class Ui_Dialog(object):
         Dialog.setTabOrder(self.lineEdit_2, self.pushButton_2)
 
         self.toolButton.clicked.connect(self.push_tool_button)
-        self.pushButton_3.clicked.connect(self.show_mainwindow)
+        self.pushButton_3.clicked.connect(self.show_main_window)
         self.pushButton_2.clicked.connect(self.show_create_db)
 
     def retranslateUi(self, Dialog):
@@ -180,40 +197,33 @@ class Ui_Dialog(object):
         Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Вход"))
         self.label_5.setText(_translate("Dialog", "Вход"))
         self.pushButton_2.setText(_translate("Dialog", "Создать базу"))
-        self.label_4.setText(_translate("Dialog", "{}".format(py.MainMenu.version)))
+        self.label_4.setText(_translate("Dialog", str(py.MainMenu.VERSION)))
         self.label.setText(_translate("Dialog", "Password Saver"))
         self.pushButton_3.setText(_translate("Dialog", "Войти"))
         self.label_6.setText(_translate("Dialog", "Выберете базу"))
         self.label_7.setText(_translate("Dialog", "Введите пароль"))
-        _indexItem = 0
-        for _addItem in name_bd:
-            exec('self.comboBox_2.setItemText(%d, _translate("Dialog", "%s"))' % (_indexItem, _addItem))
-            _indexItem += 1
+        for index_item, name_db in enumerate(self.names_db):
+            self.comboBox_2.setItemText(index_item, _translate("Dialog",
+                                                               str(name_db)))
         self.toolButton.setText(_translate("Dialog", "..."))
 
     @QtCore.pyqtSlot()
     def push_tool_button(self):
-        global directory_name
-        global filename
-        global file_info
-
-        directory_name = QtWidgets.QFileDialog.getOpenFileName(None, 'Открытие базы данных', os.getcwd(),
-                                                               'database files(*.db)')
+        directory_name = QtWidgets.QFileDialog.getOpenFileName(
+            None, 'Открытие базы данных', os.getcwd(), 'database files(*.db)')
         if directory_name[0] != '':
             self.comboBox_2.clear()
             filename = ''
-            for _letter in reversed(directory_name[0]):
-                if _letter == '/':
+            for letter in reversed(directory_name[0]):
+                if letter == '/':
                     break
-                filename += _letter
+                filename += letter
             file_info = [filename[::-1], directory_name]
             db_data = [file_info[1][0], file_info[0]]
-            self.comboBox_2.addItem("", db_data)
-            self.comboBox_2.setItemText(0, file_info[0])
+            self.comboBox_2.addItem(file_info[0], db_data)
 
     @QtCore.pyqtSlot()
-    def show_mainwindow(self):
-        global db_info
+    def show_main_window(self):
         if self.comboBox_2.currentIndex() == -1:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
@@ -225,36 +235,38 @@ class Ui_Dialog(object):
             wrong_db_info = self.comboBox_2.currentData()
 
             wrong_db_info_new = ''
-            db_info = list()
             for _item_db_info in range(len(wrong_db_info[0])):
                 if wrong_db_info[0][_item_db_info] == '\\':
                     wrong_db_info_new += '/'
                 else:
                     wrong_db_info_new += wrong_db_info[0][_item_db_info]
-            db_info.append(wrong_db_info_new)
-            db_info.append(wrong_db_info[1])
-            conn = sqlite3.connect(db_info[0])
-            cur = conn.cursor()
-            cur.execute("PRAGMA key = '{}'".format(pwd))
+
+            db_info = [wrong_db_info_new, wrong_db_info[1]]
+
+            conn_start_window = sqlite3.connect(db_info[0])
+            cur_start_window = conn_start_window.cursor()
+            cur_start_window.execute("PRAGMA key = '{}'".format(pwd))
             try:
-                cur.execute("SELECT count(*) FROM account_information")
+                cur_start_window.execute(
+                    "SELECT count(*) FROM account_information")
                 result = bool(1)
-                cur.close()
+                cur_start_window.close()
             except sqlite3.DatabaseError:
                 result = bool(0)
-                cur.close()
-                conn.close()
+                cur_start_window.close()
+                conn_start_window.close()
             if result:
-                conn, check_result = check_database(conn, pwd)
-                conn.close()
+                conn_start_window, check_result = check_database(
+                    conn_start_window, pwd)
+                conn_start_window.close()
                 if check_result:
                     py.MainMenu.db_dir = db_info[0]
                     py.MainMenu.db_name = db_info[1]
                     py.MainMenu.pwd = pwd
                     del pwd
-                    py.MainMenu.connect_sql(start_or_load='start')
-                    self.mainwindow = mainwindow()
-                    self.mainwindow.show()
+                    py.MainMenu.connect_sql()
+                    self.main_window = MainWindow()
+                    self.main_window.show()
                     self.close()
             else:
                 msg = QMessageBox()
@@ -268,16 +280,13 @@ class Ui_Dialog(object):
     def show_create_db(self):
         self.create_db = DatabaseCreation.CreateDB()
         self.create_db.exec_()
-        if DatabaseCreation.name_created_database:
-            namedb = DatabaseCreation.name_created_database + '.db'
-            db_data = [os.getcwd() + '\\data\\' + namedb, namedb]
-            self.comboBox_2.addItem("", db_data)
-            combo_count = self.comboBox_2.count()
-            self.comboBox_2.setItemText(combo_count - 1, namedb)
-            self.comboBox_2.setCurrentIndex(combo_count - 1)
+        if DatabaseCreation.NAME_CREATED_DATABASE:
+            name_db = DatabaseCreation.NAME_CREATED_DATABASE + '.db'
+            db_data = [os.getcwd() + '\\data\\' + name_db, name_db]
+            self.comboBox_2.addItem(name_db, db_data)
 
 
-class mainwindow(QtWidgets.QMainWindow, py.MainMenu.Ui_MainWindow):
+class MainWindow(QtWidgets.QMainWindow, py.MainMenu.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
