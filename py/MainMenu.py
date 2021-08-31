@@ -633,7 +633,7 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def print_spinner_finished(self, pl):
-        pl.printData()
+        pl.print_data()
         self.spinner.stop()
         show_msg(title='Печать',
                  top_text='Печать завершена',
