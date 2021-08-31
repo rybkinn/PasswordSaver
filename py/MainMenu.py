@@ -15,7 +15,6 @@ from PyQt5.QtWidgets import QMessageBox
 
 import py.DatabaseCreation as DatabaseCreation
 import py.AddingData as AddingData
-import py.StartWindow
 import py.res_rc
 import py.LoadingDB as LoadingDB
 import py.SyncDB as SyncDB
@@ -713,7 +712,7 @@ class Ui_MainWindow(object):
         if not HIDE_PASSWORD:
             self.password_hide()
         self.adding_data = AddingData.AddingData()
-        self.adding_data.exec_()
+        checkbox_status = self.adding_data.exec_()
         self.refresh_tree_widget()
 
         if lines != 0 and self.privkey_file and result_check_privkey == 'ok' \
@@ -733,9 +732,8 @@ class Ui_MainWindow(object):
         else:
             self.pushButton.setEnabled(True)
 
-        if py.AddingData.checkbox_pass is True:
+        if checkbox_status:
             self.delete_buffer()
-            py.AddingData.checkbox_pass = False
 
     @QtCore.pyqtSlot()
     def show_hide_all_sections(self):
