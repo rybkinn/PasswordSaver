@@ -1,13 +1,16 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 import os
 from sys import platform
+
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
+
 import py.MainMenu
 import py.StartWindow
 import py.ui.LoadingDB_ui as LoadingDB_ui
+
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
 elif platform == "win32":
@@ -15,27 +18,23 @@ elif platform == "win32":
 # elif platform == "darwin":
     # OS X
 
-Close = True
-
 
 class LoadingDB(QtWidgets.QDialog, LoadingDB_ui.Ui_Dialog):
 
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.name_bd = []
+        self.name_db = []
         data_files_name = os.listdir(path="data")
-        self.name_bd.clear()
-        for _name_bd in data_files_name:
-            type_file = _name_bd[_name_bd.find("."):]
+        self.name_db.clear()
+        for name_db_ in data_files_name:
+            type_file = name_db_[name_db_.find("."):]
             if type_file == '.db':
-                self.name_bd.append(_name_bd)
+                self.name_db.append(name_db_)
         path_dir = os.getcwd()
-        for _addItem in self.name_bd:
-            db_data = [path_dir + '\\data\\' + _addItem, _addItem]
-            self.comboBox.addItem("", db_data)
-        for _indexItem, _addItem in enumerate(self.name_bd):
-            self.comboBox.setItemText(_indexItem, str(_addItem))
+        for name_db_item in self.name_db:
+            db_data = [path_dir + '\\data\\' + name_db_item, name_db_item]
+            self.comboBox.addItem(name_db_item, db_data)
         self.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
         self.toolButton.clicked.connect(self.push_tool_button)
         self.pushButton.clicked.connect(self.show_main_window)
@@ -47,14 +46,13 @@ class LoadingDB(QtWidgets.QDialog, LoadingDB_ui.Ui_Dialog):
         if directory_name[0] != '':
             self.comboBox.clear()
             filename = ''
-            for _letter in reversed(directory_name[0]):
-                if _letter == '/':
+            for letter in reversed(directory_name[0]):
+                if letter == '/':
                     break
-                filename += _letter
+                filename += letter
             file_info = [filename[::-1], directory_name]
             db_data = [file_info[1][0], file_info[0]]
-            self.comboBox.addItem("", db_data)
-            self.comboBox.setItemText(0, file_info[0])
+            self.comboBox.addItem(file_info[0], db_data)
 
     @QtCore.pyqtSlot()
     def show_main_window(self):
@@ -62,11 +60,11 @@ class LoadingDB(QtWidgets.QDialog, LoadingDB_ui.Ui_Dialog):
         wrong_db_info = self.comboBox.currentData()
         wrong_db_info_new = ''
         db_info = list()
-        for _item_db_info in range(len(wrong_db_info[0])):
-            if wrong_db_info[0][_item_db_info] == '\\':
+        for item_db_info in range(len(wrong_db_info[0])):
+            if wrong_db_info[0][item_db_info] == '\\':
                 wrong_db_info_new += '/'
             else:
-                wrong_db_info_new += wrong_db_info[0][_item_db_info]
+                wrong_db_info_new += wrong_db_info[0][item_db_info]
         db_info.append(wrong_db_info_new)
         db_info.append(wrong_db_info[1])
 
@@ -89,10 +87,8 @@ class LoadingDB(QtWidgets.QDialog, LoadingDB_ui.Ui_Dialog):
             py.MainMenu.db_name = db_info[1]
             py.MainMenu.pwd = pwd
             del pwd
-            py.MainMenu.connect_sql(start_or_load='load')
-            global Close
-            Close = False
-            self.close()
+            py.MainMenu.connect_sql()
+            self.done(1)
         else:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)

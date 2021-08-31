@@ -687,9 +687,8 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def show_load_db(self):
         self.loading_db = LoadingDB.LoadingDB()
-        self.loading_db.exec()
-        if not py.LoadingDB.Close:
-            py.LoadingDB.Close = True
+        status_load_db = self.loading_db.exec()
+        if status_load_db:
             self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
                 db_name[:-3]))
             self.privkey_file = os.path.isfile("data/{}_privkey.pem".format(
