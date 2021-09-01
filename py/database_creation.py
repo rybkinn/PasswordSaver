@@ -21,9 +21,6 @@ elif platform == "win32":
 # elif platform == "darwin":
     # OS X
 
-VALIDATE_PASSWORD = None
-NAME_CREATED_DATABASE = None
-
 
 def show_msg(
         value: bool, text_show: str, add_fields: bool = False,
@@ -96,6 +93,8 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
 
         self.label_6.hide()
 
+        self.validate_password = None
+
         self.spinner = QtWaitingSpinner(self, centerOnParent=False,
                                         disableParentWhenSpinning=True)
         self.spinner.setGeometry(QtCore.QRect(180, 230, 121, 16))
@@ -141,15 +140,14 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
 
     @QtCore.pyqtSlot()
     def valid_password(self):
-        global VALIDATE_PASSWORD
         password = self.lineEdit_2.text()
         confirm_pass = self.lineEdit_3.text()
         if self._isvalid_password(password):
             self.lineEdit_2.setStyleSheet("border: 1px solid green")
-            VALIDATE_PASSWORD = True
+            self.validate_password = True
         else:
             self.lineEdit_2.setStyleSheet("border: 1px solid red")
-            VALIDATE_PASSWORD = False
+            self.validate_password = False
         if confirm_pass == '':
             pass
         elif confirm_pass == password:
@@ -168,7 +166,6 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
 
     @QtCore.pyqtSlot()
     def create_database(self):
-        global VALIDATE_PASSWORD
         data_files = os.listdir(path="data")
         name_db = self.lineEdit.text()
         pwd = self.lineEdit_2.text()
@@ -197,7 +194,7 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
             elif pwd == '':
                 show_msg(False, 'Поле введите пароль пустое')
                 self.lineEdit_2.setStyleSheet("border: 1px solid red")
-            elif VALIDATE_PASSWORD is None or not VALIDATE_PASSWORD:
+            elif self.validate_password is None or not self.validate_password:
                 show_msg(False, 'Неправильный пароль',
                          add_fields=True,
                          informative_text='- 8 символов или больше\n'
@@ -267,27 +264,18 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
     def spinner_finished(self):
         self.spinner.stop()
         self.label_6.hide()
-        created_db = show_msg(True, 'База данных успешно создана.',
-                              add_fields=True,
-                              informative_text='Более подробно по нажатию '
-                                               'кнопки "Show Details..."',
-                              detailed_text='- База данных: \n'
-                                            + os.getcwd() + '\\data\\'
-                                            + self.lineEdit.text() + '.db'
-                                            + '\n\n'
-                                                    
-                                            '- Публичный ключ: \n'
-                                            + os.getcwd() + '\\data\\'
-                                            + self.lineEdit.text() +
-                                            '_pubkey.pem' + '\n\n'
-                                                            
-                                            '- Приватный ключ: \n'
-                                            + os.getcwd() + '\\data\\'
-                                            + self.lineEdit.text() +
-                                            '_privkey.pem')
-        if created_db:
-            global NAME_CREATED_DATABASE
-            NAME_CREATED_DATABASE = self.lineEdit.text()
+        show_msg(True, 'База данных успешно создана.',
+                 add_fields=True,
+                 informative_text='Более подробно по нажатию '
+                                  'кнопки "Show Details..."',
+                 detailed_text='- База данных: \n' + os.getcwd() + '\\data\\'
+                               + self.lineEdit.text() + '.db' + '\n\n'
+                                       
+                               '- Публичный ключ: \n' + os.getcwd() + '\\data\\'
+                               + self.lineEdit.text() + '_pubkey.pem' + '\n\n'
+                                               
+                               '- Приватный ключ: \n' + os.getcwd() + '\\data\\'
+                               + self.lineEdit.text() + '_privkey.pem')
         self.lineEdit.clear()
         self.lineEdit_2.clear()
         self.lineEdit_3.clear()

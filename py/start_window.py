@@ -161,15 +161,8 @@ class Ui_Dialog(object):
         self.comboBox_2.setCurrentText("")
         self.comboBox_2.setObjectName("comboBox_2")
 
-        path_dir = os.getcwd()
-        data_files_name = os.listdir(path="data")
-        for file_name in data_files_name:
-            type_file = file_name[file_name.find("."):]
-            if type_file == '.db':
-                self.names_db.append(file_name)
-        for name_db in self.names_db:
-            db_data = [path_dir + '\\data\\' + name_db, name_db]
-            self.comboBox_2.addItem("", db_data)
+        self.updates_list_db()
+
         self.gridLayout.addWidget(self.comboBox_2, 0, 1, 1, 1)
         self.toolButton = QtWidgets.QToolButton(self.gridLayoutWidget)
         self.toolButton.setObjectName("toolButton")
@@ -202,10 +195,21 @@ class Ui_Dialog(object):
         self.pushButton_3.setText(_translate("Dialog", "Войти"))
         self.label_6.setText(_translate("Dialog", "Выберете базу"))
         self.label_7.setText(_translate("Dialog", "Введите пароль"))
-        for index_item, name_db in enumerate(self.names_db):
-            self.comboBox_2.setItemText(index_item, _translate("Dialog",
-                                                               str(name_db)))
         self.toolButton.setText(_translate("Dialog", "..."))
+
+    def updates_list_db(self):
+        self.names_db.clear()
+        self.comboBox_2.clear()
+
+        path_dir = os.getcwd()
+        data_files_name = os.listdir(path="data")
+        for file_name in data_files_name:
+            type_file = file_name[file_name.find("."):]
+            if type_file == '.db':
+                self.names_db.append(file_name)
+        for name_db in self.names_db:
+            db_data = [path_dir + '\\data\\' + name_db, name_db]
+            self.comboBox_2.addItem(name_db, db_data)
 
     @QtCore.pyqtSlot()
     def push_tool_button(self):
@@ -280,10 +284,7 @@ class Ui_Dialog(object):
     def show_create_db(self):
         self.create_db = database_creation.CreateDB()
         self.create_db.exec_()
-        if database_creation.NAME_CREATED_DATABASE:
-            name_db = database_creation.NAME_CREATED_DATABASE + '.db'
-            db_data = [os.getcwd() + '\\data\\' + name_db, name_db]
-            self.comboBox_2.addItem(name_db, db_data)
+        self.updates_list_db()
 
 
 class MainWindow(QtWidgets.QMainWindow, py.main_menu.Ui_MainWindow):
