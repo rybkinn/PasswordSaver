@@ -4,10 +4,10 @@ import random
 
 from PyQt5 import QtWidgets
 
-import py.ui.Change_ui as Change_ui
+import py.ui.change_ui as change_ui
 
 
-class Change(QtWidgets.QDialog, Change_ui.Ui_Dialog):
+class Change(QtWidgets.QDialog, change_ui.Ui_Dialog):
     def __init__(self, title: str, label_text: str, pushbutton: bool):
         """
         Initialize an instance.

@@ -9,11 +9,11 @@ from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 
-import py.MainMenu as MainMenu
-import py.ui.AddingData_ui as AddingData_ui
+import py.main_menu as main_menu
+import py.ui.adding_data_ui as adding_data_ui
 
 
-class AddingData(QtWidgets.QDialog, AddingData_ui.Ui_Dialog):
+class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
 
     def __init__(self):
         super().__init__()
@@ -28,18 +28,18 @@ class AddingData(QtWidgets.QDialog, AddingData_ui.Ui_Dialog):
         self.lineEdit_3.setEchoMode(QtWidgets.QLineEdit.Password)
         self.pushButton_5.setEnabled(False)
 
-        [lines], = MainMenu.cur.execute(
+        [lines], = main_menu.cur.execute(
             "SELECT Count(*) FROM account_information")
         self.lines = lines
 
         if self.lines != 0:
-            self.srt_section_main_menu = MainMenu.srt_section
+            self.srt_section_main_menu = main_menu.srt_section
             for _ in self.srt_section_main_menu:
                 self.comboBox.addItem("")
         else:
             self.add_section()
 
-        self.checkBox.setText(f"на {MainMenu.BUFFER_DEL_SEC} секунд")
+        self.checkBox.setText(f"на {main_menu.BUFFER_DEL_SEC} секунд")
         if self.lines != 0:
             for index_item, section in enumerate(
                     self.srt_section_main_menu):
@@ -65,10 +65,10 @@ class AddingData(QtWidgets.QDialog, AddingData_ui.Ui_Dialog):
         entered_password = self.lineEdit_3.text()
         password_bin = entered_password.encode()
 
-        if MainMenu.choice_pubkey is not None:
-            pubkey = MainMenu.choice_pubkey
+        if main_menu.choice_pubkey is not None:
+            pubkey = main_menu.choice_pubkey
         else:
-            with open('{}_pubkey.pem'.format(MainMenu.db_dir[:-3]), 'rb') \
+            with open('{}_pubkey.pem'.format(main_menu.db_dir[:-3]), 'rb') \
                     as pubfile:
                 keydata_pub = pubfile.read()
                 pubfile.close()
@@ -120,35 +120,35 @@ class AddingData(QtWidgets.QDialog, AddingData_ui.Ui_Dialog):
                 url = 'None'
             if self.lines == 0:
                 new_id = 1
-                MainMenu.cur.execute("""
+                main_menu.cur.execute("""
                     INSERT INTO account_information
                     (ID, section, name, login, pass, email, secret_word, url)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (
                         new_id, section, name, login, password,
                         email, secret_word, url))
-                MainMenu.cur.execute("""
+                main_menu.cur.execute("""
                     INSERT INTO data_change_time
                     (id, create_account)
                     VALUES (?, ?)""", (
                         new_id,
                         datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
                 if self.checkBox.isChecked():
-                    MainMenu.buffer = QtWidgets.QApplication.clipboard()
-                    MainMenu.buffer.setText(entered_password)
+                    main_menu.buffer = QtWidgets.QApplication.clipboard()
+                    main_menu.buffer.setText(entered_password)
                     self.checkbox_copy_buffer = 1
                 self.close()
             else:
-                MainMenu.cur.execute("""
+                main_menu.cur.execute("""
                     SELECT name 
                     FROM account_information 
                     WHERE name='{}'""".format(name))
                 # TODO: Нужно передавать conn работать с ним и возвращать.
-                exists_name = MainMenu.cur.fetchone()
-                MainMenu.cur.execute("""
+                exists_name = main_menu.cur.fetchone()
+                main_menu.cur.execute("""
                     SELECT login 
                     FROM account_information 
                     WHERE login='{}'""".format(login))
-                exists_login = MainMenu.cur.fetchone()
+                exists_login = main_menu.cur.fetchone()
                 if exists_name is not None and exists_login is not None:
                     msg = QtWidgets.QMessageBox()
                     msg.setIcon(QtWidgets.QMessageBox.Critical)
@@ -156,20 +156,20 @@ class AddingData(QtWidgets.QDialog, AddingData_ui.Ui_Dialog):
                     msg.setText("Такой аккаунт уже существует")
                     msg.exec_()
                 else:
-                    [maxid], = MainMenu.cur.execute("""
+                    [maxid], = main_menu.cur.execute("""
                         SELECT ID 
                         FROM account_information 
                         ORDER BY ID 
                         DESC LIMIT 1""")
                     new_id = maxid + 1
-                    MainMenu.cur.execute("""
+                    main_menu.cur.execute("""
                         INSERT INTO account_information
                         (id, section, name, login, 
                         pass, email, secret_word, url)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (
                             new_id, section, name, login, password,
                             email, secret_word, url))
-                    MainMenu.cur.execute("""
+                    main_menu.cur.execute("""
                         INSERT INTO data_change_time
                         (id, create_account)
                         VALUES (?, ?)""", (
@@ -178,8 +178,8 @@ class AddingData(QtWidgets.QDialog, AddingData_ui.Ui_Dialog):
                                 '%Y-%m-%d %H:%M:%S')))
 
                     if self.checkBox.isChecked():
-                        MainMenu.buffer = QtWidgets.QApplication.clipboard()
-                        MainMenu.buffer.setText(entered_password)
+                        main_menu.buffer = QtWidgets.QApplication.clipboard()
+                        main_menu.buffer.setText(entered_password)
                         self.checkbox_copy_buffer = 1
                     self.close()
 

@@ -10,9 +10,9 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 
 import py.res_rc
-import py.MainMenu
-from py.waitingspinnerwidget import QtWaitingSpinner
-import py.ui.DatabaseCreation_ui as DatabaseCreation_ui
+import py.main_menu
+from py.spinner_widget import QtWaitingSpinner
+import py.ui.database_creation_ui as database_creation_ui
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -75,7 +75,7 @@ class ThreadCreateKeys(QtCore.QThread):
         self.name_db = name_db
 
     def run(self):
-        (pubkey, privkey) = rsa.newkeys(py.MainMenu.NEW_RSA_BIT)
+        (pubkey, privkey) = rsa.newkeys(py.main_menu.NEW_RSA_BIT)
         pubkey_pem = pubkey.save_pkcs1('PEM')
         privkey_pem = privkey.save_pkcs1('PEM')
         with open('data/{0}_pubkey.pem'.format(self.name_db), mode='w+')\
@@ -88,7 +88,7 @@ class ThreadCreateKeys(QtCore.QThread):
             privfile.close()
 
 
-class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
+class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
 
     def __init__(self):
         super().__init__()
@@ -246,7 +246,7 @@ class CreateDB(QtWidgets.QDialog, DatabaseCreation_ui.Ui_Dialog):
                     "change_url" TEXT DEFAULT 'NULL')""")
                 cur_db_creation.execute("""
                 INSERT INTO db_information (name, value) 
-                VALUES ('rsa_bit', {})""".format(py.MainMenu.NEW_RSA_BIT))
+                VALUES ('rsa_bit', {})""".format(py.main_menu.NEW_RSA_BIT))
                 conn_db_creation.commit()
                 cur_db_creation.close()
                 conn_db_creation.close()

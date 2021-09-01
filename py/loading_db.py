@@ -7,9 +7,9 @@ from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 
-import py.MainMenu
-import py.StartWindow
-import py.ui.LoadingDB_ui as LoadingDB_ui
+import py.main_menu
+import py.start_window
+import py.ui.loading_db_ui as loading_db_ui
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -19,7 +19,7 @@ elif platform == "win32":
     # OS X
 
 
-class LoadingDB(QtWidgets.QDialog, LoadingDB_ui.Ui_Dialog):
+class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
 
     def __init__(self):
         super().__init__()
@@ -81,13 +81,13 @@ class LoadingDB(QtWidgets.QDialog, LoadingDB_ui.Ui_Dialog):
             conn_load.close()
             result = bool(0)
         if result:
-            py.MainMenu.cur.close()
-            py.MainMenu.conn.close()
-            py.MainMenu.db_dir = db_info[0]
-            py.MainMenu.db_name = db_info[1]
-            py.MainMenu.pwd = pwd
+            py.main_menu.cur.close()
+            py.main_menu.conn.close()
+            py.main_menu.db_dir = db_info[0]
+            py.main_menu.db_name = db_info[1]
+            py.main_menu.pwd = pwd
             del pwd
-            py.MainMenu.connect_sql()
+            py.main_menu.connect_sql()
             self.done(1)
         else:
             msg = QMessageBox()

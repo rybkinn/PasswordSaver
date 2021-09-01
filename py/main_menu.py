@@ -13,14 +13,14 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtPrintSupport
 from PyQt5.QtWidgets import QMessageBox
 
-import py.DatabaseCreation as DatabaseCreation
-import py.AddingData as AddingData
-import py.res_rc
-import py.LoadingDB as LoadingDB
-import py.SyncDB as SyncDB
-import py.PrintList as PrintList
-import py.Change as Change
-from py.waitingspinnerwidget import QtWaitingSpinner
+import py.database_creation as database_creation
+import py.adding_data as adding_data
+import py.res_rc    # required for loading resource files
+import py.loading_db as loading_db
+import py.sync_db as sync_db
+import py.print_list as print_list
+import py.change as change
+from py.spinner_widget import QtWaitingSpinner
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -602,7 +602,7 @@ class Ui_MainWindow(object):
     @QtCore.pyqtSlot()
     def print(self):
         if not self.toolButton.isEnabled():
-            pl = PrintList.PrintList()
+            pl = print_list.PrintList()
             layout = QtGui.QPageLayout(QtGui.QPageSize(QtGui.QPageSize.A4),
                                        QtGui.QPageLayout.Landscape,
                                        QtCore.QMarginsF(5, 5, 5, 5),
@@ -680,12 +680,12 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def show_create_db(self):
-        self.create_db = DatabaseCreation.CreateDB()
+        self.create_db = database_creation.CreateDB()
         self.create_db.exec_()
 
     @QtCore.pyqtSlot()
     def show_load_db(self):
-        self.loading_db = LoadingDB.LoadingDB()
+        self.loading_db = loading_db.LoadingDB()
         status_load_db = self.loading_db.exec()
         if status_load_db:
             self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
@@ -700,8 +700,8 @@ class Ui_MainWindow(object):
 
     @QtCore.pyqtSlot()
     def show_sync_db(self):
-        self.sync_db = SyncDB.SyncDB(self.toolButton.text(),
-                                     self.toolButton_2.text())
+        self.sync_db = sync_db.SyncDB(self.toolButton.text(),
+                                      self.toolButton_2.text())
         finished_sync_db = self.sync_db.exec()
         if finished_sync_db:
             self.refresh_tree_widget()
@@ -711,7 +711,7 @@ class Ui_MainWindow(object):
         global HIDE_PASSWORD
         if not HIDE_PASSWORD:
             self.password_hide()
-        self.adding_data = AddingData.AddingData()
+        self.adding_data = adding_data.AddingData()
         checkbox_status = self.adding_data.exec_()
         self.refresh_tree_widget()
 
@@ -1290,7 +1290,7 @@ class Ui_MainWindow(object):
                             buffer.setText(secret)
                             self.delete_buffer()
                 elif action2 == rmenu_change_log:
-                    self.change = Change.Change('Изменение логина',
+                    self.change = change.Change('Изменение логина',
                                                 'Введите новый логин', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
@@ -1312,7 +1312,7 @@ class Ui_MainWindow(object):
                                      window_type='Critical',
                                      buttons='ok')
                 elif action2 == rmenu_change_pass:
-                    self.change = Change.Change('Изменение пароля',
+                    self.change = change.Change('Изменение пароля',
                                                 'Введите новый пароль', True)
                     result_close_window = self.change.exec_()
                     if result_close_window:
@@ -1344,7 +1344,7 @@ class Ui_MainWindow(object):
                                                row[0][3], row[0][5]))
                             self.refresh_tree_widget()
                 elif action2 == rmenu_change_email:
-                    self.change = Change.Change('Изменение почты',
+                    self.change = change.Change('Изменение почты',
                                                 'Введите новую почту', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:
@@ -1362,7 +1362,7 @@ class Ui_MainWindow(object):
                                             row[0][3], row[0][5]))
                         self.refresh_tree_widget()
                 elif action2 == rmenu_change_secret:
-                    self.change = Change.Change('Изменение секретного слова',
+                    self.change = change.Change('Изменение секретного слова',
                                                 'Введите новое секретное слово',
                                                 False)
                     result_close_window = self.change.exec_()
@@ -1392,7 +1392,7 @@ class Ui_MainWindow(object):
                                             row[0][3], row[0][5]))
                         self.refresh_tree_widget()
                 elif action2 == rmenu_change_url:
-                    self.change = Change.Change('Изменение url',
+                    self.change = change.Change('Изменение url',
                                                 'Введите новый url', False)
                     result_close_window = self.change.exec_()
                     if result_close_window:

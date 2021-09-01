@@ -11,9 +11,9 @@ from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 
-import py.MainMenu
-import py.ui.SyncDB_ui as SyncDB_ui
-from py.waitingspinnerwidget import QtWaitingSpinner
+import py.main_menu
+import py.ui.sync_db_ui as sync_db_ui
+from py.spinner_widget import QtWaitingSpinner
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -37,7 +37,7 @@ class SyncDBThread(QtCore.QThread):
 
     # TODO: Восстанавливает удаленные аккаунты при синхронизации. исправить
     def run(self):
-        thread_conn_main = sqlite3.connect(py.MainMenu.db_dir)
+        thread_conn_main = sqlite3.connect(py.main_menu.db_dir)
         thread_conn_main.row_factory = lambda cursor, row: list(row)
         thread_cur_main = thread_conn_main.cursor()
         thread_cur_main.execute("PRAGMA key = '{}'".format(self.pwd))
@@ -290,10 +290,10 @@ def decrypt(crypt_s: str) -> str:
     :param crypt_s: Input crypto string
     :return: Output decrypt string or 'error'
     """
-    if py.MainMenu.result_check_choice_privkey == 'ok':
-        privkey = py.MainMenu.choice_privkey
+    if py.main_menu.result_check_choice_privkey == 'ok':
+        privkey = py.main_menu.choice_privkey
     else:
-        with open(py.MainMenu.privkey_dir, 'rb') as privfile:
+        with open(py.main_menu.privkey_dir, 'rb') as privfile:
             keydata_priv = privfile.read()
             privfile.close()
         privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
@@ -312,7 +312,7 @@ def decrypt(crypt_s: str) -> str:
         return 'error'
 
 
-class SyncDB(QtWidgets.QDialog, SyncDB_ui.Ui_Dialog):
+class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
     def __init__(self, path_to_privkey, path_to_pubkey):
         super().__init__()
         self.setupUi(self)

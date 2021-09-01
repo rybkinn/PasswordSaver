@@ -8,8 +8,8 @@ from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 
-import py.MainMenu
-import py.DatabaseCreation as DatabaseCreation
+import py.main_menu
+import py.database_creation as database_creation
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -84,7 +84,7 @@ def check_database(connect: sqlite3.Connection, pwd: str) -> tuple:
                 "value" INTEGER NOT NULL)""")
             cur_check_db.execute("""
             INSERT INTO db_information (name, value) 
-            VALUES (?, ?)""", ('rsa_bit', py.MainMenu.NEW_RSA_BIT))
+            VALUES (?, ?)""", ('rsa_bit', py.main_menu.NEW_RSA_BIT))
     except sqlite3.DatabaseError as error:
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
@@ -197,7 +197,7 @@ class Ui_Dialog(object):
         Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Вход"))
         self.label_5.setText(_translate("Dialog", "Вход"))
         self.pushButton_2.setText(_translate("Dialog", "Создать базу"))
-        self.label_4.setText(_translate("Dialog", str(py.MainMenu.VERSION)))
+        self.label_4.setText(_translate("Dialog", str(py.main_menu.VERSION)))
         self.label.setText(_translate("Dialog", "Password Saver"))
         self.pushButton_3.setText(_translate("Dialog", "Войти"))
         self.label_6.setText(_translate("Dialog", "Выберете базу"))
@@ -260,11 +260,11 @@ class Ui_Dialog(object):
                     conn_start_window, pwd)
                 conn_start_window.close()
                 if check_result:
-                    py.MainMenu.db_dir = db_info[0]
-                    py.MainMenu.db_name = db_info[1]
-                    py.MainMenu.pwd = pwd
+                    py.main_menu.db_dir = db_info[0]
+                    py.main_menu.db_name = db_info[1]
+                    py.main_menu.pwd = pwd
                     del pwd
-                    py.MainMenu.connect_sql()
+                    py.main_menu.connect_sql()
                     self.main_window = MainWindow()
                     self.main_window.show()
                     self.close()
@@ -278,15 +278,15 @@ class Ui_Dialog(object):
 
     @QtCore.pyqtSlot()
     def show_create_db(self):
-        self.create_db = DatabaseCreation.CreateDB()
+        self.create_db = database_creation.CreateDB()
         self.create_db.exec_()
-        if DatabaseCreation.NAME_CREATED_DATABASE:
-            name_db = DatabaseCreation.NAME_CREATED_DATABASE + '.db'
+        if database_creation.NAME_CREATED_DATABASE:
+            name_db = database_creation.NAME_CREATED_DATABASE + '.db'
             db_data = [os.getcwd() + '\\data\\' + name_db, name_db]
             self.comboBox_2.addItem(name_db, db_data)
 
 
-class MainWindow(QtWidgets.QMainWindow, py.MainMenu.Ui_MainWindow):
+class MainWindow(QtWidgets.QMainWindow, py.main_menu.Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)

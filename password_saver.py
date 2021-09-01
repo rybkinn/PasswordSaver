@@ -6,10 +6,10 @@ import sys
 
 from PyQt5 import QtWidgets
 
-import py.StartWindow
+import py.start_window as start_window
 
 
-class Interface(QtWidgets.QDialog, py.StartWindow.Ui_Dialog):
+class Interface(QtWidgets.QDialog, start_window.Ui_Dialog):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
