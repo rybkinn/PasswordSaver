@@ -92,7 +92,7 @@ class SyncDBThread(QtCore.QThread):
                                  'change_secret_word', 'change_url']
         for unique_row in unique_rows_sync_db:
             for index_row_main, row_main in enumerate(rows_main_db_decrypt):
-                if unique_row[0] == row_main[0] and unique_row[2] == row_main[2]:
+                if unique_row[0] == row_main[0] and unique_row[3] == row_main[3]:
                     for index_column, name_column in zip(indexes_mutable_columns,
                                                          names_mutable_columns):
                         if unique_row[index_column] != row_main[index_column]:
@@ -100,12 +100,12 @@ class SyncDBThread(QtCore.QThread):
                                 SELECT {name_column}
                                 FROM data_change_time
                                 WHERE id = ?""", (
-                                str(row_main[0]))).fetchall()[0][0]
+                                str(row_main[0]),)).fetchall()[0][0]
                             data_change_time_main = thread_cur_main.execute(f"""
                                 SELECT {name_column}
                                 FROM data_change_time
                                 WHERE id = ?""", (
-                                str(row_main[0]))).fetchall()[0][0]
+                                str(row_main[0]),)).fetchall()[0][0]
                             if data_change_time_sync != 'NULL' and\
                                     data_change_time_main != 'NULL':
                                 if datetime.datetime.strptime(
