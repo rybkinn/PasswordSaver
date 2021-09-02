@@ -716,13 +716,11 @@ class Ui_MainWindow(object):
         if lines != 0 and self.privkey_file and result_check_privkey == 'ok' \
                 or lines != 0 and result_check_choice_privkey == 'ok':
             self.pushButton.setEnabled(True)
-            self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)
             self.pushButton_5.setEnabled(True)
         elif lines != 0 and self.privkey_file and result_check_privkey == '!ok'\
                 or lines != 0 and result_check_choice_privkey == '!ok':
             self.pushButton.setEnabled(True)
-            self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
             self.pushButton_5.setEnabled(False)
         elif lines == 0:
@@ -809,7 +807,6 @@ class Ui_MainWindow(object):
 
         if lines == 0:
             self.pushButton.setEnabled(False)
-            self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
             self.pushButton_5.setEnabled(False)
 
@@ -965,7 +962,6 @@ class Ui_MainWindow(object):
                     self.toolButton.setText(directory_name[0])
                     self.pushButton_5.setEnabled(True)
                     self.pushButton_4.setEnabled(True)
-                    self.pushButton_3.setEnabled(True)
                     if not self.toolButton_2.isEnabled():
                         try:
                             with open(self.toolButton_2.text(), 'rb')\
@@ -1085,13 +1081,11 @@ class Ui_MainWindow(object):
 
         if self.privkey_file and result_check_privkey == 'ok':
             self.toolButton.setEnabled(False)
-            self.pushButton_3.setEnabled(True)
             self.pushButton_4.setEnabled(True)
             self.pushButton_5.setEnabled(True)
         elif self.privkey_file and result_check_privkey == '!ok':
             self.toolButton.setEnabled(True)
             self.pushButton_2.setEnabled(False)
-            self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
             self.pushButton_5.setEnabled(False)
         elif self.privkey_file and result_check_privkey == 'privkey != pubkey':
@@ -1103,13 +1097,11 @@ class Ui_MainWindow(object):
             self.toolButton.setIcon(icon)
         else:
             self.toolButton.setEnabled(True)
-            self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
             self.pushButton_5.setEnabled(False)
 
         if lines == 0:
             self.pushButton.setEnabled(False)
-            self.pushButton_3.setEnabled(False)
             self.pushButton_4.setEnabled(False)
             self.pushButton_5.setEnabled(False)
 
