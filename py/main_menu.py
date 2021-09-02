@@ -311,10 +311,8 @@ class Ui_MainWindow(object):
         self.acc_secret_info_result = dict()
         self.menu_context_alb = None
         self.change = None
-        self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
-            db_name[:-3]))
-        self.privkey_file = os.path.isfile("data/{}_privkey.pem".format(
-            db_name[:-3]))
+        self.pubkey_file = os.path.isfile("{}_pubkey.pem".format(db_dir[:-3]))
+        self.privkey_file = os.path.isfile("{}_privkey.pem".format(db_dir[:-3]))
 
     def setupUi(self, MainWindow):
         MainWindow.resize(870, 600)
@@ -688,10 +686,10 @@ class Ui_MainWindow(object):
         self.loading_db = loading_db.LoadingDB()
         status_load_db = self.loading_db.exec()
         if status_load_db:
-            self.pubkey_file = os.path.isfile("data/{}_pubkey.pem".format(
-                db_name[:-3]))
-            self.privkey_file = os.path.isfile("data/{}_privkey.pem".format(
-                db_name[:-3]))
+            self.pubkey_file = os.path.isfile("{}_pubkey.pem".format(
+                db_dir[:-3]))
+            self.privkey_file = os.path.isfile("{}_privkey.pem".format(
+                db_dir[:-3]))
             self.refresh_tree_widget()
             self.result_check_privkey()
             self.result_check_pubkey()
