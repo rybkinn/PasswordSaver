@@ -30,7 +30,7 @@ elif platform == "win32":
     # OS X
 
 # Version program
-VERSION = 'v 1.6.1'
+VERSION = 'v 1.6.2'
 # Show or hide passwords when starting the program
 HIDE_PASSWORD = True
 # How many seconds will the clipboard be deleted after copying the password
