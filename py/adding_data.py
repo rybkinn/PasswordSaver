@@ -26,6 +26,7 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
         self.gridLayout.addWidget(self.lineEdit_7, 0, 1, 1, 1)
         self.lineEdit_7.hide()
         self.lineEdit_3.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.lineEdit_5.setEchoMode(QtWidgets.QLineEdit.Password)
         self.pushButton_5.setEnabled(False)
 
         [lines], = main_menu.cur.execute(
