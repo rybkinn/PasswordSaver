@@ -108,7 +108,7 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
         self.spinner.setRevolutionsPerSecond(1)
         self.spinner.setColor(QtGui.QColor(0, 0, 0))
 
-        self.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
+        self.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
 
         self.pushButton.clicked.connect(self.create_database)
         self.lineEdit.textChanged.connect(self.valid_name_db)
