@@ -8,17 +8,17 @@ ___
 
 **Windows**
 
-- `git clone https://github.com/developer-rni/PasswordSaver.git`
+- `git clone https://github.com/rybkinn/PasswordSaver.git`
   - `(или нажать на "Code" => Download ZIP и распаковать архив)`
 
-- Запустить файл `PasswordSaver.exe`
+- Запустить файл `password_saver.exe`
   
 Для компиляции .exe файла, необходимо заменить стандартную sqlite3.dll на идентичную, но с возможностью шифрования. 
 Она находится по адресу resource\sqlcipher\sqlite3.dll
 
 **Linux**
 
-- `git clone https://github.com/developer-rni/PasswordSaver.git`
+- `git clone https://github.com/rybkinn/PasswordSaver.git`
   - `(или нажать на "Code" => Download ZIP и распаковать архив)`
 - Установить зависимости командой `pip install -r requirements.txt`
 - Установить модуль шифрования `pip install pysqlcipher3`(проверенно на версии 1.0.4)
