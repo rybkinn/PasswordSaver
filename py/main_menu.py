@@ -695,6 +695,8 @@ class Ui_MainWindow(object):
             self.result_check_pubkey()
             self.button_state()
             self.retranslateUi(self)
+            if result_check_pubkey:
+                self.pushButton_2.setEnabled(True)
             [lines], = cur.execute("SELECT Count(*) FROM account_information")
             if lines == 0:
                 self.pushButton_3.setEnabled(False)
