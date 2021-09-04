@@ -35,7 +35,7 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
         for name_db_item in self.name_db:
             db_data = [path_dir + '\\data\\' + name_db_item, name_db_item]
             self.comboBox.addItem(name_db_item, db_data)
-        self.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
+        self.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
         self.toolButton.clicked.connect(self.push_tool_button)
         self.pushButton.clicked.connect(self.show_main_window)
 

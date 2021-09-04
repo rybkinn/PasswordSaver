@@ -1,5 +1,11 @@
 <RCC>
   <qresource prefix="resource">
+    <file>image/save.ico</file>
+    <file>image/add_db.ico</file>
+    <file>image/search_db.ico</file>
+    <file>image/sync_db.ico</file>
+    <file>image/print.ico</file>
+    <file>image/exit.ico</file>
     <file>image/key.ico</file>
     <file>image/Icon-Copy.ico</file>
     <file>image/question.ico</file>

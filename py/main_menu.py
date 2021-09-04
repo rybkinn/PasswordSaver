@@ -30,7 +30,7 @@ elif platform == "win32":
     # OS X
 
 # Version program
-VERSION = 'v 1.6.2'
+VERSION = 'v 1.6.3'
 # Show or hide passwords when starting the program
 HIDE_PASSWORD = True
 # How many seconds will the clipboard be deleted after copying the password
@@ -438,23 +438,23 @@ class Ui_MainWindow(object):
         self.action.setObjectName("action")
         self.action_3 = QtWidgets.QAction(MainWindow)
         self.action_3.setObjectName("action_3")
-        self.action_3.setIcon(QtGui.QIcon('resource/image/save.ico'))
+        self.action_3.setIcon(QtGui.QIcon(':/resource/image/save.ico'))
         self.action_4 = QtWidgets.QAction(MainWindow)
         self.action_4.setObjectName("action_4")
-        self.action_4.setIcon(QtGui.QIcon('resource/image/add_db.ico'))
+        self.action_4.setIcon(QtGui.QIcon(':/resource/image/add_db.ico'))
         self.action_5 = QtWidgets.QAction(MainWindow)
         self.action_5.setObjectName("action_5")
-        self.action_5.setIcon(QtGui.QIcon('resource/image/search_db.ico'))
+        self.action_5.setIcon(QtGui.QIcon(':/resource/image/search_db.ico'))
         self.action_6 = QtWidgets.QAction(MainWindow)
         self.action_6.setObjectName("action_6")
-        self.action_6.setIcon(QtGui.QIcon('resource/image/sync_db.ico'))
+        self.action_6.setIcon(QtGui.QIcon(':/resource/image/sync_db.ico'))
         self.action_6.setEnabled(False)
         self.action_7 = QtWidgets.QAction(MainWindow)
         self.action_7.setObjectName("action_6")
-        self.action_7.setIcon(QtGui.QIcon('resource/image/print.ico'))
+        self.action_7.setIcon(QtGui.QIcon(':/resource/image/print.ico'))
         self.action_8 = QtWidgets.QAction(MainWindow)
         self.action_8.setObjectName("action_7")
-        self.action_8.setIcon(QtGui.QIcon('resource/image/exit.ico'))
+        self.action_8.setIcon(QtGui.QIcon(':/resource/image/exit.ico'))
         self.menu.addAction(self.action_3)
         self.menu.addAction(self.action_4)
         self.menu.addAction(self.action_5)
@@ -464,7 +464,7 @@ class Ui_MainWindow(object):
         self.menu.addAction(self.action_8)
         self.menubar.addAction(self.menu.menuAction())
 
-        MainWindow.setWindowIcon(QtGui.QIcon('resource/image/key.ico'))
+        MainWindow.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
 
         self.progressBar = QtWidgets.QProgressBar(self.centralwidget)
         self.progressBar.setMinimum(0)
@@ -695,6 +695,14 @@ class Ui_MainWindow(object):
             self.result_check_pubkey()
             self.button_state()
             self.retranslateUi(self)
+            if result_check_pubkey:
+                self.pushButton_2.setEnabled(True)
+            [lines], = cur.execute("SELECT Count(*) FROM account_information")
+            if lines == 0:
+                self.pushButton_3.setEnabled(False)
+                self.pushButton_3.setText("Развернуть все разделы")
+            else:
+                self.pushButton_3.setText("Свернуть все разделы")
 
     @QtCore.pyqtSlot()
     def show_sync_db(self):
@@ -1420,6 +1428,7 @@ class Ui_MainWindow(object):
         [lines], = cur.execute("SELECT Count(*) FROM account_information")
         section = []
         if lines != 0:
+            self.pushButton_3.setEnabled(True)
             for _line in range(1, lines + 1):
                 [_current_id], = cur.execute("""
                 SELECT ID 
@@ -1455,6 +1464,8 @@ class Ui_MainWindow(object):
                     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
                 for _ in range(len(data_one_section)):
                     item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        else:
+            self.pushButton_3.setEnabled(False)
 
     def delete_tree_widget_item(self):
         self.treeWidget.clear()
