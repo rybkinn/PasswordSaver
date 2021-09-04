@@ -695,6 +695,12 @@ class Ui_MainWindow(object):
             self.result_check_pubkey()
             self.button_state()
             self.retranslateUi(self)
+            [lines], = cur.execute("SELECT Count(*) FROM account_information")
+            if lines == 0:
+                self.pushButton_3.setEnabled(False)
+                self.pushButton_3.setText("Развернуть все разделы")
+            else:
+                self.pushButton_3.setText("Свернуть все разделы")
 
     @QtCore.pyqtSlot()
     def show_sync_db(self):
@@ -1420,6 +1426,7 @@ class Ui_MainWindow(object):
         [lines], = cur.execute("SELECT Count(*) FROM account_information")
         section = []
         if lines != 0:
+            self.pushButton_3.setEnabled(True)
             for _line in range(1, lines + 1):
                 [_current_id], = cur.execute("""
                 SELECT ID 
@@ -1455,6 +1462,8 @@ class Ui_MainWindow(object):
                     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
                 for _ in range(len(data_one_section)):
                     item_1 = QtWidgets.QTreeWidgetItem(item_0)
+        else:
+            self.pushButton_3.setEnabled(False)
 
     def delete_tree_widget_item(self):
         self.treeWidget.clear()
