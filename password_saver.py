@@ -11,10 +11,9 @@ import py.start_window as start_window
 from py.show_msg import show_msg
 
 
-class Interface(QtWidgets.QDialog, start_window.Ui_Dialog):
+class Interface(start_window.StartWindow):
     def __init__(self):
         super().__init__()
-        self.setupUi(self)
 
 
 if __name__ == "__main__":
