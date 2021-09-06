@@ -11,6 +11,7 @@ from PyQt5 import QtGui
 
 import py.main_menu as main_menu
 import py.ui.adding_data_ui as adding_data_ui
+from py.show_msg import show_msg
 
 
 class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
@@ -89,29 +90,25 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
 
         url = self.lineEdit_6.text()
         if section == '':
-            msg = QtWidgets.QMessageBox()
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
-            msg.setWindowTitle("Сообщение")
-            msg.setText("Введите раздел")
-            msg.exec_()
+            show_msg(title='Ошибка',
+                     top_text='Введите раздел',
+                     window_type='critical',
+                     buttons='ok')
         elif name == '':
-            msg = QtWidgets.QMessageBox()
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
-            msg.setWindowTitle("Сообщение")
-            msg.setText("Введите название")
-            msg.exec_()
+            show_msg(title='Ошибка',
+                     top_text='Введите название',
+                     window_type='critical',
+                     buttons='ok')
         elif login == '':
-            msg = QtWidgets.QMessageBox()
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
-            msg.setWindowTitle("Сообщение")
-            msg.setText("Введите логин")
-            msg.exec_()
+            show_msg(title='Ошибка',
+                     top_text='Введите логин',
+                     window_type='critical',
+                     buttons='ok')
         elif entered_password == '':
-            msg = QtWidgets.QMessageBox()
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
-            msg.setWindowTitle("Сообщение")
-            msg.setText("Введите пароль")
-            msg.exec_()
+            show_msg(title='Ошибка',
+                     top_text='Введите пароль',
+                     window_type='critical',
+                     buttons='ok')
         else:
             if email == '':
                 email = 'None'
@@ -151,18 +148,17 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
                     WHERE login='{}'""".format(login))
                 exists_login = main_menu.cur.fetchone()
                 if exists_name is not None and exists_login is not None:
-                    msg = QtWidgets.QMessageBox()
-                    msg.setIcon(QtWidgets.QMessageBox.Critical)
-                    msg.setWindowTitle("Сообщение")
-                    msg.setText("Такой аккаунт уже существует")
-                    msg.exec_()
+                    show_msg(title='Ошибка',
+                             top_text='Такой аккаунт уже существует',
+                             window_type='critical',
+                             buttons='ok')
                 else:
-                    [maxid], = main_menu.cur.execute("""
+                    [max_id], = main_menu.cur.execute("""
                         SELECT ID 
                         FROM account_information 
                         ORDER BY ID 
                         DESC LIMIT 1""")
-                    new_id = maxid + 1
+                    new_id = max_id + 1
                     main_menu.cur.execute("""
                         INSERT INTO account_information
                         (id, section, name, login, 

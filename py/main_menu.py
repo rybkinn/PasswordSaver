@@ -20,6 +20,7 @@ import py.loading_db as loading_db
 import py.sync_db as sync_db
 import py.print_list as print_list
 import py.change as change
+from py.show_msg import show_msg
 from py.spinner_widget import QtWaitingSpinner
 
 if platform == "linux" or platform == "linux2":
@@ -62,59 +63,17 @@ cur = None
 conn = None
 
 
-def show_msg(title="Сообщение",
-             top_text="TopText",
-             bottom_text=None,
-             window_type="Information",
-             buttons="yes_no") -> int:
-    """
-    Создание и вывод окна.
-    :param title: заголовок окна
-    :param top_text: текст вверху
-    :param bottom_text: текст внизу
-    :param window_type: тип выводимого окна (Information, Warning, Critical)
-    :param buttons: какие кнопки выводить (yes_no, yes, ok)
-    :return: статус после закрытия окна
-    """
-    msg = QMessageBox()
-    msg_icon = QtGui.QIcon()
-    msg_icon.addPixmap(QtGui.QPixmap(":/resource/image/key.ico"))
-    msg.setWindowIcon(msg_icon)
-    if window_type == 'Information':
-        msg.setIcon(QMessageBox.Information)
-    elif window_type == 'Warning':
-        msg.setIcon(QMessageBox.Warning)
-    elif window_type == 'Critical':
-        msg.setIcon(QMessageBox.Critical)
-    if top_text == "TopText":
-        pass
-    else:
-        msg.setText(top_text)
-    if bottom_text is None:
-        pass
-    else:
-        msg.setInformativeText(bottom_text)
-    msg.setWindowTitle(title)
-    if buttons == 'yes_no':
-        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-    elif buttons == 'yes':
-        msg.setStandardButtons(QMessageBox.Yes)
-    elif buttons == 'ok':
-        msg.setStandardButtons(QMessageBox.Ok)
-    result = msg.exec_()
-    return result
-
-
 def record_change_time(cursor: sqlite3.Cursor,
                        row: tuple,
                        change_type: str
                        ) -> bool:
     """
-    Записывает время изменения данных в БД.
-    :param cursor: курсор текущего соединения
-    :param row: кортеж значений из выделеной строки
-    :param change_type: что меняем
-    :return: результат выполнения True/False
+    Records the time of data change in the database.
+
+    :param cursor: current cursor
+    :param row: a tuple of values from the selected row
+    :param change_type: what changing
+    :return: execution result
     """
     try:
         acc_id = cursor.execute("""SELECT id
@@ -135,11 +94,11 @@ def record_change_time(cursor: sqlite3.Cursor,
                         datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         return True
     except sqlite3.Error as sqlite_error:
-        show_msg('Ошибка',
-                 'Ошибка выполнения record_change_time()',
-                 str(sqlite_error),
-                 'Critical',
-                 'ok')
+        show_msg(title='Ошибка',
+                 top_text='Ошибка выполнения record_change_time()',
+                 bottom_text=str(sqlite_error),
+                 window_type='critical',
+                 buttons='ok')
         return False
 
 
@@ -264,9 +223,10 @@ class ShowPassThread(QtCore.QThread):
 
 def calc_rsa_length(rsa_bit: int) -> int:
     """
-    Расчитывает длину rsa ключа.
-    :param rsa_bit: указывает сколько бит rsa
-    :return: возврощает длину rsa ключа. Если -1 значит ошибка.
+    Calculates the length of the RSA key.
+
+    :param rsa_bit: indicates how many bits of rsa
+    :return: returns the length of the rsa key. If -1 means an error.
     """
     if rsa_bit == 4096:
         length = 684
@@ -618,9 +578,9 @@ class Ui_MainWindow(object):
                     lambda: self.print_spinner_finished(self.print_thread.pl))
                 self.print_thread.start()
         else:
-            show_msg(title='Нельзя распечатать',
-                     top_text='Сначало укажите privkey.pem',
-                     window_type='Critical',
+            show_msg(title='Ошибка',
+                     top_text='Не указан privkey.pem',
+                     window_type='critical',
                      buttons='ok')
 
     @QtCore.pyqtSlot()
@@ -632,9 +592,9 @@ class Ui_MainWindow(object):
     def print_spinner_finished(self, pl):
         pl.print_data()
         self.spinner.stop()
-        show_msg(title='Печать',
+        show_msg(title='Успех',
                  top_text='Печать завершена',
-                 window_type='Information',
+                 window_type='information',
                  buttons='ok')
         self.statusbar.showMessage("Печать завершена.")
 
@@ -669,10 +629,12 @@ class Ui_MainWindow(object):
     def save_db(self):
         result = show_msg(title='Сохранение изменений',
                           top_text='Вы действительно хотите сохранить '
-                                   'изменения в базе данных?')
+                                   'изменения в базе данных?',
+                          window_type='information',
+                          buttons='yes_no')
         if result == QMessageBox.Yes:
             conn.commit()
-            show_msg(title='Password Saver',
+            show_msg(title='Успех',
                      top_text='База данных сохранена',
                      buttons='ok')
 
@@ -786,14 +748,16 @@ class Ui_MainWindow(object):
                      top_text='Нельзя удалить раздел.',
                      bottom_text='Если хотите удалить раздел, '
                                  'то удалите все аккаунты в нём.',
-                     window_type='Critical',
+                     window_type='critical',
                      buttons='ok')
         elif row[1] == 'item_1':
             result = show_msg(title='Удаление аккаунта',
                               top_text=f'Данные аккаунта <b>{row[0][0]}</b> '
                                        f'с логином <b>{row[0][1]}</b> '
                                        f'будут удалены',
-                              bottom_text='Вы уверенны?')
+                              window_type='information',
+                              bottom_text='Вы уверенны?',
+                              buttons='yes_no')
             if result == QMessageBox.Yes:
                 acc_id = cur.execute("""SELECT id
                                         FROM account_information
@@ -1234,8 +1198,8 @@ class Ui_MainWindow(object):
                     if buffer is not None:
                         if row[0][3] == 'None':
                             show_msg(title='Ошибка',
-                                     top_text='На этом аккаунте нету почты',
-                                     window_type='Critical',
+                                     top_text='На этом аккаунте нет почты',
+                                     window_type='critical',
                                      buttons='ok')
                         else:
                             buffer.setText(row[0][3])
@@ -1246,7 +1210,7 @@ class Ui_MainWindow(object):
                         if row[0][5] == 'None':
                             show_msg(title='Ошибка',
                                      top_text='На этом аккаунте не указан url',
-                                     window_type='Critical',
+                                     window_type='critical',
                                      buttons='ok')
                         else:
                             buffer.setText(row[0][5])
@@ -1282,7 +1246,7 @@ class Ui_MainWindow(object):
                             show_msg(title='Ошибка',
                                      top_text='На этом аккаунте не указанно '
                                               'секретное слово',
-                                     window_type='Critical',
+                                     window_type='critical',
                                      buttons='ok')
                         else:
                             buffer.setText(secret)
@@ -1307,7 +1271,7 @@ class Ui_MainWindow(object):
                         else:
                             show_msg(title='Ошибка',
                                      top_text='Нельзя изменить на пустой логин',
-                                     window_type='Critical',
+                                     window_type='critical',
                                      buttons='ok')
                 elif action2 == rmenu_change_pass:
                     self.change = change.Change('Изменение пароля',
@@ -1317,7 +1281,7 @@ class Ui_MainWindow(object):
                         if self.change.lineEdit.text() == '':
                             show_msg(title='Ошибка',
                                      top_text='Нельзя изменить на пустой пароль',
-                                     window_type='Critical',
+                                     window_type='critical',
                                      buttons='ok')
                         else:
                             if not self.toolButton_2.isEnabled():
@@ -1571,10 +1535,11 @@ class Ui_MainWindow(object):
 
     @staticmethod
     def closeEvent(event):
-        close = show_msg(
-            title='Выход',
-            top_text='Все несохраненные изменения будут потеряны.\n\n'
-                     'Все равно выйти?')
+        close = show_msg(title='Предупреждение',
+                         top_text='Все несохраненные изменения будут потеряны',
+                         bottom_text='Все равно выйти?',
+                         window_type='warning',
+                         buttons='yes_no')
         if close == QtWidgets.QMessageBox.Yes:
             if buffer is not None:
                 buffer.clear()

@@ -6,10 +6,10 @@ from sys import platform
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMessageBox
 
 import py.main_menu
 import py.database_creation as database_creation
+from py.show_msg import show_msg
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -22,6 +22,7 @@ elif platform == "win32":
 def check_database(connect: sqlite3.Connection, pwd: str) -> tuple:
     """
     Validates the database and returns a tuple.
+
     :param connect: sqlite3.Connection object
     :param pwd: pragma key password
     :return: tuple(sqlite3.Connection, bool)
@@ -86,11 +87,11 @@ def check_database(connect: sqlite3.Connection, pwd: str) -> tuple:
             INSERT INTO db_information (name, value) 
             VALUES (?, ?)""", ('rsa_bit', py.main_menu.NEW_RSA_BIT))
     except sqlite3.DatabaseError as error:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowTitle("Ошибка проверки базы данных")
-        msg.setText(error)
-        msg.exec_()
+        show_msg(title='Ошибка',
+                 top_text='Ошибка проверки базы данных',
+                 bottom_text=str(error),
+                 window_type='critical',
+                 buttons='ok')
         cur_check_db.close()
         return connect, False
     cur_check_db.close()
@@ -229,11 +230,10 @@ class Ui_Dialog(object):
     @QtCore.pyqtSlot()
     def show_main_window(self):
         if self.comboBox_2.currentIndex() == -1:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setWindowTitle("Ошибка входа")
-            msg.setText("Не выбрана база данных")
-            msg.exec_()
+            show_msg(title='Ошибка',
+                     top_text='Не выбрана база данных',
+                     window_type='critical',
+                     buttons='ok')
         else:
             pwd = self.lineEdit_2.text()
             wrong_db_info = self.comboBox_2.currentData()
@@ -273,11 +273,10 @@ class Ui_Dialog(object):
                     self.main_window.show()
                     self.close()
             else:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setWindowTitle("Ошибка входа")
-                msg.setText("Неправильный пароль")
-                msg.exec_()
+                show_msg(title='Ошибка',
+                         top_text='Неправильный пароль',
+                         window_type='critical',
+                         buttons='ok')
                 self.lineEdit_2.clear()
 
     @QtCore.pyqtSlot()

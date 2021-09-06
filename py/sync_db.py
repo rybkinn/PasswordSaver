@@ -9,11 +9,11 @@ from sys import platform
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMessageBox
 
 import py.main_menu
 import py.ui.sync_db_ui as sync_db_ui
 from py.spinner_widget import QtWaitingSpinner
+from py.show_msg import show_msg
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -249,11 +249,10 @@ def create_and_check_connection(path: str, pwd: str) \
         cur_sync.close()
         return conn_sync
     except Error:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowTitle("Ошибка синхронизации")
-        msg.setText("Неправильный пароль")
-        msg.exec_()
+        show_msg(title='Ошибка',
+                 top_text='Неправильный пароль',
+                 window_type='critical',
+                 buttons='ok')
         conn_sync = None
         return conn_sync
 
@@ -274,11 +273,10 @@ def execute_read_query(conn_sync: sqlite3.Connection, query: str) -> list:
         cur_sync.close()
         return result
     except Error as e:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowTitle("Ошибка синхронизации")
-        msg.setText(f"Ошибка выполнения запроса: ({e})")
-        msg.exec_()
+        show_msg(title='Ошибка',
+                 top_text=f'Ошибка выполнения запроса: ({e})',
+                 window_type='critical',
+                 buttons='ok')
         cur_sync.close()
         return result
 
@@ -304,11 +302,11 @@ def decrypt(crypt_s: str) -> str:
         result = decrypto.decode()
         return result
     except rsa.pkcs1.DecryptionError as error:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowTitle("Ошибка синхронизации")
-        msg.setText(str(error))
-        msg.exec_()
+        show_msg(title='Ошибка',
+                 top_text='Ошибка расшифровки закрытого ключа',
+                 bottom_text=str(error),
+                 window_type='critical',
+                 buttons='ok')
         return 'error'
 
 
@@ -335,7 +333,7 @@ class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
 
         path_dir = os.getcwd()
         for _addItem in self.databases_from_dir:
-            # need fix \\data\\ => /data/ from linux
+            # TODO: need fix \\data\\ => /data/ from linux
             path_to_db = [path_dir + '/data/' + _addItem, _addItem]
             self.comboBox.addItem(_addItem, path_to_db)
 
@@ -408,11 +406,10 @@ class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
             else:
                 self.label_6.setPixmap(
                     QtGui.QPixmap(":/resource/image/cross.ico"))
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setWindowTitle("Ошибка синхронизации")
-                msg.setText("База данных пустая")
-                msg.exec_()
+                show_msg(title='Ошибка',
+                         top_text='База данных пустая',
+                         window_type='critical',
+                         buttons='ok')
             conn_sync.close()
         else:
             self.label_5.setPixmap(QtGui.QPixmap(":/resource/image/cross.ico"))

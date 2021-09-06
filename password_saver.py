@@ -6,10 +6,9 @@ import sys
 
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5.QtWidgets import QMessageBox
 
 import py.start_window as start_window
+from py.show_msg import show_msg
 
 
 class Interface(QtWidgets.QDialog, start_window.Ui_Dialog):
@@ -30,16 +29,9 @@ if __name__ == "__main__":
 
             sys.exit(app.exec_())
         else:
-            icon_ps = QtGui.QIcon()
-            icon_ps.addPixmap(
-                QtGui.QPixmap(":/resource/image/key.ico"),
-                QtGui.QIcon.Normal, QtGui.QIcon.Off)
-            msg_lock = QMessageBox()
-            msg_lock.setWindowIcon(icon_ps)
-            msg_lock.setIcon(QMessageBox.Warning)
-            msg_lock.setWindowTitle("Ошибка")
-            msg_lock.setText("Программа уже запущена.")
-            msg_lock.setStandardButtons(QMessageBox.Ok)
-            msg_lock.exec_()
+            show_msg(title='Ошибка',
+                     top_text='Программа уже запущена',
+                     window_type='warning',
+                     buttons='ok')
     finally:
         lock_file.unlock()
