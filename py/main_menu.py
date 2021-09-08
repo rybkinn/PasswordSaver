@@ -296,24 +296,13 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.spinner.setRevolutionsPerSecond(1)
         self.spinner.setColor(QtGui.QColor(0, 0, 0))
 
-        self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed,
-                                           QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_5.sizePolicy().hasHeightForWidth())
-        self.pushButton_5.setSizePolicy(sizePolicy)
-        self.pushButton_5.setMinimumSize(QtCore.QSize(170, 34))
-        self.pushButton_5.setObjectName("pushButton_5")
-        self.gridLayout.addWidget(self.pushButton_5, 2, 2, 1, 1)
-
         self.result_check_privkey()
         self.result_check_pubkey()
 
         if HIDE_PASSWORD:
-            self.pushButton_showPass.hide()
+            self.pushButton_showPass.setText('Показать пароли')
         else:
-            self.pushButton_5.hide()
+            self.pushButton_showPass.setText('Скрыть пароли')
 
         self.button_state()
 
@@ -333,11 +322,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.pushButton_addingData.clicked.connect(self.show_adding_data)
         self.pushButton_showHideSections.clicked.connect(
             self.show_hide_all_sections)
-
-        self.pushButton_showPass.clicked.connect(self.password_hide)
-        # TODO: поменять на смену текста кнопки
-        self.pushButton_5.clicked.connect(self.password_show)
-
+        self.pushButton_showPass.clicked.connect(self.password_hide_show)
         self.toolButton_pubkey.clicked.connect(self.choice_pubkey)
         self.toolButton_privkey.clicked.connect(self.choice_privkey)
         self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -439,8 +424,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 item_iter += 1
             section_iter += 1
 
-        self.pushButton_5.hide()
-        self.pushButton_showPass.show()
+        self.pushButton_showPass.setText('Скрыть пароли')
         self.acc_info_list.clear()
         self.spinner.stop()
         self.statusbar.showMessage("Пароли расшифрованы.", msecs=10000)
@@ -511,12 +495,10 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 or lines != 0 and result_check_choice_privkey == 'ok':
             self.pushButton_delete.setEnabled(True)
             self.pushButton_showPass.setEnabled(True)
-            self.pushButton_5.setEnabled(True)
         elif lines != 0 and self.privkey_file and result_check_privkey == '!ok'\
                 or lines != 0 and result_check_choice_privkey == '!ok':
             self.pushButton_delete.setEnabled(True)
             self.pushButton_showPass.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
         elif lines == 0:
             self.pushButton_delete.setEnabled(False)
         else:
@@ -604,79 +586,73 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         if lines == 0:
             self.pushButton_delete.setEnabled(False)
             self.pushButton_showPass.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
 
     @QtCore.pyqtSlot()
-    def password_show(self):
+    def password_hide_show(self):
         global HIDE_PASSWORD
-        HIDE_PASSWORD = False
-
         if lines != 0:
-            if choice_privkey is not None:
-                privkey = choice_privkey
-            else:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') \
-                        as privfile:
-                    keydata_priv = privfile.read()
-                    privfile.close()
-                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+            if self.pushButton_showPass.text() == 'Показать пароли':
+                HIDE_PASSWORD = False
+                if choice_privkey is not None:
+                    privkey = choice_privkey
+                else:
+                    with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') \
+                            as privfile:
+                        keydata_priv = privfile.read()
+                        privfile.close()
+                    privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
 
-            for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("""
-                SELECT *
-                FROM account_information
-                WHERE section='{}'""".format(
-                    srt_section[_data_section])).fetchall()
-                acc_info = []
-                for item in data_one_section:
-                    acc_info.append(list(item[2:]))
+                for _data_section in range(amount_item_0):
+                    data_one_section = cur.execute("""
+                    SELECT *
+                    FROM account_information
+                    WHERE section='{}'""".format(
+                        srt_section[_data_section])).fetchall()
+                    acc_info = []
+                    for item in data_one_section:
+                        acc_info.append(list(item[2:]))
 
-                self.acc_info_list.append(acc_info)
+                    self.acc_info_list.append(acc_info)
 
-            __acc_secret_info = dict()
-            for _data_section in self.acc_info_list:
-                for _data_item in _data_section:
-                    __acc_secret_info[_data_item[1]] = _data_item[2],\
-                                                       _data_item[4]
+                __acc_secret_info = dict()
+                for _data_section in self.acc_info_list:
+                    for _data_item in _data_section:
+                        __acc_secret_info[_data_item[1]] = _data_item[2],\
+                                                           _data_item[4]
 
-            self.show_pass_thread = ShowPassThread(__acc_secret_info, privkey)
-            self.show_pass_thread.started.connect(
-                self.show_pass_spinner_started)
-            self.show_pass_thread.response.connect(self.show_pass_response)
-            self.show_pass_thread.finished.connect(
-                self.show_pass_spinner_finished)
-            self.show_pass_thread.start()
-
-    @QtCore.pyqtSlot()
-    def password_hide(self):
-        global HIDE_PASSWORD
-        HIDE_PASSWORD = True
-        top_level_item_iter = -1
-        if lines != 0:
-            for data_section in range(amount_item_0):
-                data_one_section = cur.execute("""
-                SELECT *
-                FROM account_information
-                WHERE section='{}'""".format(
-                    srt_section[data_section])).fetchall()
-                acc_info = []
-                for item in data_one_section:
-                    acc_info.append(item[2:])
-                self.treeWidget.topLevelItem(data_section).setText(
-                    0, str(srt_section[data_section]))
-                top_level_item_iter += 1
-                child_iter = -1
-                for index in range(len(acc_info)):
-                    child_iter += 1
-                    text_iter = 0
-                    for _ in acc_info[index]:
-                        text_iter += 1
-                        if text_iter == 3:
-                            self.treeWidget.topLevelItem(top_level_item_iter)\
-                                .child(child_iter)\
-                                .setText(text_iter, '**********')
-        self.pushButton_showPass.hide()
-        self.pushButton_5.show()
+                self.show_pass_thread = ShowPassThread(__acc_secret_info, privkey)
+                self.show_pass_thread.started.connect(
+                    self.show_pass_spinner_started)
+                self.show_pass_thread.response.connect(self.show_pass_response)
+                self.show_pass_thread.finished.connect(
+                    self.show_pass_spinner_finished)
+                self.show_pass_thread.start()
+            elif self.pushButton_showPass.text() == 'Скрыть пароли':
+                HIDE_PASSWORD = True
+                top_level_item_iter = -1
+                for data_section in range(amount_item_0):
+                    data_one_section = cur.execute("""
+                    SELECT *
+                    FROM account_information
+                    WHERE section='{}'""".format(
+                        srt_section[data_section])).fetchall()
+                    acc_info = []
+                    for item in data_one_section:
+                        acc_info.append(item[2:])
+                    self.treeWidget.topLevelItem(data_section).setText(
+                        0, str(srt_section[data_section]))
+                    top_level_item_iter += 1
+                    child_iter = -1
+                    for index in range(len(acc_info)):
+                        child_iter += 1
+                        text_iter = 0
+                        for _ in acc_info[index]:
+                            text_iter += 1
+                            if text_iter == 3:
+                                self.treeWidget.topLevelItem(top_level_item_iter) \
+                                    .child(child_iter) \
+                                    .setText(text_iter, '**********')
+                self.pushButton_showPass.setText('Показать пароли')
 
     @QtCore.pyqtSlot()
     def choice_pubkey(self):
@@ -757,7 +733,6 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 if result_check_choice_privkey == 'ok':
                     self.toolButton_privkey.setEnabled(False)
                     self.toolButton_privkey.setText(directory_name[0])
-                    self.pushButton_5.setEnabled(True)
                     self.pushButton_showPass.setEnabled(True)
                     if not self.toolButton_pubkey.isEnabled():
                         try:
@@ -879,12 +854,10 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         if self.privkey_file and result_check_privkey == 'ok':
             self.toolButton_privkey.setEnabled(False)
             self.pushButton_showPass.setEnabled(True)
-            self.pushButton_5.setEnabled(True)
         elif self.privkey_file and result_check_privkey == '!ok':
             self.toolButton_privkey.setEnabled(True)
             self.pushButton_addingData.setEnabled(False)
             self.pushButton_showPass.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
         elif self.privkey_file and result_check_privkey == 'privkey != pubkey':
             self.toolButton_privkey.setEnabled(True)
             self.toolButton_pubkey.setEnabled(True)
@@ -895,12 +868,10 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         else:
             self.toolButton_privkey.setEnabled(True)
             self.pushButton_showPass.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
 
         if lines == 0:
             self.pushButton_delete.setEnabled(False)
             self.pushButton_showPass.setEnabled(False)
-            self.pushButton_5.setEnabled(False)
 
     def delete_buffer(self):
         global BUFFER_DEL_SEC
