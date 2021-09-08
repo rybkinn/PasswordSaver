@@ -283,6 +283,10 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.treeWidget.headerItem().setFont(header_item_index, font)
         self.add_tree_widget_item()
 
+        self.progressBar.hide()
+        self.statusbar.addPermanentWidget(self.progressBar)
+        self.statusbar.addPermanentWidget(self.label_version)
+
         self.spinner = QtWaitingSpinner(self, centerOnParent=True,
                                         disableParentWhenSpinning=True)
         self.spinner.setGeometry(QtCore.QRect(180, 230, 121, 16))
