@@ -25,17 +25,79 @@
   <property name="windowTitle">
    <string>Password Saver - Главная</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="../resource/res.qrc">
+    <normaloff>:/resource/image/key.ico</normaloff>:/resource/image/key.ico</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="1" column="3">
-     <widget class="QPushButton" name="pushButton_5">
+    <item row="1" column="0" colspan="2" alignment="Qt::AlignLeft|Qt::AlignVCenter">
+     <widget class="QToolButton" name="toolButton_pubkey">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="cursor">
+       <cursorShape>PointingHandCursor</cursorShape>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::TabFocus</enum>
+      </property>
+      <property name="contextMenuPolicy">
+       <enum>Qt::DefaultContextMenu</enum>
+      </property>
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+      <property name="autoFillBackground">
+       <bool>false</bool>
+      </property>
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="inputMethodHints">
+       <set>Qt::ImhNone</set>
+      </property>
       <property name="text">
-       <string>Показать пароли</string>
+       <string>Укажите pubkey.pem</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../resource/res.qrc">
+        <normaloff>:/resource/image/cross.ico</normaloff>:/resource/image/cross.ico</iconset>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
+      </property>
+      <property name="autoRepeat">
+       <bool>false</bool>
+      </property>
+      <property name="autoExclusive">
+       <bool>false</bool>
+      </property>
+      <property name="popupMode">
+       <enum>QToolButton::DelayedPopup</enum>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="4" column="1">
-     <widget class="QLabel" name="label_3">
+    <item row="4" column="3">
+     <widget class="QLabel" name="label_version">
       <property name="text">
        <string>v 0.1</string>
       </property>
@@ -44,14 +106,20 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="3">
-     <widget class="QPushButton" name="pushButton_3">
-      <property name="text">
-       <string>Копировать пароль в буфер</string>
+    <item row="4" column="0">
+     <widget class="QProgressBar" name="progressBar">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="value">
+       <number>24</number>
       </property>
      </widget>
     </item>
-    <item row="3" column="0" colspan="5">
+    <item row="3" column="0" colspan="4">
      <widget class="QTreeWidget" name="treeWidget">
       <property name="animated">
        <bool>true</bool>
@@ -142,297 +210,74 @@
         </font>
        </property>
       </column>
-      <item>
-       <property name="text">
-        <string>Почта</string>
-       </property>
-       <property name="background">
-        <brush brushstyle="NoBrush">
-         <color alpha="255">
-          <red>0</red>
-          <green>0</green>
-          <blue>0</blue>
-         </color>
-        </brush>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="background">
-        <brush brushstyle="NoBrush">
-         <color alpha="255">
-          <red>0</red>
-          <green>0</green>
-          <blue>0</blue>
-         </color>
-        </brush>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="background">
-        <brush brushstyle="NoBrush">
-         <color alpha="255">
-          <red>0</red>
-          <green>0</green>
-          <blue>0</blue>
-         </color>
-        </brush>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="background">
-        <brush brushstyle="NoBrush">
-         <color alpha="255">
-          <red>0</red>
-          <green>0</green>
-          <blue>0</blue>
-         </color>
-        </brush>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="background">
-        <brush brushstyle="NoBrush">
-         <color alpha="255">
-          <red>0</red>
-          <green>0</green>
-          <blue>0</blue>
-         </color>
-        </brush>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="background">
-        <brush brushstyle="NoBrush">
-         <color alpha="255">
-          <red>0</red>
-          <green>0</green>
-          <blue>0</blue>
-         </color>
-        </brush>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="background">
-        <brush brushstyle="NoBrush">
-         <color alpha="255">
-          <red>0</red>
-          <green>0</green>
-          <blue>0</blue>
-         </color>
-        </brush>
-       </property>
-       <item>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="text">
-         <string>yandex</string>
-        </property>
-        <property name="text">
-         <string>test@yandex.ru</string>
-        </property>
-        <property name="text">
-         <string>qwerty123</string>
-        </property>
-        <property name="text">
-         <string>test@yandex.ru</string>
-        </property>
-        <property name="text">
-         <string>123</string>
-        </property>
-        <property name="text">
-         <string>https://yandex.ru</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="text">
-         <string>mail</string>
-        </property>
-        <property name="text">
-         <string>test@mail.ru</string>
-        </property>
-        <property name="text">
-         <string>ytrewq321</string>
-        </property>
-        <property name="text">
-         <string>test@mail.ru</string>
-        </property>
-        <property name="text">
-         <string>231</string>
-        </property>
-        <property name="text">
-         <string>https://mail.ru</string>
-        </property>
-       </item>
-      </item>
-      <item>
-       <property name="text">
-        <string>Игры</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <item>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="text">
-         <string>testgame</string>
-        </property>
-        <property name="text">
-         <string>gamelogin</string>
-        </property>
-        <property name="text">
-         <string>gamepass123</string>
-        </property>
-        <property name="text">
-         <string>test@mail.ru</string>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-       </item>
-      </item>
-      <item>
-       <property name="text">
-        <string>Соц сети</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <item>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="text">
-         <string>Vk</string>
-        </property>
-        <property name="text">
-         <string>loginvk</string>
-        </property>
-        <property name="text">
-         <string>vkpass123</string>
-        </property>
-        <property name="text">
-         <string>test@mail.ru</string>
-        </property>
-        <property name="text">
-         <string>231</string>
-        </property>
-        <property name="text">
-         <string>https://vk.com</string>
-        </property>
-       </item>
-      </item>
-      <item>
-       <property name="text">
-        <string>Разное</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <item>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="text">
-         <string>Forum</string>
-        </property>
-        <property name="text">
-         <string>forumlogin</string>
-        </property>
-        <property name="text">
-         <string>ytrewq12345</string>
-        </property>
-        <property name="text">
-         <string>testyandexlong@yandex.ru</string>
-        </property>
-        <property name="text">
-         <string>213</string>
-        </property>
-        <property name="text">
-         <string>https://testforumnexttest.ru</string>
-        </property>
-       </item>
-      </item>
      </widget>
     </item>
-    <item row="2" column="0" colspan="3">
-     <widget class="QPushButton" name="pushButton_6">
-      <property name="text">
-       <string>Показать пароли</string>
+    <item row="2" column="2">
+     <widget class="QPushButton" name="pushButton_showHideSections">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
       </property>
-      <property name="flat">
+      <property name="minimumSize">
+       <size>
+        <width>170</width>
+        <height>34</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>Развернуть все разделы</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0" colspan="2" alignment="Qt::AlignLeft|Qt::AlignVCenter">
+     <widget class="QToolButton" name="toolButton_privkey">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="cursor">
+       <cursorShape>PointingHandCursor</cursorShape>
+      </property>
+      <property name="text">
+       <string>Укажите privkey.pem</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../resource/res.qrc">
+        <normaloff>:/resource/image/cross.ico</normaloff>:/resource/image/cross.ico</iconset>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
+      </property>
+      <property name="autoRaise">
        <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="1" column="4">
-     <widget class="QPushButton" name="pushButton_2">
+    <item row="1" column="3">
+     <widget class="QPushButton" name="pushButton_addingData">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>170</width>
+        <height>34</height>
+       </size>
+      </property>
       <property name="text">
        <string>Добавить</string>
       </property>
      </widget>
     </item>
-    <item row="0" column="0" colspan="5">
-     <widget class="QLabel" name="label">
+    <item row="0" column="0" colspan="4">
+     <widget class="QLabel" name="label_heading">
       <property name="enabled">
        <bool>true</bool>
       </property>
@@ -476,43 +321,41 @@
       </property>
      </widget>
     </item>
-    <item row="4" column="4">
-     <widget class="QLabel" name="label_2">
-      <property name="text">
-       <string>v 0.1</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-      </property>
-     </widget>
-    </item>
-    <item row="4" column="0">
-     <widget class="QProgressBar" name="progressBar">
+    <item row="1" column="2">
+     <widget class="QPushButton" name="pushButton_showPass">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <property name="value">
-       <number>24</number>
+      <property name="minimumSize">
+       <size>
+        <width>170</width>
+        <height>34</height>
+       </size>
       </property>
-     </widget>
-    </item>
-    <item row="2" column="4">
-     <widget class="QPushButton" name="pushButton">
-      <property name="text">
-       <string>удалить</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0" colspan="3">
-     <widget class="QPushButton" name="pushButton_7">
       <property name="text">
        <string>Показать пароли</string>
       </property>
-      <property name="flat">
-       <bool>true</bool>
+     </widget>
+    </item>
+    <item row="2" column="3">
+     <widget class="QPushButton" name="pushButton_delete">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>170</width>
+        <height>34</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>Удалить</string>
       </property>
      </widget>
     </item>
@@ -524,19 +367,20 @@
      <x>0</x>
      <y>0</y>
      <width>870</width>
-     <height>21</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
     <property name="title">
      <string>Файл</string>
     </property>
-    <addaction name="action_3"/>
-    <addaction name="action_4"/>
-    <addaction name="action_5"/>
-    <addaction name="action_6"/>
+    <addaction name="action_saveDb"/>
+    <addaction name="action_createDb"/>
+    <addaction name="action_loadDb"/>
+    <addaction name="action_syncDb"/>
+    <addaction name="action_print"/>
     <addaction name="separator"/>
-    <addaction name="action_7"/>
+    <addaction name="action_exit"/>
    </widget>
    <addaction name="menu"/>
   </widget>
@@ -551,32 +395,63 @@
     <string>Сохранить</string>
    </property>
   </action>
-  <action name="action_3">
+  <action name="action_saveDb">
+   <property name="icon">
+    <iconset resource="../resource/res.qrc">
+     <normaloff>:/resource/image/save.ico</normaloff>:/resource/image/save.ico</iconset>
+   </property>
    <property name="text">
     <string>Сохранить</string>
    </property>
   </action>
-  <action name="action_4">
+  <action name="action_createDb">
+   <property name="icon">
+    <iconset resource="../resource/res.qrc">
+     <normaloff>:/resource/image/add_db.ico</normaloff>:/resource/image/add_db.ico</iconset>
+   </property>
    <property name="text">
     <string>Создать новую БД</string>
    </property>
   </action>
-  <action name="action_5">
+  <action name="action_loadDb">
+   <property name="icon">
+    <iconset resource="../resource/res.qrc">
+     <normaloff>:/resource/image/search_db.ico</normaloff>:/resource/image/search_db.ico</iconset>
+   </property>
    <property name="text">
     <string>Загрузить БД</string>
    </property>
   </action>
-  <action name="action_7">
+  <action name="action_exit">
+   <property name="icon">
+    <iconset resource="../resource/res.qrc">
+     <normaloff>:/resource/image/exit.ico</normaloff>:/resource/image/exit.ico</iconset>
+   </property>
    <property name="text">
     <string>Выход</string>
    </property>
   </action>
-  <action name="action_6">
+  <action name="action_print">
+   <property name="icon">
+    <iconset resource="../resource/res.qrc">
+     <normaloff>:/resource/image/print.ico</normaloff>:/resource/image/print.ico</iconset>
+   </property>
    <property name="text">
     <string>Печать</string>
    </property>
   </action>
+  <action name="action_syncDb">
+   <property name="icon">
+    <iconset resource="../resource/res.qrc">
+     <normaloff>:/resource/image/sync_db.ico</normaloff>:/resource/image/sync_db.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Синхронизация БД</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="../resource/res.qrc"/>
+ </resources>
  <connections/>
 </ui>

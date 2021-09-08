@@ -7,7 +7,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 
-import py.main_menu
+import py.main_menu as main_menu
 import py.ui.start_window_ui as start_window_ui
 import py.database_creation as database_creation
 from py.show_msg import show_msg
@@ -86,7 +86,7 @@ def check_database(connect: sqlite3.Connection, pwd: str) -> tuple:
                 "value" INTEGER NOT NULL)""")
             cur_check_db.execute("""
             INSERT INTO db_information (name, value) 
-            VALUES (?, ?)""", ('rsa_bit', py.main_menu.NEW_RSA_BIT))
+            VALUES (?, ?)""", ('rsa_bit', main_menu.NEW_RSA_BIT))
     except sqlite3.DatabaseError as error:
         show_msg(title='Ошибка',
                  top_text='Ошибка проверки базы данных',
@@ -113,7 +113,7 @@ class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
 
         self.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
 
-        self.label_4.setText(str(py.main_menu.VERSION))
+        self.label_4.setText(str(main_menu.VERSION))
 
         self.setTabOrder(self.pushButton_3, self.comboBox_2)
         self.setTabOrder(self.comboBox_2, self.toolButton)
@@ -190,12 +190,12 @@ class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
                     conn_start_window, pwd)
                 conn_start_window.close()
                 if check_result:
-                    py.main_menu.db_dir = db_info[0]
-                    py.main_menu.db_name = db_info[1]
-                    py.main_menu.pwd = pwd
+                    main_menu.db_dir = db_info[0]
+                    main_menu.db_name = db_info[1]
+                    main_menu.pwd = pwd
                     del pwd
-                    py.main_menu.connect_sql()
-                    self.main_window = MainWindow()
+                    main_menu.connect_sql()
+                    self.main_window = main_menu.MainMenu()
                     self.main_window.show()
                     self.close()
             else:
@@ -210,9 +210,3 @@ class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
         self.create_db = database_creation.CreateDB()
         self.create_db.exec_()
         self.updates_list_db()
-
-
-class MainWindow(QtWidgets.QMainWindow, py.main_menu.Ui_MainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)

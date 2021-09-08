@@ -19,6 +19,7 @@ import py.loading_db as loading_db
 import py.sync_db as sync_db
 import py.print_list as print_list
 import py.change as change
+import py.ui.main_menu_ui as main_menu_ui
 from py.show_msg import show_msg
 from py.spinner_widget import QtWaitingSpinner
 
@@ -254,9 +255,11 @@ def connect_sql():  # TODO: убрать глобалы и должна возв
     rsa_length = calc_rsa_length(int(rsa_bit))
 
 
-class Ui_MainWindow(object):
+class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
     def __init__(self):
-        super(Ui_MainWindow, self).__init__()
+        super().__init__()
+        self.setupUi(self)
+
         self.create_db = None
         self.loading_db = None
         self.adding_data = None
@@ -273,169 +276,12 @@ class Ui_MainWindow(object):
         self.pubkey_file = os.path.isfile("{}_pubkey.pem".format(db_dir[:-3]))
         self.privkey_file = os.path.isfile("{}_privkey.pem".format(db_dir[:-3]))
 
-    def setupUi(self, MainWindow):
-        MainWindow.resize(870, 600)
-        MainWindow.setMinimumSize(QtCore.QSize(870, 600))
-        MainWindow.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.centralwidget = QtWidgets.QWidget(MainWindow)
-        self.centralwidget.setObjectName("centralwidget")
-        self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
-        self.gridLayout.setObjectName("gridLayout")
-        self.label_heading = QtWidgets.QLabel(self.centralwidget)
-        self.label_heading.setObjectName("label_heading")
-        font = QtGui.QFont()
-        font.setFamily("Arial Black")
-        font.setPointSize(16)
-        font.setBold(True)
-        font.setItalic(False)
-        font.setUnderline(False)
-        font.setWeight(75)
-        font.setStrikeOut(False)
-        self.label_heading.setFont(font)
-        self.label_heading.setAlignment(QtCore.Qt.AlignCenter)
-        self.gridLayout.addWidget(self.label_heading, 0, 0, 1, 5)
-
-        self.pushButton_addingData = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_addingData.setObjectName("pushButton_addingData")
-        self.pushButton_addingData.setMinimumSize(QtCore.QSize(152, 23))
-        self.gridLayout.addWidget(self.pushButton_addingData, 1, 4, 1, 1)
-
-        self.pushButton_showHideSections = QtWidgets.QPushButton(
-            self.centralwidget)
-        self.pushButton_showHideSections.setObjectName(
-            "pushButton_showHideSections")
-        self.pushButton_showHideSections.setMinimumSize(QtCore.QSize(152, 23))
-        self.gridLayout.addWidget(self.pushButton_showHideSections, 2, 3, 1, 1)
-
-        self.pushButton_delete = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_delete.setObjectName("pushButton_delete")
-        self.pushButton_delete.setMinimumSize(QtCore.QSize(152, 23))
-        self.gridLayout.addWidget(self.pushButton_delete, 2, 4, 1, 1)
-
-        self.treeWidget = QtWidgets.QTreeWidget(self.centralwidget)
-        self.treeWidget.setAnimated(True)
-        self.treeWidget.setObjectName("treeWidget")
-
         font = QtGui.QFont()
         font.setBold(True)
         font.setWeight(75)
         for header_item_index in range(0, 7):
             self.treeWidget.headerItem().setFont(header_item_index, font)
-
         self.add_tree_widget_item()
-        self.treeWidget.header().setDefaultSectionSize(118)
-        self.treeWidget.header().setMinimumSectionSize(50)
-        self.treeWidget.header().setStretchLastSection(True)
-
-        self.gridLayout.addWidget(self.treeWidget, 3, 0, 1, 5)
-
-        self.pushButton_showPass = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_showPass.setObjectName("pushButton_showPass")
-        self.pushButton_showPass.setMinimumSize(QtCore.QSize(152, 23))
-        self.gridLayout.addWidget(self.pushButton_showPass, 1, 3, 1, 1)
-        self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
-        self.pushButton_5.setObjectName("pushButton_5")
-        self.pushButton_5.setMinimumSize(QtCore.QSize(152, 23))
-        self.gridLayout.addWidget(self.pushButton_5, 1, 3, 1, 1)
-        self.label_version = QtWidgets.QLabel(self.centralwidget)
-        self.gridLayout.addWidget(self.label_version, 4, 4, 1, 1)
-        self.label_version.setObjectName("label_version")
-        self.label_version.setAlignment(QtCore.Qt.AlignRight |
-                                        QtCore.Qt.AlignTrailing |
-                                        QtCore.Qt.AlignVCenter)
-        self.toolButton_pubkey = QtWidgets.QToolButton(self.centralwidget)
-        self.toolButton_pubkey.setMinimumSize(QtCore.QSize(23, 31))
-        self.toolButton_pubkey.setSizeIncrement(QtCore.QSize(55, 15))
-        self.toolButton_pubkey.setBaseSize(QtCore.QSize(24, 22))
-        font = QtGui.QFont()
-        font.setBold(True)
-        font.setItalic(False)
-        font.setUnderline(False)
-        font.setWeight(75)
-        self.toolButton_pubkey.setFont(font)
-        self.toolButton_pubkey.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
-        self.toolButton_pubkey.setAcceptDrops(False)
-        self.toolButton_pubkey.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.toolButton_pubkey.setStyleSheet("")
-        self.toolButton_pubkey.setInputMethodHints(QtCore.Qt.ImhNone)
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"),
-                       QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        icon.addPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"),
-                       QtGui.QIcon.Disabled, QtGui.QIcon.Off)
-        self.toolButton_pubkey.setIcon(icon)
-        self.toolButton_pubkey.setAutoRepeat(False)
-        self.toolButton_pubkey.setAutoExclusive(False)
-        self.toolButton_pubkey.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.toolButton_pubkey.setAutoRaise(True)
-        self.toolButton_pubkey.setObjectName("toolButton_pubkey")
-        self.gridLayout.addWidget(self.toolButton_pubkey, 1, 0, 1, 2)
-        self.toolButton_privkey = QtWidgets.QToolButton(self.centralwidget)
-        font = QtGui.QFont()
-        font.setBold(True)
-        font.setWeight(75)
-        self.toolButton_privkey.setFont(font)
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"),
-                        QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        icon1.addPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"),
-                        QtGui.QIcon.Disabled, QtGui.QIcon.Off)
-        self.toolButton_privkey.setIcon(icon1)
-        self.toolButton_privkey.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.toolButton_privkey.setAutoRaise(True)
-        self.toolButton_privkey.setObjectName("toolButton_privkey")
-        self.gridLayout.addWidget(self.toolButton_privkey, 2, 0, 1, 2)
-        MainWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 870, 21))
-        self.menubar.setObjectName("menubar")
-        self.menu = QtWidgets.QMenu(self.menubar)
-        self.menu.setObjectName("menu")
-        MainWindow.setMenuBar(self.menubar)
-        self.statusbar = QtWidgets.QStatusBar(MainWindow)
-        self.statusbar.setObjectName("statusbar")
-        MainWindow.setStatusBar(self.statusbar)
-        self.action = QtWidgets.QAction(MainWindow)
-        self.action.setObjectName("action")
-        self.action_saveDb = QtWidgets.QAction(MainWindow)
-        self.action_saveDb.setObjectName("action_saveDb")
-        self.action_saveDb.setIcon(QtGui.QIcon(':/resource/image/save.ico'))
-        self.action_createDb = QtWidgets.QAction(MainWindow)
-        self.action_createDb.setObjectName("action_createDb")
-        self.action_createDb.setIcon(QtGui.QIcon(':/resource/image/add_db.ico'))
-        self.action_loadDb = QtWidgets.QAction(MainWindow)
-        self.action_loadDb.setObjectName("action_loadDb")
-        self.action_loadDb.setIcon(QtGui.QIcon(':/resource/image/search_db.ico'))
-        self.action_syncDb = QtWidgets.QAction(MainWindow)
-        self.action_syncDb.setObjectName("action_syncDb")
-        self.action_syncDb.setIcon(QtGui.QIcon(':/resource/image/sync_db.ico'))
-        self.action_syncDb.setEnabled(False)
-        self.action_print = QtWidgets.QAction(MainWindow)
-        self.action_print.setObjectName("action_print")
-        self.action_print.setIcon(QtGui.QIcon(':/resource/image/print.ico'))
-        self.action_exit = QtWidgets.QAction(MainWindow)
-        self.action_exit.setObjectName("action_exit")
-        self.action_exit.setIcon(QtGui.QIcon(':/resource/image/exit.ico'))
-        self.menu.addAction(self.action_saveDb)
-        self.menu.addAction(self.action_createDb)
-        self.menu.addAction(self.action_loadDb)
-        self.menu.addAction(self.action_syncDb)
-        self.menu.addAction(self.action_print)
-        self.menu.addSeparator()
-        self.menu.addAction(self.action_exit)
-        self.menubar.addAction(self.menu.menuAction())
-
-        MainWindow.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
-
-        self.progressBar = QtWidgets.QProgressBar(self.centralwidget)
-        self.progressBar.setMinimum(0)
-        self.progressBar.setMaximum(100)
-        self.progressBar.setProperty("value", 0)
-        self.progressBar.setObjectName("progressBar")
-        self.gridLayout.addWidget(self.progressBar, 4, 0, 1, 1)
-        self.progressBar.hide()
-        self.statusbar.addPermanentWidget(self.progressBar)
-        self.statusbar.addPermanentWidget(self.label_version)
 
         self.spinner = QtWaitingSpinner(self, centerOnParent=True,
                                         disableParentWhenSpinning=True)
@@ -449,6 +295,17 @@ class Ui_MainWindow(object):
         self.spinner.setInnerRadius(10)
         self.spinner.setRevolutionsPerSecond(1)
         self.spinner.setColor(QtGui.QColor(0, 0, 0))
+
+        self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed,
+                                           QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.pushButton_5.sizePolicy().hasHeightForWidth())
+        self.pushButton_5.setSizePolicy(sizePolicy)
+        self.pushButton_5.setMinimumSize(QtCore.QSize(170, 34))
+        self.pushButton_5.setObjectName("pushButton_5")
+        self.gridLayout.addWidget(self.pushButton_5, 2, 2, 1, 1)
 
         self.result_check_privkey()
         self.result_check_pubkey()
@@ -464,8 +321,8 @@ class Ui_MainWindow(object):
                 and not self.toolButton_pubkey.isEnabled():
             self.action_syncDb.setEnabled(True)
 
-        self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        self.retranslate_ui_main()
+
         self.action_saveDb.triggered.connect(self.save_db)
         self.action_createDb.triggered.connect(self.show_create_db)
         self.action_loadDb.triggered.connect(self.show_load_db)
@@ -487,82 +344,41 @@ class Ui_MainWindow(object):
         self.treeWidget.customContextMenuRequested.connect(
             self.menu_context_album)
 
-    def retranslateUi(self, MainWindow):
-        _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(
-            _translate("MainWindow", "Password Saver - Главная | {}".format(
-                db_name)))
-        self.label_heading.setText(_translate("MainWindow", "Password Saver"))
-        self.treeWidget.headerItem().setText(0, _translate(
-            "MainWindow", "Раздел"))
-        self.treeWidget.headerItem().setText(1, _translate(
-            "MainWindow", "Название"))
-        self.treeWidget.headerItem().setText(2, _translate(
-            "MainWindow", "Логин"))
-        self.treeWidget.headerItem().setText(3, _translate(
-            "MainWindow", "Пароль"))
-        self.treeWidget.headerItem().setText(4, _translate(
-            "MainWindow", "Почта"))
-        self.treeWidget.headerItem().setText(5, _translate(
-            "MainWindow", "Секретное слово"))
-        self.treeWidget.headerItem().setText(6, _translate(
-            "MainWindow", "URL"))
+    def retranslate_ui_main(self):
+        self.setWindowTitle(f"Password Saver - Главная | {db_name}")
         __sortingEnabled = self.treeWidget.isSortingEnabled()
         self.treeWidget.setSortingEnabled(False)
         self.add_tree_widget_item_text()
         self.treeWidget.setSortingEnabled(__sortingEnabled)
-        self.pushButton_showHideSections.setText(_translate(
-            "MainWindow", "Развернуть все разделы"))
-        self.pushButton_delete.setText(_translate("MainWindow", "Удалить"))
-        self.pushButton_addingData.setText(_translate("MainWindow", "Добавить"))
-        self.pushButton_showPass.setText(_translate(
-            "MainWindow", "Показать пароли"))
-        self.pushButton_5.setText(_translate("MainWindow", "Показать пароли"))
-        self.label_version.setText(_translate(
-            "MainWindow", "{}".format(VERSION)))
+        self.label_version.setText(VERSION)
+
         if self.pubkey_file and result_check_pubkey == 'ok':
-            self.toolButton_pubkey.setText(_translate("MainWindow", pubkey_dir))
+            self.toolButton_pubkey.setText(pubkey_dir)
         elif self.pubkey_file and result_check_pubkey == '!ok':
-            self.toolButton_pubkey.setText(_translate(
-                "MainWindow", 'Ключ не подходит. Укажите pubkey.pem'))
+            self.toolButton_pubkey.setText('Ключ не подходит. Укажите pubkey.pem')
         elif self.pubkey_file and result_check_pubkey is None:
-            self.toolButton_pubkey.setText(_translate("MainWindow", pubkey_dir))
+            self.toolButton_pubkey.setText(pubkey_dir)
         elif self.pubkey_file and result_check_pubkey == 'not privkey':
-            self.toolButton_pubkey.setText(_translate(
-                "MainWindow", 'Сначало укажите privkey.pem'))
+            self.toolButton_pubkey.setText('Сначало укажите privkey.pem')
         else:
-            self.toolButton_pubkey.setText(_translate(
-                "MainWindow", "Укажите pubkey.pem"))
+            self.toolButton_pubkey.setText("Укажите pubkey.pem")
 
         if self.privkey_file and result_check_privkey == 'ok':
             global privkey_dir
             privkey_dir = os.path.abspath("data/{}_privkey.pem".format(
                 db_name[:-3]))
-            self.toolButton_privkey.setText(_translate("MainWindow", privkey_dir))
+            self.toolButton_privkey.setText(privkey_dir)
         elif self.privkey_file and result_check_privkey == '!ok':
-            self.toolButton_privkey.setText(_translate(
-                "MainWindow", "Ключ не подходит. Укажите privkey.pem"))
+            self.toolButton_privkey.setText("Ключ не подходит. Укажите privkey.pem")
         elif self.privkey_file and result_check_privkey == 'privkey != pubkey':
-            self.toolButton_privkey.setText(_translate(
-                "MainWindow", "Ключи разные. Укажите правильный privkey.pem"))
-            self.toolButton_pubkey.setText(_translate(
-                "MainWindow", "Ключи разные. Укажите правильный pubkey.pem"))
+            self.toolButton_privkey.setText("Ключи разные. Укажите правильный privkey.pem")
+            self.toolButton_pubkey.setText("Ключи разные. Укажите правильный pubkey.pem")
         elif self.privkey_file and result_check_privkey == 'not pubkey':
-            self.toolButton_privkey.setText(_translate(
-                "MainWindow", "Сначало укажите pubkey.pem"))
+            self.toolButton_privkey.setText("Сначало укажите pubkey.pem")
         else:
-            self.toolButton_privkey.setText(_translate(
-                "MainWindow", "Укажите privkey.pem"))
+            self.toolButton_privkey.setText("Укажите privkey.pem")
 
-        self.menu.setTitle(_translate("MainWindow", "Файл"))
-        self.action.setText(_translate("MainWindow", "Выход"))
-        self.action_saveDb.setText(_translate("MainWindow", "Сохранить"))
-        self.action_createDb.setText(_translate("MainWindow", "Создать новую БД"))
-        self.action_loadDb.setText(_translate("MainWindow", "Загрузить БД"))
-        self.action_syncDb.setText(_translate("MainWindow", "Синхронизировать с БД"))
-        self.action_print.setText(_translate("MainWindow", "Печать"))
-        self.action_exit.setText(_translate("MainWindow", "Выход"))
-        self.progressBar.setFormat(_translate("MainWindow", ""))
+        self.progressBar.setFormat("")
 
     @QtCore.pyqtSlot()
     def print(self):
@@ -663,7 +479,7 @@ class Ui_MainWindow(object):
             self.result_check_privkey()
             self.result_check_pubkey()
             self.button_state()
-            self.retranslateUi(self)
+            self.retranslate_ui_main()
             if result_check_pubkey:
                 self.pushButton_addingData.setEnabled(True)
             [lines], = cur.execute("SELECT Count(*) FROM account_information")
