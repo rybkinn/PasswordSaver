@@ -45,6 +45,12 @@
         <height>0</height>
        </size>
       </property>
+      <property name="font">
+       <font>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
       <property name="cursor">
        <cursorShape>PointingHandCursor</cursorShape>
       </property>
@@ -71,7 +77,8 @@
       </property>
       <property name="icon">
        <iconset resource="../resource/res.qrc">
-        <normaloff>:/resource/image/cross.ico</normaloff>:/resource/image/cross.ico</iconset>
+        <normaloff>:/resource/image/cross.ico</normaloff>
+        <disabledoff>:/resource/image/checkmark.ico</disabledoff>:/resource/image/cross.ico</iconset>
       </property>
       <property name="checkable">
        <bool>false</bool>
@@ -210,7 +217,7 @@
       <property name="minimumSize">
        <size>
         <width>170</width>
-        <height>34</height>
+        <height>30</height>
        </size>
       </property>
       <property name="text">
@@ -226,6 +233,12 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="font">
+       <font>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
       <property name="cursor">
        <cursorShape>PointingHandCursor</cursorShape>
       </property>
@@ -234,7 +247,8 @@
       </property>
       <property name="icon">
        <iconset resource="../resource/res.qrc">
-        <normaloff>:/resource/image/cross.ico</normaloff>:/resource/image/cross.ico</iconset>
+        <normaloff>:/resource/image/cross.ico</normaloff>
+        <disabledoff>:/resource/image/checkmark.ico</disabledoff>:/resource/image/cross.ico</iconset>
       </property>
       <property name="toolButtonStyle">
        <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -255,7 +269,7 @@
       <property name="minimumSize">
        <size>
         <width>170</width>
-        <height>34</height>
+        <height>30</height>
        </size>
       </property>
       <property name="text">
@@ -319,7 +333,7 @@
       <property name="minimumSize">
        <size>
         <width>170</width>
-        <height>34</height>
+        <height>30</height>
        </size>
       </property>
       <property name="text">
@@ -338,7 +352,7 @@
       <property name="minimumSize">
        <size>
         <width>170</width>
-        <height>34</height>
+        <height>30</height>
        </size>
       </property>
       <property name="text">
@@ -367,7 +381,7 @@
      <x>0</x>
      <y>0</y>
      <width>870</width>
-     <height>30</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
