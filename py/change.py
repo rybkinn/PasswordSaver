@@ -11,6 +11,7 @@ class Change(QtWidgets.QDialog, change_ui.Ui_Dialog):
     def __init__(self, title: str, label_text: str, pushbutton: bool):
         """
         Initialize an instance.
+
         :param title: set window title
         :param label_text: set label text
         :param pushbutton: On / Off generate password button

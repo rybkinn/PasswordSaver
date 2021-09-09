@@ -5,11 +5,11 @@ from sys import platform
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMessageBox
 
 import py.main_menu
 import py.start_window
 import py.ui.loading_db_ui as loading_db_ui
+from py.show_msg import show_msg
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -90,9 +90,8 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
             py.main_menu.connect_sql()
             self.done(1)
         else:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setWindowTitle("Ошибка входа")
-            msg.setText("Неправильный пароль")
-            msg.exec_()
+            show_msg(title='Ошибка',
+                     top_text='Неправильный пароль',
+                     window_type='critical',
+                     buttons='ok')
             self.lineEdit.clear()

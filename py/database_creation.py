@@ -7,12 +7,12 @@ from sys import platform
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMessageBox
 
 import py.res_rc
 import py.main_menu
-from py.spinner_widget import QtWaitingSpinner
 import py.ui.database_creation_ui as database_creation_ui
+from py.spinner_widget import QtWaitingSpinner
+from py.show_msg import show_msg
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -20,49 +20,6 @@ elif platform == "win32":
     import sqlite3
 # elif platform == "darwin":
     # OS X
-
-
-def show_msg(
-        value: bool, text_show: str, add_fields: bool = False,
-        informative_text: str = None, detailed_text: str = None) -> int:
-    """
-    Creation of a modal message box.
-    :param value: True - success message.  False - error message.
-    :param text_show: Set text message.
-    :param add_fields: Add informative and detailed fields to the window.
-    :param informative_text: Set informative text.
-    :param detailed_text: Set detailed text.
-    :return: Window work status.
-    """
-    width = 500
-    msg = QMessageBox()
-    icon = QtGui.QIcon()
-    icon.addPixmap(QtGui.QPixmap(":/resource/image/key.ico"),
-                   QtGui.QIcon.Normal, QtGui.QIcon.Off)
-    msg.setWindowIcon(icon)
-    if value:
-        msg.setIcon(QMessageBox.Information)
-        if add_fields:
-            msg.setText(text_show + ' ' * width)
-        else:
-            msg.setText(text_show)
-        msg.setWindowTitle("Успех")
-        if add_fields:
-            msg.setInformativeText(informative_text)
-            msg.setDetailedText(detailed_text)
-        msg.exec()
-        result = True
-        return result
-    else:
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText(text_show)
-        msg.setWindowTitle("Ошибка")
-        if add_fields:
-            msg.setInformativeText(informative_text)
-            msg.setDetailedText(detailed_text)
-        msg.exec()
-        result = False
-        return result
 
 
 class ThreadCreateKeys(QtCore.QThread):
@@ -171,7 +128,10 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
         pwd = self.lineEdit_2.text()
         pwd_re = self.lineEdit_3.text()
         if name_db == '':
-            show_msg(False, 'Введите название БД')
+            show_msg(title='Ошибка',
+                     top_text='Введите название БД',
+                     window_type='critical',
+                     buttons='ok')
             self.lineEdit.setStyleSheet("border: 1px solid red")
         else:
             result = False
@@ -185,29 +145,46 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
                     result = True
                     break
             if result:
-                show_msg(False, 'Такая база данных уже существует')
+                show_msg(title='Ошибка',
+                         top_text='Такая база данных уже существует',
+                         window_type='critical',
+                         buttons='ok')
                 self.lineEdit.setStyleSheet("border: 1px solid red")
             elif pwd == '' and pwd_re == '':
-                show_msg(False, 'Заполните поля ввода паролей')
+                show_msg(title='Ошибка',
+                         top_text='Заполните поля ввода паролей',
+                         window_type='critical',
+                         buttons='ok')
                 self.lineEdit_2.setStyleSheet("border: 1px solid red")
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd == '':
-                show_msg(False, 'Поле введите пароль пустое')
+                show_msg(title='Ошибка',
+                         top_text='Поле введите пароль пустое',
+                         window_type='critical',
+                         buttons='ok')
                 self.lineEdit_2.setStyleSheet("border: 1px solid red")
             elif self.validate_password is None or not self.validate_password:
-                show_msg(False, 'Неправильный пароль',
-                         add_fields=True,
-                         informative_text='- 8 символов или больше\n'
-                                          '- Верхний и нижний регистр\n'
-                                          '- Минимум 1 цифра\n'
-                                          '- Не может быть русскими буквами')
+                show_msg(title='Ошибка',
+                         top_text='Неправильный пароль',
+                         bottom_text='- 8 символов или больше\n'
+                                     '- Верхний и нижний регистр\n'
+                                     '- Минимум 1 цифра\n'
+                                     '- Не может быть русскими буквами',
+                         window_type='critical',
+                         buttons='ok')
                 self.lineEdit_2.setStyleSheet("border: 1px solid red")
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd_re == '':
-                show_msg(False, 'Поле Подтвердите пароль пустое')
+                show_msg(title='Ошибка',
+                         top_text='Поле подтвердите пароль пустое',
+                         window_type='critical',
+                         buttons='ok')
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd != pwd_re:
-                show_msg(False, 'Пароли не совпадают')
+                show_msg(title='Ошибка',
+                         top_text='Пароли не совпадают',
+                         window_type='critical',
+                         buttons='ok')
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd == pwd_re:
                 conn_db_creation = sqlite3.connect(r'data/' + name_db + '.db')
@@ -252,7 +229,11 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
                 self.create_keys.finished.connect(self.spinner_finished)
                 self.create_keys.start()
             else:
-                show_msg(False, 'Неизвестная ошибка. Обратитесь к разработчику.')
+                show_msg(title='Ошибка',
+                         top_text='Неизвестная ошибка',
+                         bottom_text='Обратитесь к разработчику',
+                         window_type='critical',
+                         buttons='ok')
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
 
     @QtCore.pyqtSlot()
@@ -264,18 +245,20 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
     def spinner_finished(self):
         self.spinner.stop()
         self.label_6.hide()
-        show_msg(True, 'База данных успешно создана.',
-                 add_fields=True,
-                 informative_text='Более подробно по нажатию '
-                                  'кнопки "Show Details..."',
+        show_msg(title='Успех',
+                 top_text='База данных успешно создана' + (' ' * 500),
+                 bottom_text='Более подробно по нажатию '
+                             'кнопки "Show Details..."',
                  detailed_text='- База данных: \n' + os.getcwd() + '\\data\\'
                                + self.lineEdit.text() + '.db' + '\n\n'
                                        
-                               '- Публичный ключ: \n' + os.getcwd() + '\\data\\'
+                               '- Открытый ключ: \n' + os.getcwd() + '\\data\\'
                                + self.lineEdit.text() + '_pubkey.pem' + '\n\n'
                                                
-                               '- Приватный ключ: \n' + os.getcwd() + '\\data\\'
-                               + self.lineEdit.text() + '_privkey.pem')
+                               '- Закрытый ключ: \n' + os.getcwd() + '\\data\\'
+                               + self.lineEdit.text() + '_privkey.pem',
+                 window_type='information',
+                 buttons='ok')
         self.lineEdit.clear()
         self.lineEdit_2.clear()
         self.lineEdit_3.clear()
@@ -288,6 +271,7 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
     def _isvalid_password(password: str) -> bool:
         """
         Checking the password for correctness.
+
         :param password: Set password.
         :return: Result of checking.
         """

@@ -6,10 +6,11 @@ from sys import platform
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMessageBox
 
-import py.main_menu
+import py.main_menu as main_menu
+import py.ui.start_window_ui as start_window_ui
 import py.database_creation as database_creation
+from py.show_msg import show_msg
 
 if platform == "linux" or platform == "linux2":
     from pysqlcipher3 import dbapi2 as sqlite3
@@ -22,6 +23,7 @@ elif platform == "win32":
 def check_database(connect: sqlite3.Connection, pwd: str) -> tuple:
     """
     Validates the database and returns a tuple.
+
     :param connect: sqlite3.Connection object
     :param pwd: pragma key password
     :return: tuple(sqlite3.Connection, bool)
@@ -84,13 +86,13 @@ def check_database(connect: sqlite3.Connection, pwd: str) -> tuple:
                 "value" INTEGER NOT NULL)""")
             cur_check_db.execute("""
             INSERT INTO db_information (name, value) 
-            VALUES (?, ?)""", ('rsa_bit', py.main_menu.NEW_RSA_BIT))
+            VALUES (?, ?)""", ('rsa_bit', main_menu.NEW_RSA_BIT))
     except sqlite3.DatabaseError as error:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setWindowTitle("Ошибка проверки базы данных")
-        msg.setText(error)
-        msg.exec_()
+        show_msg(title='Ошибка',
+                 top_text='Ошибка проверки базы данных',
+                 bottom_text=str(error),
+                 window_type='critical',
+                 buttons='ok')
         cur_check_db.close()
         return connect, False
     cur_check_db.close()
@@ -98,104 +100,29 @@ def check_database(connect: sqlite3.Connection, pwd: str) -> tuple:
     return connect, True
 
 
-class Ui_Dialog(object):
+class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
     def __init__(self):
         super().__init__()
+        self.setupUi(self)
+
         self.main_window = None
         self.create_db = None
         self.names_db = []
 
-    def setupUi(self, Dialog):
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(400, 300)
-        Dialog.setMinimumSize(QtCore.QSize(400, 300))
-        Dialog.setMaximumSize(QtCore.QSize(400, 300))
-        self.label_5 = QtWidgets.QLabel(Dialog)
-        self.label_5.setGeometry(QtCore.QRect(180, 40, 31, 16))
-        self.label_5.setObjectName("label_5")
-        self.label_4 = QtWidgets.QLabel(Dialog)
-        self.label_4.setGeometry(QtCore.QRect(350, 270, 47, 13))
-        self.label_4.setObjectName("label_4")
-        self.label = QtWidgets.QLabel(Dialog)
-        self.label.setGeometry(QtCore.QRect(105, 10, 190, 30))
-        font = QtGui.QFont()
-        font.setFamily("Arial Black")
-        font.setPointSize(16)
-        font.setBold(True)
-        font.setItalic(False)
-        font.setUnderline(False)
-        font.setWeight(75)
-        font.setStrikeOut(False)
-        self.label.setFont(font)
-        self.label.setObjectName("label")
-        self.gridLayoutWidget = QtWidgets.QWidget(Dialog)
-        self.gridLayoutWidget.setGeometry(QtCore.QRect(70, 90, 251, 121))
-        self.gridLayoutWidget.setObjectName("gridLayoutWidget")
-        self.gridLayout = QtWidgets.QGridLayout(self.gridLayoutWidget)
-        self.gridLayout.setContentsMargins(0, 0, 0, 0)
-        self.gridLayout.setObjectName("gridLayout")
-        self.pushButton_3 = QtWidgets.QPushButton(self.gridLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum,
-                                           QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(1)
-        sizePolicy.setHeightForWidth(
-            self.pushButton_3.sizePolicy().hasHeightForWidth())
-        self.pushButton_3.setSizePolicy(sizePolicy)
-        self.pushButton_3.setMinimumSize(QtCore.QSize(0, 0))
-        self.pushButton_3.setMaximumSize(QtCore.QSize(100, 25))
-        self.pushButton_3.setSizeIncrement(QtCore.QSize(0, 0))
-        self.pushButton_3.setBaseSize(QtCore.QSize(0, 0))
-        self.pushButton_3.setObjectName("pushButton_3")
-        self.pushButton_2 = QtWidgets.QPushButton(Dialog)
-        self.pushButton_2.setGeometry(QtCore.QRect(10, 270, 101, 23))
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.gridLayout.addWidget(self.pushButton_3, 2, 1, 1, 1)
-        self.label_6 = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label_6.setObjectName("label_6")
-        self.gridLayout.addWidget(self.label_6, 0, 0, 1, 1)
-        self.label_7 = QtWidgets.QLabel(self.gridLayoutWidget)
-        self.label_7.setObjectName("label_7")
-        self.gridLayout.addWidget(self.label_7, 1, 0, 1, 1)
-        self.comboBox_2 = QtWidgets.QComboBox(self.gridLayoutWidget)
-        self.comboBox_2.setCurrentText("")
-        self.comboBox_2.setObjectName("comboBox_2")
-
         self.updates_list_db()
 
-        self.gridLayout.addWidget(self.comboBox_2, 0, 1, 1, 1)
-        self.toolButton = QtWidgets.QToolButton(self.gridLayoutWidget)
-        self.toolButton.setObjectName("toolButton")
-        self.gridLayout.addWidget(self.toolButton, 0, 2, 1, 1)
-        self.lineEdit_2 = QtWidgets.QLineEdit(self.gridLayoutWidget)
-        self.lineEdit_2.setEchoMode(QtWidgets.QLineEdit.Password)
-        self.lineEdit_2.setObjectName("lineEdit_2")
-        self.gridLayout.addWidget(self.lineEdit_2, 1, 1, 1, 1)
+        self.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
 
-        Dialog.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
+        self.label_4.setText(str(main_menu.VERSION))
 
-        self.retranslateUi(Dialog)
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
-        Dialog.setTabOrder(self.pushButton_3, self.comboBox_2)
-        Dialog.setTabOrder(self.comboBox_2, self.toolButton)
-        Dialog.setTabOrder(self.toolButton, self.lineEdit_2)
-        Dialog.setTabOrder(self.lineEdit_2, self.pushButton_2)
+        self.setTabOrder(self.pushButton_3, self.comboBox_2)
+        self.setTabOrder(self.comboBox_2, self.toolButton)
+        self.setTabOrder(self.toolButton, self.lineEdit_2)
+        self.setTabOrder(self.lineEdit_2, self.pushButton_2)
 
         self.toolButton.clicked.connect(self.push_tool_button)
         self.pushButton_3.clicked.connect(self.show_main_window)
         self.pushButton_2.clicked.connect(self.show_create_db)
-
-    def retranslateUi(self, Dialog):
-        _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Password Saver - Вход"))
-        self.label_5.setText(_translate("Dialog", "Вход"))
-        self.pushButton_2.setText(_translate("Dialog", "Создать базу"))
-        self.label_4.setText(_translate("Dialog", str(py.main_menu.VERSION)))
-        self.label.setText(_translate("Dialog", "Password Saver"))
-        self.pushButton_3.setText(_translate("Dialog", "Войти"))
-        self.label_6.setText(_translate("Dialog", "Выберете базу"))
-        self.label_7.setText(_translate("Dialog", "Введите пароль"))
-        self.toolButton.setText(_translate("Dialog", "..."))
 
     def updates_list_db(self):
         self.names_db.clear()
@@ -229,11 +156,10 @@ class Ui_Dialog(object):
     @QtCore.pyqtSlot()
     def show_main_window(self):
         if self.comboBox_2.currentIndex() == -1:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setWindowTitle("Ошибка входа")
-            msg.setText("Не выбрана база данных")
-            msg.exec_()
+            show_msg(title='Ошибка',
+                     top_text='Не выбрана база данных',
+                     window_type='critical',
+                     buttons='ok')
         else:
             pwd = self.lineEdit_2.text()
             wrong_db_info = self.comboBox_2.currentData()
@@ -264,20 +190,19 @@ class Ui_Dialog(object):
                     conn_start_window, pwd)
                 conn_start_window.close()
                 if check_result:
-                    py.main_menu.db_dir = db_info[0]
-                    py.main_menu.db_name = db_info[1]
-                    py.main_menu.pwd = pwd
+                    main_menu.db_dir = db_info[0]
+                    main_menu.db_name = db_info[1]
+                    main_menu.pwd = pwd
                     del pwd
-                    py.main_menu.connect_sql()
-                    self.main_window = MainWindow()
+                    main_menu.connect_sql()
+                    self.main_window = main_menu.MainMenu()
                     self.main_window.show()
                     self.close()
             else:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setWindowTitle("Ошибка входа")
-                msg.setText("Неправильный пароль")
-                msg.exec_()
+                show_msg(title='Ошибка',
+                         top_text='Неправильный пароль',
+                         window_type='critical',
+                         buttons='ok')
                 self.lineEdit_2.clear()
 
     @QtCore.pyqtSlot()
@@ -285,9 +210,3 @@ class Ui_Dialog(object):
         self.create_db = database_creation.CreateDB()
         self.create_db.exec_()
         self.updates_list_db()
-
-
-class MainWindow(QtWidgets.QMainWindow, py.main_menu.Ui_MainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
