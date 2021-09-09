@@ -320,7 +320,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.action_createDb.triggered.connect(self.show_create_db)
         self.action_loadDb.triggered.connect(self.show_load_db)
         self.action_syncDb.triggered.connect(self.show_sync_db)
-        self.action_print.triggered.connect(self.print)
+        self.action_print.triggered.connect(self.print_db)
         self.action_exit.triggered.connect(self.close)
         self.pushButton_delete.clicked.connect(self.delete_data)
         self.pushButton_addingData.clicked.connect(self.show_adding_data)
@@ -370,7 +370,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.progressBar.setFormat("")
 
     @QtCore.pyqtSlot()
-    def print(self):
+    def print_db(self):
         if not self.toolButton_privkey.isEnabled():
             pl = print_list.PrintList()
             layout = QtGui.QPageLayout(QtGui.QPageSize(QtGui.QPageSize.A4),
@@ -459,11 +459,9 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.loading_db = loading_db.LoadingDB()
         status_load_db = self.loading_db.exec()
         if status_load_db:
-            self.pubkey_file = os.path.isfile("{}_pubkey.pem".format(
-                db_dir[:-3]))
-            self.privkey_file = os.path.isfile("{}_privkey.pem".format(
-                db_dir[:-3]))
-            self.refresh_tree_widget()
+            self.pubkey_file = os.path.isfile(f"{db_dir[:-3]}_pubkey.pem")
+            self.privkey_file = os.path.isfile(f"{db_dir[:-3]}_privkey.pem")
+            self.refresh_tree_widget(load=True)
             self.result_check_privkey()
             self.result_check_pubkey()
             self.button_state()
@@ -1337,7 +1335,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
         return name_and_expanded
 
-    def refresh_tree_widget(self):
+    def refresh_tree_widget(self, load=False):
         """ Update QTreeWidgetItems with save expanded state. """
         name_expanded_top_item = self.check_head_item_expand()
         self.delete_tree_widget_item()
@@ -1351,7 +1349,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             if section_name in name_expanded_top_item:
                 if name_expanded_top_item[section_name]:
                     self.treeWidget.expandItem(top_item)
-            else:
+            elif not load:
                 self.treeWidget.expandItem(top_item)
 
     def current_row(self):
