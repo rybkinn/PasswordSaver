@@ -273,8 +273,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.acc_secret_info_result = dict()
         self.menu_context_alb = None
         self.change = None
-        self.pubkey_file = os.path.isfile("{}_pubkey.pem".format(db_dir[:-3]))
-        self.privkey_file = os.path.isfile("{}_privkey.pem".format(db_dir[:-3]))
+        self.pubkey_file = os.path.isfile(f"{db_dir[:-3]}_pubkey.pem")
+        self.privkey_file = os.path.isfile(f"{db_dir[:-3]}_privkey.pem")
 
         font = QtGui.QFont()
         font.setBold(True)
@@ -1306,11 +1306,53 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                                 .child(child_iter)\
                                 .setText(text_iter, str(_value))
 
+    def create_tree_widget_top_items(self):
+        """
+        Creates a list with QTreeWidget => topLevelItem.
+
+        :return: list[QTreeWidgetItem]
+        """
+        top_tree_widget_items = []
+        for index_top_item in range(self.treeWidget.topLevelItemCount()):
+            top_item = self.treeWidget.topLevelItem(index_top_item)
+            top_tree_widget_items.append(top_item)
+        return top_tree_widget_items
+    
+    def check_head_item_expand(self):
+        """
+        Checks top-level treeWidget items for expanded state and returns
+        a dictionary with section name and expanded state.
+            example: {'name_section': 'True/False'}
+
+        :return: dict[str, bool]
+        """
+
+        top_tree_widget_items = self.create_tree_widget_top_items()
+
+        name_and_expanded = {}
+        for top_item in top_tree_widget_items:
+            name_section = top_item.text(0)
+            is_expanded = top_item.isExpanded()
+            name_and_expanded[name_section] = is_expanded
+
+        return name_and_expanded
+
     def refresh_tree_widget(self):
+        """ Update QTreeWidgetItems with save expanded state. """
+        name_expanded_top_item = self.check_head_item_expand()
         self.delete_tree_widget_item()
         self.add_tree_widget_item()
         self.add_tree_widget_item_text()
-        self.treeWidget.expandAll()
+
+        tree_widget_items = self.create_tree_widget_top_items()
+
+        for top_item in tree_widget_items:
+            section_name = top_item.text(0)
+            if section_name in name_expanded_top_item:
+                if name_expanded_top_item[section_name]:
+                    self.treeWidget.expandItem(top_item)
+            else:
+                self.treeWidget.expandItem(top_item)
 
     def current_row(self):
         index = self.treeWidget.selectedIndexes()
@@ -1333,8 +1375,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             iter_number += 1
         return row_data, item_type
 
-    @staticmethod
-    def closeEvent(event):
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         close = show_msg(title='Предупреждение',
                          top_text='Все несохраненные изменения будут потеряны',
                          bottom_text='Все равно выйти?',
@@ -1345,6 +1386,6 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 buffer.clear()
             cur.close()
             conn.close()
-            event.accept()
+            a0.accept()
         else:
-            event.ignore()
+            a0.ignore()
