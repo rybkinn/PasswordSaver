@@ -264,7 +264,6 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.loading_db = None
         self.adding_data = None
         self.sync_db = None
-        self.timer = None
         self.timer_sec = None
         self.step = None
         self.show_pass_thread = None
@@ -877,53 +876,28 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
     def delete_buffer(self):
         global BUFFER_DEL_SEC
-        self.timer = QtCore.QBasicTimer()
+
         self.timer_sec = QtCore.QTimer()
-        self.step = 0
+        self.timer_sec.timeout.connect(self.__update_buffer)
+        self.step = 100
         self.statusbar.showMessage("Данные будут удалены с буфера обмена "
                                    f"через {BUFFER_DEL_SEC} секунд")
-        timer_del = BUFFER_DEL_SEC * 10
-        if self.timer_sec.isActive():
-            self.timer_sec.stop()
-        if self.timer.isActive():
-            self.timer.stop()
-        else:
-            self.timer.start(timer_del, self)
-            self.progressBar.show()
-            self.start_timer(self.timer_func, BUFFER_DEL_SEC)
+        self.progressBar.show()
+        self.progressBar.setValue(self.step)
+        timer_del = BUFFER_DEL_SEC * 100
+        self.timer_sec.start(timer_del)
 
-    def timerEvent(self, e):
-        global BUFFER_DEL_SEC
-        if self.step >= 100:
-            self.timer.stop()
+    def __update_buffer(self):
+        self.step -= 10
+        self.progressBar.setValue(self.step)
+        self.statusbar.showMessage(
+            f"Данные будут удалены с буфера обмена через {int(self.step / 10)} секунд")
+
+        if self.step <= 0:
             buffer.clear()
             self.statusbar.showMessage("Данные удалены с буфера обмена")
-            return
-        else:
-            self.step += 1
-            self.progressBar.setValue(self.step)
-
-    def start_timer(self, slot, count=0, interval=1000):
-        global BUFFER_DEL_SEC
-        counter = BUFFER_DEL_SEC
-
-        def handler():
-            nonlocal counter
-            counter -= 1
-            slot(counter)
-            if counter >= count:
-                self.timer_sec.stop()
-                self.timer_sec.deleteLater()
-
-        self.timer_sec.timeout.connect(handler)
-        self.timer_sec.start(interval)
-
-    def timer_func(self, count):
-        global BUFFER_DEL_SEC
-        self.statusbar.showMessage("Данные будут удалены с буфера обмена "
-                                   f"через {count} секунд")
-        if count <= 0:
             self.timer_sec.stop()
+            self.step = 100
 
     def menu_context_album(self, event):
         global buffer
