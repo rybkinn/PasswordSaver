@@ -518,7 +518,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.treeWidget.collapseAll()
             self.pushButton_showHideSections.setText('Развернуть все разделы')
 
-    def copy_buffer(self):
+    def copy_pass_buffer(self):
         global buffer
         row = self.current_row()
         if row[1] == 'item_1':
@@ -545,7 +545,37 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 decrypto = rsa.decrypt(password_dec, privkey)
                 password = decrypto.decode()
                 buffer.setText(password)
-                self.delete_buffer()
+
+    def copy_secret_buffer(self):
+        global buffer
+        row = self.current_row()
+        buffer = QtWidgets.QApplication.clipboard()
+        if buffer is not None:
+            data_one_section = cur.execute("""
+            SELECT secret_word 
+            FROM account_information 
+            WHERE name='{}' AND 
+                  login='{}' AND 
+                  email='{}' AND 
+                  url='{}'""".format(row[0][0], row[0][1],
+                                     row[0][3], row[0][5])
+                                           ).fetchall()
+            if choice_privkey is not None:
+                privkey = choice_privkey
+            else:
+                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') \
+                        as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv,
+                                                    'PEM')
+            secret_bin = data_one_section[0][0].encode()
+            secret_dec = base64.b64decode(secret_bin)
+            decrypto = rsa.decrypt(secret_dec, privkey)
+            secret = decrypto.decode()
+            return secret
+
+        return None
 
     @QtCore.pyqtSlot()
     def delete_data(self):
@@ -988,40 +1018,19 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                             buffer.setText(row[0][5])
                             self.delete_buffer()
                 elif action2 == rmenu_copy_pass:
-                    self.copy_buffer()
+                    self.copy_pass_buffer()
+                    self.delete_buffer()
                 elif action2 == rmenu_copy_secret:
-                    buffer = QtWidgets.QApplication.clipboard()
-                    if buffer is not None:
-                        data_one_section = cur.execute("""
-                        SELECT secret_word 
-                        FROM account_information 
-                        WHERE name='{}' AND 
-                              login='{}' AND 
-                              email='{}' AND 
-                              url='{}'""".format(row[0][0], row[0][1],
-                                                 row[0][3], row[0][5])
-                                                       ).fetchall()
-                        if choice_privkey is not None:
-                            privkey = choice_privkey
-                        else:
-                            with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
-                                    as privfile:
-                                keydata_priv = privfile.read()
-                                privfile.close()
-                            privkey = rsa.PrivateKey.load_pkcs1(keydata_priv,
-                                                                'PEM')
-                        secret_bin = data_one_section[0][0].encode()
-                        secret_dec = base64.b64decode(secret_bin)
-                        decrypto = rsa.decrypt(secret_dec, privkey)
-                        secret = decrypto.decode()
-                        if secret == 'None':
+                    copy_secret_buffer = self.copy_secret_buffer()
+                    if copy_secret_buffer is not None:
+                        if copy_secret_buffer == 'None':
                             show_msg(title='Ошибка',
                                      top_text='На этом аккаунте не указанно '
                                               'секретное слово',
                                      window_type='critical',
                                      buttons='ok')
                         else:
-                            buffer.setText(secret)
+                            buffer.setText(copy_secret_buffer)
                             self.delete_buffer()
                 elif action2 == rmenu_change_log:
                     self.change = change.Change('Изменение логина',
