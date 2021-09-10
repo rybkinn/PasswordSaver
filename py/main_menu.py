@@ -55,10 +55,8 @@ result_check_choice_pubkey = None
 result_check_privkey = None
 result_check_pubkey = None
 pubkey_dir = None
-privkey = None
 
 srt_section = list()
-privkey_dir = None
 cur = None
 conn = None
 
@@ -275,6 +273,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.pubkey_file = os.path.isfile(f"{db_dir[:-3]}_pubkey.pem")
         self.privkey_file = os.path.isfile(f"{db_dir[:-3]}_privkey.pem")
 
+        self.privkey_dir = None
+
         font = QtGui.QFont()
         font.setBold(True)
         font.setWeight(75)
@@ -352,10 +352,9 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.toolButton_pubkey.setText("Укажите pubkey.pem")
 
         if self.privkey_file and result_check_privkey == 'ok':
-            global privkey_dir
-            privkey_dir = os.path.abspath("data/{}_privkey.pem".format(
+            self.privkey_dir = os.path.abspath("data/{}_privkey.pem".format(
                 db_name[:-3]))
-            self.toolButton_privkey.setText(privkey_dir)
+            self.toolButton_privkey.setText(self.privkey_dir)
         elif self.privkey_file and result_check_privkey == '!ok':
             self.toolButton_privkey.setText("Ключ не подходит. Укажите privkey.pem")
         elif self.privkey_file and result_check_privkey == 'privkey != pubkey':
@@ -1216,11 +1215,10 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.treeWidget.clear()
 
     def add_tree_widget_item_text(self):
-        global privkey
-        top_level_item_iter = -1
-        child_iter = -1
-        text_iter = 0
         if lines != 0:
+            privkey = None
+            top_level_item_iter = -1
+
             if self.privkey_file:
                 with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
                         as privfile:

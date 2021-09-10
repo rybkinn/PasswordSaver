@@ -46,8 +46,8 @@ class SyncDBThread(QtCore.QThread):
 
         rows_main_db_decrypt = []
         for row_main in rows_main_db:
-            pass_decrypt_row = decrypt(row_main[4])
-            secret_decrypt_row = decrypt(row_main[6])
+            pass_decrypt_row = decrypt(self.path_to_privkey, row_main[4])
+            secret_decrypt_row = decrypt(self.path_to_privkey, row_main[6])
             row_decrypt = []
             for row_index_data in range(8):
                 if row_index_data == 4:
@@ -67,8 +67,8 @@ class SyncDBThread(QtCore.QThread):
 
         rows_sync_db_decrypt = []
         for row_sync in rows_sync_db:
-            pass_decrypt_row = decrypt(row_sync[4])
-            secret_decrypt_row = decrypt(row_sync[6])
+            pass_decrypt_row = decrypt(self.path_to_privkey, row_sync[4])
+            secret_decrypt_row = decrypt(self.path_to_privkey, row_sync[6])
             row_decrypt = []
             for row_index_data in range(8):
                 if row_index_data == 4:
@@ -281,17 +281,18 @@ def execute_read_query(conn_sync: sqlite3.Connection, query: str) -> list:
         return result
 
 
-def decrypt(crypt_s: str) -> str:
+def decrypt(path_to_privkey: str, crypt_s: str) -> str:
     """
     Decrypts the string with the private key and returns it.
 
     :param crypt_s: Input crypto string
+    :param path_to_privkey: Path to privkey.pem file
     :return: Output decrypt string or 'error'
     """
     if py.main_menu.result_check_choice_privkey == 'ok':
         privkey = py.main_menu.choice_privkey
     else:
-        with open(py.main_menu.privkey_dir, 'rb') as privfile:
+        with open(path_to_privkey, 'rb') as privfile:
             keydata_priv = privfile.read()
             privfile.close()
         privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
@@ -385,7 +386,7 @@ class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
             if len(rows) != 0:
                 self.label_6.setPixmap(
                     QtGui.QPixmap(":/resource/image/checkmark.ico"))
-                decrypt_result = decrypt(rows[0][4])
+                decrypt_result = decrypt(self.path_to_privkey, rows[0][4])
                 if decrypt_result == 'error':
                     self.label_7.setPixmap(
                         QtGui.QPixmap(":/resource/image/cross.ico"))
