@@ -16,9 +16,11 @@ from py.show_msg import show_msg
 
 class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
 
-    def __init__(self):
+    def __init__(self, srt_section, choice_pubkey):
         super().__init__()
         self.setupUi(self)
+
+        self.choice_pubkey = choice_pubkey
 
         self.checkbox_copy_buffer = 0
 
@@ -35,7 +37,7 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
         self.lines = lines
 
         if self.lines != 0:
-            self.srt_section_main_menu = main_menu.srt_section
+            self.srt_section_main_menu = srt_section
             for _ in self.srt_section_main_menu:
                 self.comboBox.addItem("")
         else:
@@ -67,8 +69,8 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
         entered_password = self.lineEdit_3.text()
         password_bin = entered_password.encode()
 
-        if main_menu.choice_pubkey is not None:
-            pubkey = main_menu.choice_pubkey
+        if self.choice_pubkey is not None:
+            pubkey = self.choice_pubkey
         else:
             with open('{}_pubkey.pem'.format(main_menu.db_dir[:-3]), 'rb') \
                     as pubfile:

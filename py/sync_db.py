@@ -281,16 +281,19 @@ def execute_read_query(conn_sync: sqlite3.Connection, query: str) -> list:
         return result
 
 
-def decrypt(path_to_privkey: str, crypt_s: str) -> str:
+def decrypt(path_to_privkey: str, crypt_s: str, choice_privkey: str = None,
+            result_check_choice_privkey: str = None) -> str:
     """
     Decrypts the string with the private key and returns it.
 
     :param crypt_s: Input crypto string
     :param path_to_privkey: Path to privkey.pem file
+    :param choice_privkey: Privkey.pem file if available
+    :param result_check_choice_privkey: Result of checking privkey.pem
     :return: Output decrypt string or 'error'
     """
-    if py.main_menu.result_check_choice_privkey == 'ok':
-        privkey = py.main_menu.choice_privkey
+    if result_check_choice_privkey == 'ok':
+        privkey = choice_privkey
     else:
         with open(path_to_privkey, 'rb') as privfile:
             keydata_priv = privfile.read()
@@ -312,9 +315,13 @@ def decrypt(path_to_privkey: str, crypt_s: str) -> str:
 
 
 class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
-    def __init__(self, path_to_privkey, path_to_pubkey):
+    def __init__(self, path_to_privkey, path_to_pubkey, choice_privkey,
+                 result_check_choice_privkey):
         super().__init__()
         self.setupUi(self)
+
+        self.choice_privkey = choice_privkey
+        self.result_check_choice_privkey = result_check_choice_privkey
 
         self.path_to_privkey = path_to_privkey
         self.path_to_pubkey = path_to_pubkey
@@ -386,7 +393,9 @@ class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
             if len(rows) != 0:
                 self.label_6.setPixmap(
                     QtGui.QPixmap(":/resource/image/checkmark.ico"))
-                decrypt_result = decrypt(self.path_to_privkey, rows[0][4])
+                decrypt_result = decrypt(self.path_to_privkey, rows[0][4],
+                                         self.choice_privkey,
+                                         self.result_check_choice_privkey)
                 if decrypt_result == 'error':
                     self.label_7.setPixmap(
                         QtGui.QPixmap(":/resource/image/cross.ico"))
