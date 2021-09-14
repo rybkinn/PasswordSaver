@@ -1276,8 +1276,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                                     .topLevelItem(top_level_item_iter)\
                                     .child(child_iter)\
                                     .setText(text_iter, str(value))
-                        elif (text_iter == 3 and rsa_length == 'error')\
-                                or (text_iter == 5 and rsa_length == 'error'):
+                        elif (text_iter == 3 and rsa_length == -1)\
+                                or (text_iter == 5 and rsa_length == -1):
                             value = '##ERRORKEYLENGTH##'
                             self.treeWidget\
                                 .topLevelItem(top_level_item_iter)\
