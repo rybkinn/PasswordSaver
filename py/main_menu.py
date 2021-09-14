@@ -272,6 +272,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.choice_privkey = None
         self.result_check_choice_pubkey = None
         self.result_check_choice_privkey = None
+        self.buffer_del_time = 0
 
         font = QtGui.QFont()
         font.setBold(True)
@@ -909,23 +910,26 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
     def delete_buffer(self):
         global BUFFER_DEL_SEC
-
+        buffer_del_sec_loc = BUFFER_DEL_SEC
+        self.buffer_del_time = BUFFER_DEL_SEC
         self.timer_sec = QtCore.QTimer()
-        self.timer_sec.timeout.connect(self.__update_buffer)
+        self.timer_sec.timeout.connect(
+            lambda: self.__update_buffer(buffer_del_sec_loc))
         self.step = 100
         self.statusbar.showMessage("Данные будут удалены с буфера обмена "
                                    f"через {BUFFER_DEL_SEC} секунд")
         self.progressBar.show()
         self.progressBar.setValue(self.step)
-        timer_del = BUFFER_DEL_SEC * 100
+        timer_del = 1000
         self.timer_sec.start(timer_del)
 
-    def __update_buffer(self):
-        self.step -= 10
+    def __update_buffer(self, buffer_del_sec_loc):
+        self.step -= 100 / buffer_del_sec_loc
+        self.buffer_del_time -= 1
         self.progressBar.setValue(self.step)
         self.statusbar.showMessage(
             "Данные будут удалены с буфера обмена через "
-            f"{int(self.step / 10)} секунд")
+            f"{self.buffer_del_time} секунд")
 
         if self.step <= 0:
             buffer.clear()
