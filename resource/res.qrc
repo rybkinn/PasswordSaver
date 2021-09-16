@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="resource">
+    <file>image/settings.ico</file>
     <file>image/save.ico</file>
     <file>image/add_db.ico</file>
     <file>image/search_db.ico</file>
