@@ -27,10 +27,6 @@ elif platform == "win32":
 # elif platform == "darwin":
     # OS X
 
-# Version program
-VERSION = 'v 1.6.4'
-# Show or hide passwords when starting the program
-HIDE_PASSWORD = True
 # How many seconds will the clipboard be deleted after copying the password
 BUFFER_DEL_SEC = 10
 # Rsa key length when creating a new base (1024/2048/3072/4096)
@@ -198,9 +194,11 @@ class ShowPassThread(QtCore.QThread):
 
 
 class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
-    def __init__(self, db_dir, db_name, pwd, connect, cursor, rsa_length):
+    def __init__(self, version, db_dir, db_name, pwd, connect, cursor, rsa_length):
         super().__init__()
         self.setupUi(self)
+
+        self.version = version
 
         self.db_dir = db_dir
         self.db_name = db_name
@@ -237,6 +235,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.result_check_choice_privkey = None
         self.buffer_del_time = 0
         self.buffer = None
+        self.hide_password = True
 
         font = QtGui.QFont()
         font.setBold(True)
@@ -265,7 +264,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.check_privkey()
         self.check_pubkey()
 
-        if HIDE_PASSWORD:
+        if self.hide_password:
             self.pushButton_showPass.setText('Показать пароли')
         else:
             self.pushButton_showPass.setText('Скрыть пароли')
@@ -301,7 +300,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.treeWidget.setSortingEnabled(False)
         self.add_tree_widget_item_text()
         self.treeWidget.setSortingEnabled(__sortingEnabled)
-        self.label_version.setText(VERSION)
+        self.label_version.setText(self.version)
 
         if self.pubkey_file and self.result_check_pubkey == 'ok':
             self.toolButton_pubkey.setText(self.pubkey_dir)
@@ -311,7 +310,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         elif self.pubkey_file and self.result_check_pubkey is None:
             self.toolButton_pubkey.setText(self.pubkey_dir)
         elif self.pubkey_file and self.result_check_pubkey == 'not privkey':
-            self.toolButton_pubkey.setText('Сначало укажите privkey.pem')
+            self.toolButton_pubkey.setText('Укажите privkey.pem')
         else:
             self.toolButton_pubkey.setText("Укажите pubkey.pem")
 
@@ -329,7 +328,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.toolButton_pubkey.setText(
                 "Ключи разные. Укажите правильный pubkey.pem")
         elif self.privkey_file and self.result_check_privkey == 'not pubkey':
-            self.toolButton_privkey.setText("Сначало укажите pubkey.pem")
+            self.toolButton_privkey.setText("Укажите pubkey.pem")
         else:
             self.toolButton_privkey.setText("Укажите privkey.pem")
 
@@ -471,8 +470,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
     @QtCore.pyqtSlot()
     def show_adding_data(self):
-        global HIDE_PASSWORD
-        if not HIDE_PASSWORD:
+        if not self.hide_password:
             self.password_hide()
         self.adding_data = adding_data.AddingData(self.srt_section,
                                                   self.choice_pubkey,
@@ -594,7 +592,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 WHERE name = ? AND
                     login = ? AND
                     email = ? AND
-                    url = ? """, (row[0][0], row[0][1],row[0][3],
+                    url = ? """, (row[0][0], row[0][1], row[0][3],
                                   row[0][5])).fetchall()[0][0]
                 self.cur.execute("DELETE FROM data_change_time WHERE id = ?",
                                  (str(acc_id),))
@@ -613,10 +611,9 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
     @QtCore.pyqtSlot()
     def password_hide_show(self):
-        global HIDE_PASSWORD
         if self.lines != 0:
             if self.pushButton_showPass.text() == 'Показать пароли':
-                HIDE_PASSWORD = False
+                self.hide_password = False
                 if self.choice_privkey is not None:
                     privkey = self.choice_privkey
                 else:
@@ -653,7 +650,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     self.show_pass_spinner_finished)
                 self.show_pass_thread.start()
             elif self.pushButton_showPass.text() == 'Скрыть пароли':
-                HIDE_PASSWORD = True
+                self.hide_password = True
                 top_level_item_iter = -1
                 for data_section in range(self.amount_item_0):
                     data_one_section = self.cur.execute("""
@@ -1236,8 +1233,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     text_iter = 0
                     for _value in acc_info[_index]:
                         text_iter += 1
-                        if (text_iter == 3 and HIDE_PASSWORD)\
-                                or (text_iter == 5 and HIDE_PASSWORD):
+                        if (text_iter == 3 and self.hide_password)\
+                                or (text_iter == 5 and self.hide_password):
                             self.treeWidget.topLevelItem(top_level_item_iter)\
                                 .child(child_iter)\
                                 .setText(text_iter, str('**********'))

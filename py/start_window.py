@@ -108,11 +108,13 @@ class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
         self.create_db = None
         self.names_db = []
 
+        self.version = 'v 1.6.4'
+
         self.updates_list_db()
 
         self.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
 
-        self.label_4.setText(str(main_menu.VERSION))
+        self.label_4.setText(self.version)
 
         self.setTabOrder(self.pushButton_3, self.comboBox_2)
         self.setTabOrder(self.comboBox_2, self.toolButton)
@@ -190,7 +192,8 @@ class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
                 conn_start_window.close()
                 if check_result:
                     conn, cur, rsa_length = database.connect_sql(db_info[0], pwd)
-                    self.main_window = main_menu.MainMenu(db_dir=db_info[0],
+                    self.main_window = main_menu.MainMenu(version=self.version,
+                                                          db_dir=db_info[0],
                                                           db_name=db_info[1],
                                                           pwd=pwd,
                                                           connect=conn,
