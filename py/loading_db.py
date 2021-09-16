@@ -4,8 +4,7 @@ from sys import platform
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-import py.main_menu as main_menu
-import py.start_window
+import py.database as database
 import py.ui.loading_db_ui as loading_db_ui
 from py.show_msg import show_msg
 
@@ -28,9 +27,17 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
         self._db_name = str()
         self._pwd = str()
 
+        self._conn = None
+        self._cur = None
+        self._rsa_length = None
+
         self._data_loading_db = {'db_dir': self._db_dir,
                                  'db_name': self._db_name,
                                  'pwd': self._pwd}
+
+        self._sql_connection = {'conn': self._conn,
+                                'cur': self._cur,
+                                'rsa_length': self._rsa_length}
 
         data_files_name = os.listdir(path="data")
         self.name_db.clear()
@@ -88,14 +95,14 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
             conn_load.close()
             result = bool(0)
         if result:
-            main_menu.cur.close()
-            main_menu.conn.close()
-            main_menu.connect_sql(db_info[0], pwd)
+            self._conn, self._cur, self._rsa_length = \
+                database.connect_sql(db_info[0], pwd)
             self._db_dir = db_info[0]
             self._db_name = db_info[1]
             self._pwd = pwd
             del pwd
             self._update_data_loading_db()
+            self._update_sql_connection()
             self.done(1)
         else:
             show_msg(title='Ошибка',
@@ -109,5 +116,13 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
         self._data_loading_db['db_name'] = self._db_name
         self._data_loading_db['pwd'] = self._pwd
 
+    def _update_sql_connection(self):
+        self._sql_connection['conn'] = self._conn
+        self._sql_connection['cur'] = self._cur
+        self._sql_connection['rsa_length'] = self._rsa_length
+
     def get_data_loading_db(self):
         return self._data_loading_db
+
+    def get_sql_connection(self):
+        return self._sql_connection

@@ -36,13 +36,6 @@ BUFFER_DEL_SEC = 10
 # Rsa key length when creating a new base (1024/2048/3072/4096)
 NEW_RSA_BIT = 4096
 
-rsa_length = int()
-
-buffer = None
-
-cur = None
-conn = None
-
 
 def record_change_time(cursor: sqlite3.Cursor,
                        row: tuple,
@@ -204,48 +197,18 @@ class ShowPassThread(QtCore.QThread):
         self.response.emit(acc_secret_info_result)
 
 
-def calc_rsa_length(rsa_bit: int) -> int:
-    """
-    Calculates the length of the RSA key.
-
-    :param rsa_bit: indicates how many bits of rsa
-    :return: returns the length of the rsa key. If -1 means an error.
-    """
-    if rsa_bit == 4096:
-        length = 684
-    elif rsa_bit == 3072:
-        length = 512
-    elif rsa_bit == 2048:
-        length = 344
-    elif rsa_bit == 1024:
-        length = 172
-    else:
-        length = -1
-    return length
-
-
-def connect_sql(db_dir, pwd):
-    global conn
-    global cur
-    global rsa_length
-    conn = sqlite3.connect(db_dir)
-    cur = conn.cursor()
-    cur.execute("PRAGMA key = '{}'".format(pwd))
-    rsa_bit = cur.execute("""
-    SELECT value
-    FROM db_information
-    WHERE name='rsa_bit'""").fetchone()[0]
-    rsa_length = calc_rsa_length(int(rsa_bit))
-
-
 class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
-    def __init__(self, db_dir, db_name, pwd):
+    def __init__(self, db_dir, db_name, pwd, connect, cursor, rsa_length):
         super().__init__()
         self.setupUi(self)
 
         self.db_dir = db_dir
         self.db_name = db_name
         self.pwd = pwd
+
+        self.conn = connect
+        self.cur = cursor
+        self.rsa_length = rsa_length
 
         self.create_db = None
         self.loading_db = None
@@ -273,6 +236,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.result_check_choice_pubkey = None
         self.result_check_choice_privkey = None
         self.buffer_del_time = 0
+        self.buffer = None
 
         font = QtGui.QFont()
         font.setBold(True)
@@ -449,7 +413,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                           window_type='information',
                           buttons='yes_no')
         if result == QtWidgets.QMessageBox.Yes:
-            conn.commit()
+            self.conn.commit()
             show_msg(title='Успех',
                      top_text='База данных сохранена',
                      buttons='ok')
@@ -464,10 +428,19 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.loading_db = loading_db.LoadingDB()
         exit_status = self.loading_db.exec()
         if exit_status:
+            self.cur.close()
+            self.conn.close()
+
             data_loading_db = self.loading_db.get_data_loading_db()
             self.db_dir = data_loading_db['db_dir']
             self.db_name = data_loading_db['db_name']
             self.pwd = data_loading_db['pwd']
+
+            data_sql_connection = self.loading_db.get_sql_connection()
+            self.conn = data_sql_connection['conn']
+            self.cur = data_sql_connection['cur']
+            self.rsa_length = data_sql_connection['rsa_length']
+
             self.pubkey_file = os.path.isfile(f"{self.db_dir[:-3]}_pubkey.pem")
             self.privkey_file = os.path.isfile(f"{self.db_dir[:-3]}_privkey.pem")
             self.refresh_tree_widget(load=True)
@@ -477,7 +450,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.retranslate_ui_main()
             if self.result_check_pubkey:
                 self.pushButton_addingData.setEnabled(True)
-            [lines], = cur.execute("SELECT Count(*) FROM account_information")
+            [lines], = self.cur.execute("SELECT Count(*) FROM account_information")
             if lines == 0:
                 self.pushButton_showHideSections.setEnabled(False)
                 self.pushButton_showHideSections.setText(
@@ -503,8 +476,12 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.password_hide()
         self.adding_data = adding_data.AddingData(self.srt_section,
                                                   self.choice_pubkey,
-                                                  self.db_dir)
+                                                  self.db_dir,
+                                                  self.conn,
+                                                  self.cur,
+                                                  self.buffer)
         checkbox_status = self.adding_data.exec_()
+        self.buffer = self.adding_data.get_buffer()
         self.refresh_tree_widget()
 
         if self.lines != 0 and self.privkey_file and \
@@ -536,12 +513,11 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.pushButton_showHideSections.setText('Развернуть все разделы')
 
     def copy_pass_buffer(self):
-        global buffer
         row = self.current_row()
         if row[1] == 'item_1':
-            buffer = QtWidgets.QApplication.clipboard()
-            if buffer is not None:
-                data_one_section = cur.execute("""
+            self.buffer = QtWidgets.QApplication.clipboard()
+            if self.buffer is not None:
+                data_one_section = self.cur.execute("""
                 SELECT pass
                 FROM account_information
                 WHERE name='{}' AND
@@ -561,14 +537,13 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 password_dec = base64.b64decode(password_bin)
                 decrypto = rsa.decrypt(password_dec, privkey)
                 password = decrypto.decode()
-                buffer.setText(password)
+                self.buffer.setText(password)
 
     def copy_secret_buffer(self):
-        global buffer
         row = self.current_row()
-        buffer = QtWidgets.QApplication.clipboard()
-        if buffer is not None:
-            data_one_section = cur.execute("""
+        self.buffer = QtWidgets.QApplication.clipboard()
+        if self.buffer is not None:
+            data_one_section = self.cur.execute("""
             SELECT secret_word 
             FROM account_information 
             WHERE name='{}' AND 
@@ -613,22 +588,23 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                               bottom_text='Вы уверенны?',
                               buttons='yes_no')
             if result == QtWidgets.QMessageBox.Yes:
-                acc_id = cur.execute("""SELECT id
-                                        FROM account_information
-                                        WHERE name = ? AND
-                                              login = ? AND
-                                              email = ? AND
-                                              url = ? """,
-                                     (row[0][0], row[0][1],
-                                      row[0][3], row[0][5])).fetchall()[0][0]
-                cur.execute("DELETE FROM data_change_time WHERE id = ?",
-                            (str(acc_id),))
-                cur.execute("""DELETE FROM account_information
-                               WHERE name = ? AND
-                                     login = ? AND
-                                     email = ? AND
-                                     url = ? """,
-                            (row[0][0], row[0][1], row[0][3], row[0][5]))
+                acc_id = self.cur.execute("""
+                SELECT id
+                FROM account_information
+                WHERE name = ? AND
+                    login = ? AND
+                    email = ? AND
+                    url = ? """, (row[0][0], row[0][1],row[0][3],
+                                  row[0][5])).fetchall()[0][0]
+                self.cur.execute("DELETE FROM data_change_time WHERE id = ?",
+                                 (str(acc_id),))
+                self.cur.execute("""
+                DELETE FROM account_information
+                WHERE name = ? AND
+                      login = ? AND
+                      email = ? AND
+                      url = ? """, (row[0][0], row[0][1], row[0][3],
+                                    row[0][5]))
                 self.refresh_tree_widget()
 
         if self.lines == 0:
@@ -651,7 +627,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
 
                 for _data_section in range(self.amount_item_0):
-                    data_one_section = cur.execute("""
+                    data_one_section = self.cur.execute("""
                     SELECT *
                     FROM account_information
                     WHERE section='{}'""".format(
@@ -680,7 +656,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 HIDE_PASSWORD = True
                 top_level_item_iter = -1
                 for data_section in range(self.amount_item_0):
-                    data_one_section = cur.execute("""
+                    data_one_section = self.cur.execute("""
                     SELECT *
                     FROM account_information
                     WHERE section='{}'""".format(
@@ -759,7 +735,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     self.action_syncDb.setEnabled(True)
             elif self.lines != 0:
                 try:
-                    first_pass = cur.execute("""
+                    first_pass = self.cur.execute("""
                     SELECT pass
                     FROM account_information
                     ORDER BY ID ASC LIMIT 1""").fetchall()
@@ -812,7 +788,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-                first_pass = cur.execute("""
+                first_pass = self.cur.execute("""
                 SELECT pass
                 FROM account_information
                 ORDER BY ID ASC LIMIT 1""").fetchall()
@@ -942,13 +918,12 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             f"{self.buffer_del_time} секунд")
 
         if self.step <= 0:
-            buffer.clear()
+            self.buffer.clear()
             self.statusbar.showMessage("Данные удалены с буфера обмена")
             self.timer_sec.stop()
             self.step = 100
 
     def menu_context_album(self, event):
-        global buffer
         row = self.current_row()
         if row[1] == 'item_1':
             self.menu_context_alb = QtWidgets.QMenu(self.treeWidget)
@@ -981,7 +956,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             rmenu_change_url = rsub_menu_change_log.addAction("Изменить url")
 
             sect_list = []
-            section = cur.execute("""
+            section = self.cur.execute("""
             SELECT section 
             FROM account_information 
             GROUP BY section 
@@ -1007,31 +982,31 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 self.treeWidget.mapToGlobal(event))
             if action2 is not None:
                 if action2 == rmenu_copy_log:
-                    buffer = QtWidgets.QApplication.clipboard()
-                    if buffer is not None:
-                        buffer.setText(row[0][1])
+                    self.buffer = QtWidgets.QApplication.clipboard()
+                    if self.buffer is not None:
+                        self.buffer.setText(row[0][1])
                         self.delete_buffer()
                 elif action2 == rmenu_copy_email:
-                    buffer = QtWidgets.QApplication.clipboard()
-                    if buffer is not None:
+                    self.buffer = QtWidgets.QApplication.clipboard()
+                    if self.buffer is not None:
                         if row[0][3] == 'None':
                             show_msg(title='Ошибка',
                                      top_text='На этом аккаунте нет почты',
                                      window_type='critical',
                                      buttons='ok')
                         else:
-                            buffer.setText(row[0][3])
+                            self.buffer.setText(row[0][3])
                             self.delete_buffer()
                 elif action2 == rmenu_copy_url:
-                    buffer = QtWidgets.QApplication.clipboard()
-                    if buffer is not None:
+                    self.buffer = QtWidgets.QApplication.clipboard()
+                    if self.buffer is not None:
                         if row[0][5] == 'None':
                             show_msg(title='Ошибка',
                                      top_text='На этом аккаунте не указан url',
                                      window_type='critical',
                                      buttons='ok')
                         else:
-                            buffer.setText(row[0][5])
+                            self.buffer.setText(row[0][5])
                             self.delete_buffer()
                 elif action2 == rmenu_copy_pass:
                     self.copy_pass_buffer()
@@ -1046,7 +1021,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                                      window_type='critical',
                                      buttons='ok')
                         else:
-                            buffer.setText(copy_secret_buffer)
+                            self.buffer.setText(copy_secret_buffer)
                             self.delete_buffer()
                 elif action2 == rmenu_change_log:
                     self.change = change.Change('Изменение логина',
@@ -1055,8 +1030,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     if result_close_window:
                         login = self.change.lineEdit.text()
                         if login != '':
-                            record_change_time(cur, row, 'change_login')
-                            cur.execute("""
+                            record_change_time(self.cur, row, 'change_login')
+                            self.cur.execute("""
                             UPDATE account_information
                             SET login = ?
                             WHERE name = ? AND
@@ -1092,8 +1067,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                             pass_bin = self.change.lineEdit.text().encode()
                             crypto_pass = rsa.encrypt(pass_bin, pubkey)
                             password = base64.b64encode(crypto_pass).decode()
-                            record_change_time(cur, row, 'change_pass')
-                            cur.execute("""
+                            record_change_time(self.cur, row, 'change_pass')
+                            self.cur.execute("""
                             UPDATE account_information
                             SET pass = ?
                             WHERE name = ? AND
@@ -1110,8 +1085,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         email = self.change.lineEdit.text()
                         if email == '':
                             email = None
-                        record_change_time(cur, row, 'change_email')
-                        cur.execute("""
+                        record_change_time(self.cur, row, 'change_email')
+                        self.cur.execute("""
                         UPDATE account_information
                         SET email = ?
                         WHERE name = ? AND
@@ -1140,8 +1115,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         secret_bin = secret_text.encode()
                         crypto_secret = rsa.encrypt(secret_bin, pubkey)
                         secret = base64.b64encode(crypto_secret).decode()
-                        record_change_time(cur, row, 'change_secret_word')
-                        cur.execute("""
+                        record_change_time(self.cur, row, 'change_secret_word')
+                        self.cur.execute("""
                         UPDATE account_information
                         SET secret_word = ?
                         WHERE name = ? AND
@@ -1158,8 +1133,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         url = self.change.lineEdit.text()
                         if url == '':
                             url = None
-                        record_change_time(cur, row, 'change_url')
-                        cur.execute("""
+                        record_change_time(self.cur, row, 'change_url')
+                        self.cur.execute("""
                         UPDATE account_information
                         SET url = ?
                         WHERE name = ? AND
@@ -1171,8 +1146,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
                 for item_type in sect_list:
                     if action2 is not None and action2 == item_type:
-                        record_change_time(cur, row, 'change_section')
-                        cur.execute("""
+                        record_change_time(self.cur, row, 'change_section')
+                        self.cur.execute("""
                         UPDATE account_information
                         SET section = ?
                         WHERE name = ? AND
@@ -1183,17 +1158,18 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         self.refresh_tree_widget()
 
     def add_tree_widget_item(self):
-        [self.lines], = cur.execute("SELECT Count(*) FROM account_information")
+        [self.lines], = self.cur.execute(
+            "SELECT Count(*) FROM account_information")
         section = []
         if self.lines != 0:
             self.pushButton_showHideSections.setEnabled(True)
             for _line in range(1, self.lines + 1):
-                [_current_id], = cur.execute("""
+                [_current_id], = self.cur.execute("""
                 SELECT ID 
                 FROM account_information 
                 LIMIT 1 OFFSET {}""".format(_line - 1))
 
-                [_current_section], = cur.execute("""
+                [_current_section], = self.cur.execute("""
                 SELECT section 
                 FROM account_information 
                 WHERE ID='{}'""".format(_current_id))
@@ -1208,13 +1184,13 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     brush.setStyle(QtCore.Qt.NoBrush)
                     for index in range(0, 7):
                         item_0.setBackground(index, brush)
-                    data_one_section = cur.execute("""
+                    data_one_section = self.cur.execute("""
                     SELECT * 
                     FROM account_information 
                     WHERE section='{}'""".format(
                         self.srt_section[_data_section])).fetchall()
                 else:
-                    data_one_section = cur.execute("""
+                    data_one_section = self.cur.execute("""
                     SELECT * 
                     FROM account_information 
                     WHERE section='{}'""".format(
@@ -1243,7 +1219,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 privkey = self.choice_privkey
 
             for _data_section in range(self.amount_item_0):
-                data_one_section = cur.execute("""
+                data_one_section = self.cur.execute("""
                 SELECT * 
                 FROM account_information 
                 WHERE section='{}'""".format(
@@ -1270,7 +1246,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                             self.treeWidget.topLevelItem(top_level_item_iter)\
                                 .child(child_iter)\
                                 .setText(text_iter, str(value))
-                        elif len(_value) == rsa_length:
+                        elif len(_value) == self.rsa_length:
                             value_bin = _value.encode()
                             value_dec = base64.b64decode(value_bin)
                             try:
@@ -1286,8 +1262,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                                     .topLevelItem(top_level_item_iter)\
                                     .child(child_iter)\
                                     .setText(text_iter, str(value))
-                        elif (text_iter == 3 and rsa_length == -1)\
-                                or (text_iter == 5 and rsa_length == -1):
+                        elif (text_iter == 3 and self.rsa_length == -1)\
+                                or (text_iter == 5 and self.rsa_length == -1):
                             value = '##ERRORKEYLENGTH##'
                             self.treeWidget\
                                 .topLevelItem(top_level_item_iter)\
@@ -1375,10 +1351,10 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                          window_type='warning',
                          buttons='yes_no')
         if close == QtWidgets.QMessageBox.Yes:
-            if buffer is not None:
-                buffer.clear()
-            cur.close()
-            conn.close()
+            if self.buffer is not None:
+                self.buffer.clear()
+            self.cur.close()
+            self.conn.close()
             a0.accept()
         else:
             a0.ignore()

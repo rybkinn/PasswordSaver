@@ -5,6 +5,7 @@ from sys import platform
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+import py.database as database
 import py.main_menu as main_menu
 import py.ui.start_window_ui as start_window_ui
 import py.database_creation as database_creation
@@ -188,10 +189,13 @@ class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
                     conn_start_window, pwd)
                 conn_start_window.close()
                 if check_result:
-                    main_menu.connect_sql(db_info[0], pwd)
+                    conn, cur, rsa_length = database.connect_sql(db_info[0], pwd)
                     self.main_window = main_menu.MainMenu(db_dir=db_info[0],
                                                           db_name=db_info[1],
-                                                          pwd=pwd)
+                                                          pwd=pwd,
+                                                          connect=conn,
+                                                          cursor=cur,
+                                                          rsa_length=rsa_length)
                     del pwd
                     self.main_window.show()
                     self.close()

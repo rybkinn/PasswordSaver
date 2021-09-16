@@ -8,7 +8,6 @@ from sys import platform
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-import py.main_menu
 import py.ui.sync_db_ui as sync_db_ui
 from py.spinner_widget import QtWaitingSpinner
 from py.show_msg import show_msg
