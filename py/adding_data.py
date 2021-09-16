@@ -5,9 +5,7 @@ import base64
 import datetime
 import rsa
 
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets
-from PyQt5 import QtGui
+from PyQt5 import QtCore, QtWidgets, QtGui
 
 import py.main_menu as main_menu
 import py.ui.adding_data_ui as adding_data_ui
@@ -16,9 +14,11 @@ from py.show_msg import show_msg
 
 class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
 
-    def __init__(self, srt_section, choice_pubkey):
+    def __init__(self, srt_section, choice_pubkey, db_dir):
         super().__init__()
         self.setupUi(self)
+
+        self.db_dir = db_dir
 
         self.choice_pubkey = choice_pubkey
 
@@ -72,7 +72,7 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
         if self.choice_pubkey is not None:
             pubkey = self.choice_pubkey
         else:
-            with open('{}_pubkey.pem'.format(main_menu.db_dir[:-3]), 'rb') \
+            with open('{}_pubkey.pem'.format(self.db_dir[:-3]), 'rb') \
                     as pubfile:
                 keydata_pub = pubfile.read()
                 pubfile.close()

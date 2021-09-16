@@ -4,9 +4,7 @@ import string
 import rsa
 from sys import platform
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import py.res_rc
 import py.main_menu

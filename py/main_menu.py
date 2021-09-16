@@ -7,10 +7,7 @@ import datetime
 import rsa
 from sys import platform
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtPrintSupport
+from PyQt5 import QtCore, QtGui, QtWidgets, QtPrintSupport
 
 import py.res_rc    # required for loading resource files. Do not delete
 import py.database_creation as database_creation
@@ -40,9 +37,6 @@ BUFFER_DEL_SEC = 10
 NEW_RSA_BIT = 4096
 
 rsa_length = int()
-db_dir = str()
-db_name = None
-pwd = None
 
 buffer = None
 
@@ -90,16 +84,18 @@ def record_change_time(cursor: sqlite3.Cursor,
 
 
 class PrintThread(QtCore.QThread):
-    def __init__(self, tool_button, tree_widget, pl, parent=None):
+    def __init__(self, tool_button, tree_widget, pl, db_dir, pwd, parent=None):
         QtCore.QThread.__init__(self, parent)
         self.toolButton = tool_button
         self.treeWidget = tree_widget
         self.pl = pl
+        self.db_dir = db_dir
+        self.pwd = pwd
 
     def run(self):
-        conn_print_thread = sqlite3.connect(db_dir)
+        conn_print_thread = sqlite3.connect(self.db_dir)
         cur_print_thread = conn_print_thread.cursor()
-        cur_print_thread.execute("PRAGMA key = '{}'".format(pwd))
+        cur_print_thread.execute("PRAGMA key = '{}'".format(self.pwd))
 
         with open('{}_privkey.pem'.format(self.toolButton.text()[:-12]), 'rb') \
                 as privfile:
@@ -228,7 +224,7 @@ def calc_rsa_length(rsa_bit: int) -> int:
     return length
 
 
-def connect_sql():  # TODO: убрать глобалы и должна возвращать sqlite3.connect
+def connect_sql(db_dir, pwd):
     global conn
     global cur
     global rsa_length
@@ -243,9 +239,13 @@ def connect_sql():  # TODO: убрать глобалы и должна возв
 
 
 class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
-    def __init__(self):
+    def __init__(self, db_dir, db_name, pwd):
         super().__init__()
         self.setupUi(self)
+
+        self.db_dir = db_dir
+        self.db_name = db_name
+        self.pwd = pwd
 
         self.create_db = None
         self.loading_db = None
@@ -332,7 +332,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.menu_context_album)
 
     def retranslate_ui_main(self):
-        self.setWindowTitle(f"Password Saver - Главная | {db_name}")
+        self.setWindowTitle(f"Password Saver - Главная | {self.db_name}")
         __sortingEnabled = self.treeWidget.isSortingEnabled()
         self.treeWidget.setSortingEnabled(False)
         self.add_tree_widget_item_text()
@@ -353,7 +353,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
         if self.privkey_file and self.result_check_privkey == 'ok':
             self.privkey_dir = os.path.abspath("data/{}_privkey.pem".format(
-                db_name[:-3]))
+                self.db_name[:-3]))
             self.toolButton_privkey.setText(self.privkey_dir)
         elif self.privkey_file and self.result_check_privkey == '!ok':
             self.toolButton_privkey.setText(
@@ -387,7 +387,9 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 self.print_thread = PrintThread(
                     tool_button=self.toolButton_privkey,
                     tree_widget=self.treeWidget,
-                    pl=pl)
+                    pl=pl,
+                    db_dir=self.db_dir,
+                    pwd=self.pwd)
                 self.print_thread.started.connect(self.print_spinner_started)
                 self.print_thread.finished.connect(
                     lambda: self.print_spinner_finished(self.print_thread.pl))
@@ -460,10 +462,14 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
     @QtCore.pyqtSlot()
     def show_load_db(self):
         self.loading_db = loading_db.LoadingDB()
-        status_load_db = self.loading_db.exec()
-        if status_load_db:
-            self.pubkey_file = os.path.isfile(f"{db_dir[:-3]}_pubkey.pem")
-            self.privkey_file = os.path.isfile(f"{db_dir[:-3]}_privkey.pem")
+        exit_status = self.loading_db.exec()
+        if exit_status:
+            data_loading_db = self.loading_db.get_data_loading_db()
+            self.db_dir = data_loading_db['db_dir']
+            self.db_name = data_loading_db['db_name']
+            self.pwd = data_loading_db['pwd']
+            self.pubkey_file = os.path.isfile(f"{self.db_dir[:-3]}_pubkey.pem")
+            self.privkey_file = os.path.isfile(f"{self.db_dir[:-3]}_privkey.pem")
             self.refresh_tree_widget(load=True)
             self.check_privkey()
             self.check_pubkey()
@@ -484,7 +490,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.sync_db = sync_db.SyncDB(self.toolButton_privkey.text(),
                                       self.toolButton_pubkey.text(),
                                       self.choice_privkey,
-                                      self.result_check_choice_privkey)
+                                      self.result_check_choice_privkey,
+                                      self.db_dir)
         finished_sync_db = self.sync_db.exec()
         if finished_sync_db:
             self.refresh_tree_widget()
@@ -495,7 +502,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         if not HIDE_PASSWORD:
             self.password_hide()
         self.adding_data = adding_data.AddingData(self.srt_section,
-                                                  self.choice_pubkey)
+                                                  self.choice_pubkey,
+                                                  self.db_dir)
         checkbox_status = self.adding_data.exec_()
         self.refresh_tree_widget()
 
@@ -544,7 +552,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 if self.choice_privkey is not None:
                     privkey = self.choice_privkey
                 else:
-                    with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') \
+                    with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb') \
                             as privfile:
                         keydata_priv = privfile.read()
                         privfile.close()
@@ -572,7 +580,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             if self.choice_privkey is not None:
                 privkey = self.choice_privkey
             else:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') \
+                with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb') \
                         as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
@@ -636,7 +644,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 if self.choice_privkey is not None:
                     privkey = self.choice_privkey
                 else:
-                    with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') \
+                    with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb') \
                             as privfile:
                         keydata_priv = privfile.read()
                         privfile.close()
@@ -699,7 +707,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
     def check_choice_pubkey(self):
         directory_name = QtWidgets.QFileDialog.getOpenFileName(
             None, 'Укажите публичный ключ-файл (.pem)', os.getcwd(),
-            '{}_pubkey.pem;;*_pubkey.pem'.format(db_name[:-3]))
+            '{}_pubkey.pem;;*_pubkey.pem'.format(self.db_name[:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
             with open(directory_name[0], 'rb') as pubfile:
                 keydata_pub = pubfile.read()
@@ -737,7 +745,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
     def check_choice_privkey(self):
         directory_name = QtWidgets.QFileDialog.getOpenFileName(
             None, 'Укажите приватный ключ-файл (.pem)', os.getcwd(),
-            '{}_privkey.pem;;*_privkey.pem'.format(db_name[:-3]))
+            '{}_privkey.pem;;*_privkey.pem'.format(self.db_name[:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
             with open(directory_name[0], 'rb') as privfile:
                 keydata_priv = privfile.read()
@@ -799,7 +807,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
     def check_privkey(self):
         if self.lines != 0 and self.privkey_file:
             try:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
+                with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb')\
                         as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
@@ -817,12 +825,13 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 self.result_check_privkey = '!ok'
         elif self.lines == 0 and self.privkey_file and self.pubkey_file:
             try:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
+                with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb')\
                         as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-                with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                with open('{}_pubkey.pem'.format(self.db_dir[:-3]), 'rb') as \
+                        pubfile:
                     keydata_pub = pubfile.read()
                     pubfile.close()
                 pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
@@ -843,12 +852,13 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         if self.pubkey_file and self.privkey_file\
                 and self.result_check_privkey == 'ok':
             try:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
+                with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb')\
                         as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-                with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                with open('{}_pubkey.pem'.format(self.db_dir[:-3]), 'rb') \
+                        as pubfile:
                     keydata_pub = pubfile.read()
                     pubfile.close()
                 pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
@@ -869,14 +879,14 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                        QtGui.QIcon.Disabled, QtGui.QIcon.Off)
         if self.pubkey_file and self.result_check_pubkey == 'ok':
             self.pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(
-                db_name[:-3]))
+                self.db_name[:-3]))
             self.toolButton_pubkey.setEnabled(False)
         elif self.pubkey_file and self.result_check_pubkey == '!ok':
             self.toolButton_pubkey.setEnabled(True)
             self.pushButton_addingData.setEnabled(False)
         elif self.pubkey_file and self.result_check_pubkey is None:
             self.pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(
-                db_name[:-3]))
+                self.db_name[:-3]))
             self.toolButton_pubkey.setEnabled(False)
         elif self.pubkey_file and self.result_check_pubkey == 'not privkey':
             self.toolButton_pubkey.setEnabled(False)
@@ -1074,7 +1084,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                             if not self.toolButton_pubkey.isEnabled():
                                 path_to_pubkey = self.toolButton_pubkey.text()
                             else:
-                                path_to_pubkey = f"{db_dir[:-3]}_pubkey.pem"
+                                path_to_pubkey = f"{self.db_dir[:-3]}_pubkey.pem"
                             with open(path_to_pubkey, 'rb') as pubfile:
                                 keydata_pub = pubfile.read()
                                 pubfile.close()
@@ -1122,7 +1132,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         if not self.toolButton_pubkey.isEnabled():
                             path_to_pubkey = self.toolButton_pubkey.text()
                         else:
-                            path_to_pubkey = f"{db_dir[:-3]}_pubkey.pem"
+                            path_to_pubkey = f"{self.db_dir[:-3]}_pubkey.pem"
                         with open(path_to_pubkey, 'rb') as pubfile:
                             keydata_pub = pubfile.read()
                             pubfile.close()
@@ -1224,7 +1234,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             top_level_item_iter = -1
 
             if self.privkey_file:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
+                with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb')\
                         as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()

@@ -3,9 +3,7 @@ import datetime
 import os
 from sys import platform
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import py.main_menu as main_menu
 import py.ui.start_window_ui as start_window_ui
@@ -190,12 +188,11 @@ class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
                     conn_start_window, pwd)
                 conn_start_window.close()
                 if check_result:
-                    main_menu.db_dir = db_info[0]
-                    main_menu.db_name = db_info[1]
-                    main_menu.pwd = pwd
+                    main_menu.connect_sql(db_info[0], pwd)
+                    self.main_window = main_menu.MainMenu(db_dir=db_info[0],
+                                                          db_name=db_info[1],
+                                                          pwd=pwd)
                     del pwd
-                    main_menu.connect_sql()
-                    self.main_window = main_menu.MainMenu()
                     self.main_window.show()
                     self.close()
             else:

@@ -6,9 +6,7 @@ import os
 import rsa
 from sys import platform
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import py.main_menu
 import py.ui.sync_db_ui as sync_db_ui
@@ -28,16 +26,17 @@ elif platform == "win32":
 class SyncDBThread(QtCore.QThread):
     response = QtCore.pyqtSignal(int)
 
-    def __init__(self, path, pwd, path_to_privkey, path_to_pubkey):
+    def __init__(self, path, pwd, path_to_privkey, path_to_pubkey, db_dir):
         super().__init__()
         self.path = path
         self.pwd = pwd
         self.path_to_privkey = path_to_privkey
         self.path_to_pubkey = path_to_pubkey
+        self.db_dir = db_dir
 
     # TODO: Восстанавливает удаленные аккаунты при синхронизации. исправить
     def run(self):
-        thread_conn_main = sqlite3.connect(py.main_menu.db_dir)
+        thread_conn_main = sqlite3.connect(self.db_dir)
         thread_conn_main.row_factory = lambda cursor, row: list(row)
         thread_cur_main = thread_conn_main.cursor()
         thread_cur_main.execute("PRAGMA key = '{}'".format(self.pwd))
@@ -316,9 +315,11 @@ def decrypt(path_to_privkey: str, crypt_s: str, choice_privkey: str = None,
 
 class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
     def __init__(self, path_to_privkey, path_to_pubkey, choice_privkey,
-                 result_check_choice_privkey):
+                 result_check_choice_privkey, db_dir):
         super().__init__()
         self.setupUi(self)
+
+        self.db_dir = db_dir
 
         self.choice_privkey = choice_privkey
         self.result_check_choice_privkey = result_check_choice_privkey
@@ -406,7 +407,8 @@ class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
                         self.path_to_privkey, self.path_to_pubkey
                     self.sync_db_thread = SyncDBThread(path, pwd,
                                                        path_to_privkey,
-                                                       path_to_pubkey)
+                                                       path_to_pubkey,
+                                                       self.db_dir)
                     self.sync_db_thread.started.connect(self.spinner_started)
                     self.sync_db_thread.response.connect(self.response_slot)
                     self.acc_count = 0

@@ -2,11 +2,9 @@
 import os
 from sys import platform
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
-import py.main_menu
+import py.main_menu as main_menu
 import py.start_window
 import py.ui.loading_db_ui as loading_db_ui
 from py.show_msg import show_msg
@@ -25,6 +23,15 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
         super().__init__()
         self.setupUi(self)
         self.name_db = []
+
+        self._db_dir = str()
+        self._db_name = str()
+        self._pwd = str()
+
+        self._data_loading_db = {'db_dir': self._db_dir,
+                                 'db_name': self._db_name,
+                                 'pwd': self._pwd}
+
         data_files_name = os.listdir(path="data")
         self.name_db.clear()
         for name_db_ in data_files_name:
@@ -81,13 +88,14 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
             conn_load.close()
             result = bool(0)
         if result:
-            py.main_menu.cur.close()
-            py.main_menu.conn.close()
-            py.main_menu.db_dir = db_info[0]
-            py.main_menu.db_name = db_info[1]
-            py.main_menu.pwd = pwd
+            main_menu.cur.close()
+            main_menu.conn.close()
+            main_menu.connect_sql(db_info[0], pwd)
+            self._db_dir = db_info[0]
+            self._db_name = db_info[1]
+            self._pwd = pwd
             del pwd
-            py.main_menu.connect_sql()
+            self._update_data_loading_db()
             self.done(1)
         else:
             show_msg(title='Ошибка',
@@ -95,3 +103,11 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
                      window_type='critical',
                      buttons='ok')
             self.lineEdit.clear()
+
+    def _update_data_loading_db(self):
+        self._data_loading_db['db_dir'] = self._db_dir
+        self._data_loading_db['db_name'] = self._db_name
+        self._data_loading_db['pwd'] = self._pwd
+
+    def get_data_loading_db(self):
+        return self._data_loading_db
