@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import subprocess
 import os.path
 import base64
 import random
@@ -936,6 +937,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
         if self.step <= 0:
             self.buffer.clear()
+            if platform == "linux" or platform == "linux2":
+                self.buffer.setText("")
             self.statusbar.showMessage("Данные удалены с буфера обмена")
             self.timer_sec.stop()
             self.step = 100
