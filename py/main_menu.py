@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import subprocess
 import os.path
 import base64
 import random
@@ -237,6 +236,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.buffer_del_time = 0
         self.buffer = None
         self.hide_password = True
+        self.acc_count = None
+        self.last_change_db = None
 
         self.buffer_del_sec = 10
 
@@ -279,6 +280,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.action_syncDb.setEnabled(True)
 
         self.retranslate_ui_main()
+
+        self.set_db_info()
 
         self.action_saveDb.triggered.connect(self.save_db)
         self.action_createDb.triggered.connect(self.show_create_db)
@@ -1332,6 +1335,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.delete_tree_widget_item()
         self.add_tree_widget_item()
         self.add_tree_widget_item_text()
+        self.set_db_info()
 
         tree_widget_items = self.create_tree_widget_top_items()
 
@@ -1363,6 +1367,54 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 row_data.append(value)
             iter_number += 1
         return row_data, item_type
+
+    def set_db_info(self):
+        self.acc_count = self.calc_acc_count()
+        self.last_change_db = self.get_last_change_db()
+        self.label_db_info.setText(f"Аккаунтов: {self.acc_count} | "
+                                   f"Последнее изменение: {self.last_change_db}")
+
+    def get_last_change_db(self) -> str:
+        """
+        Returns the date and time of the last change in the database.
+
+        :return: str(date and time)
+        """
+        create_acc = self.cur.execute(
+            "SELECT create_account FROM data_change_time").fetchall()
+        update_acc = self.cur.execute(
+            "SELECT update_account FROM data_change_time").fetchall()
+        time_list = list()
+        time_list.extend(create_acc)
+        time_list.extend(update_acc)
+        time_list = list(set(time_list))
+        new_update_acc = list()
+        for item in time_list:
+            if item[0] != 'NULL':
+                new_update_acc.append(item[0])
+
+        time_list.clear()
+        for item in new_update_acc:
+            time_list.append(
+                datetime.datetime.strptime(item, "%Y-%m-%d %H:%M:%S"))
+
+        if len(time_list) == 0:
+            last_change_db = '-'
+        else:
+            last_change_db = max(time_list)
+            last_change_db = last_change_db.strftime('%d-%m-%Y %H:%M:%S')
+
+        return last_change_db
+
+    def calc_acc_count(self) -> int:
+        """
+        Counts the number of accounts.
+
+        :return: Return number of accounts
+        """
+        acc_count = self.cur.execute(
+            "SELECT count(*) FROM account_information").fetchall()[0][0]
+        return acc_count
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         close = show_msg(title='Предупреждение',
