@@ -109,15 +109,10 @@ class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
         self.main_window = None
         self.create_db = None
         self.names_db = []
-
         self.version = 'v 1.6.4'
-
         self.updates_list_db()
-
         self.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
-
         self.label_4.setText(self.version)
-
         self.new_rsa_bit = None
 
         self.setTabOrder(self.pushButton_3, self.comboBox_2)

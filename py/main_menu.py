@@ -10,6 +10,7 @@ from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets, QtPrintSupport
 
 import py.res_rc    # required for loading resource files. Do not delete
+import py.about as about
 import py.settings as settings
 import py.database_creation as database_creation
 import py.adding_data as adding_data
@@ -190,7 +191,8 @@ class ShowPassThread(QtCore.QThread):
 
 
 class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
-    def __init__(self, version, db_dir, db_name, pwd, connect, cursor, rsa_length):
+    def __init__(self,
+                 version, db_dir, db_name, pwd, connect, cursor, rsa_length):
         super().__init__()
         self.setupUi(self)
 
@@ -209,6 +211,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.adding_data = None
         self.sync_db = None
         self.settings = None
+        self.about = None
         self.timer_sec = None
         self.step = None
         self.show_pass_thread = None
@@ -283,6 +286,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.action_print.triggered.connect(self.print_db)
         self.action_exit.triggered.connect(self.close)
         self.action_settings.triggered.connect(self.show_settings)
+        self.action_about.triggered.connect(self.show_about)
         self.pushButton_delete.clicked.connect(self.delete_data)
         self.pushButton_addingData.clicked.connect(self.show_adding_data)
         self.pushButton_showHideSections.clicked.connect(
@@ -449,7 +453,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.retranslate_ui_main()
             if self.result_check_pubkey:
                 self.pushButton_addingData.setEnabled(True)
-            [lines], = self.cur.execute("SELECT Count(*) FROM account_information")
+            [lines], = self.cur.execute(
+                "SELECT Count(*) FROM account_information")
             if lines == 0:
                 self.pushButton_showHideSections.setEnabled(False)
                 self.pushButton_showHideSections.setText(
@@ -507,6 +512,11 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         exit_status = self.settings.exec_()
         if exit_status:
             self.buffer_del_sec = self.settings.get_buffer_del_sec()
+
+    @QtCore.pyqtSlot()
+    def show_about(self):
+        self.about = about.About(self.version)
+        self.about.exec_()
 
     @QtCore.pyqtSlot()
     def show_hide_all_sections(self):

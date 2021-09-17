@@ -28,7 +28,14 @@ def _calc_rsa_length(rsa_bit: int) -> int:
     return length
 
 
-def connect_sql(db_dir, pwd):
+def connect_sql(db_dir: str, pwd: str) -> tuple:
+    """
+    Creates a connection to a database.
+
+    :param db_dir: directory to database
+    :param pwd: password to database
+    :return: tuple(connection object, cursor object, RSA key length)
+    """
     conn = sqlite3.connect(db_dir)
     cur = conn.cursor()
     cur.execute("PRAGMA key = '{}'".format(pwd))

@@ -6,7 +6,7 @@ from sys import platform
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-import py.res_rc
+import py.res_rc    # required for loading resource files. Do not delete
 import py.ui.database_creation_ui as database_creation_ui
 from py.spinner_widget import QtWaitingSpinner
 from py.show_msg import show_msg
@@ -47,7 +47,6 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
         self.setupUi(self)
 
         self.label_6.hide()
-
         self.validate_password = None
 
         self.spinner = QtWaitingSpinner(self, centerOnParent=False,
