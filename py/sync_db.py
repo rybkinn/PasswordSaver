@@ -6,11 +6,8 @@ import os
 import rsa
 from sys import platform
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
-import py.main_menu
 import py.ui.sync_db_ui as sync_db_ui
 from py.spinner_widget import QtWaitingSpinner
 from py.show_msg import show_msg
@@ -28,16 +25,17 @@ elif platform == "win32":
 class SyncDBThread(QtCore.QThread):
     response = QtCore.pyqtSignal(int)
 
-    def __init__(self, path, pwd, path_to_privkey, path_to_pubkey):
+    def __init__(self, path, pwd, path_to_privkey, path_to_pubkey, db_dir):
         super().__init__()
         self.path = path
         self.pwd = pwd
         self.path_to_privkey = path_to_privkey
         self.path_to_pubkey = path_to_pubkey
+        self.db_dir = db_dir
 
     # TODO: Восстанавливает удаленные аккаунты при синхронизации. исправить
     def run(self):
-        thread_conn_main = sqlite3.connect(py.main_menu.db_dir)
+        thread_conn_main = sqlite3.connect(self.db_dir)
         thread_conn_main.row_factory = lambda cursor, row: list(row)
         thread_cur_main = thread_conn_main.cursor()
         thread_cur_main.execute("PRAGMA key = '{}'".format(self.pwd))
@@ -46,8 +44,8 @@ class SyncDBThread(QtCore.QThread):
 
         rows_main_db_decrypt = []
         for row_main in rows_main_db:
-            pass_decrypt_row = decrypt(row_main[4])
-            secret_decrypt_row = decrypt(row_main[6])
+            pass_decrypt_row = decrypt(self.path_to_privkey, row_main[4])
+            secret_decrypt_row = decrypt(self.path_to_privkey, row_main[6])
             row_decrypt = []
             for row_index_data in range(8):
                 if row_index_data == 4:
@@ -67,8 +65,8 @@ class SyncDBThread(QtCore.QThread):
 
         rows_sync_db_decrypt = []
         for row_sync in rows_sync_db:
-            pass_decrypt_row = decrypt(row_sync[4])
-            secret_decrypt_row = decrypt(row_sync[6])
+            pass_decrypt_row = decrypt(self.path_to_privkey, row_sync[4])
+            secret_decrypt_row = decrypt(self.path_to_privkey, row_sync[6])
             row_decrypt = []
             for row_index_data in range(8):
                 if row_index_data == 4:
@@ -281,17 +279,21 @@ def execute_read_query(conn_sync: sqlite3.Connection, query: str) -> list:
         return result
 
 
-def decrypt(crypt_s: str) -> str:
+def decrypt(path_to_privkey: str, crypt_s: str, choice_privkey: str = None,
+            result_check_choice_privkey: str = None) -> str:
     """
     Decrypts the string with the private key and returns it.
 
     :param crypt_s: Input crypto string
+    :param path_to_privkey: Path to privkey.pem file
+    :param choice_privkey: Privkey.pem file if available
+    :param result_check_choice_privkey: Result of checking privkey.pem
     :return: Output decrypt string or 'error'
     """
-    if py.main_menu.result_check_choice_privkey == 'ok':
-        privkey = py.main_menu.choice_privkey
+    if result_check_choice_privkey == 'ok':
+        privkey = choice_privkey
     else:
-        with open(py.main_menu.privkey_dir, 'rb') as privfile:
+        with open(path_to_privkey, 'rb') as privfile:
             keydata_priv = privfile.read()
             privfile.close()
         privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
@@ -311,9 +313,15 @@ def decrypt(crypt_s: str) -> str:
 
 
 class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
-    def __init__(self, path_to_privkey, path_to_pubkey):
+    def __init__(self, path_to_privkey, path_to_pubkey, choice_privkey,
+                 result_check_choice_privkey, db_dir):
         super().__init__()
         self.setupUi(self)
+
+        self.db_dir = db_dir
+
+        self.choice_privkey = choice_privkey
+        self.result_check_choice_privkey = result_check_choice_privkey
 
         self.path_to_privkey = path_to_privkey
         self.path_to_pubkey = path_to_pubkey
@@ -385,7 +393,9 @@ class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
             if len(rows) != 0:
                 self.label_6.setPixmap(
                     QtGui.QPixmap(":/resource/image/checkmark.ico"))
-                decrypt_result = decrypt(rows[0][4])
+                decrypt_result = decrypt(self.path_to_privkey, rows[0][4],
+                                         self.choice_privkey,
+                                         self.result_check_choice_privkey)
                 if decrypt_result == 'error':
                     self.label_7.setPixmap(
                         QtGui.QPixmap(":/resource/image/cross.ico"))
@@ -396,7 +406,8 @@ class SyncDB(QtWidgets.QDialog, sync_db_ui.Ui_Dialog):
                         self.path_to_privkey, self.path_to_pubkey
                     self.sync_db_thread = SyncDBThread(path, pwd,
                                                        path_to_privkey,
-                                                       path_to_pubkey)
+                                                       path_to_pubkey,
+                                                       self.db_dir)
                     self.sync_db_thread.started.connect(self.spinner_started)
                     self.sync_db_thread.response.connect(self.response_slot)
                     self.acc_count = 0

@@ -7,12 +7,11 @@ import datetime
 import rsa
 from sys import platform
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtPrintSupport
+from PyQt5 import QtCore, QtGui, QtWidgets, QtPrintSupport
 
 import py.res_rc    # required for loading resource files. Do not delete
+import py.about as about
+import py.settings as settings
 import py.database_creation as database_creation
 import py.adding_data as adding_data
 import py.loading_db as loading_db
@@ -29,38 +28,6 @@ elif platform == "win32":
     import sqlite3
 # elif platform == "darwin":
     # OS X
-
-# Version program
-VERSION = 'v 1.6.4'
-# Show or hide passwords when starting the program
-HIDE_PASSWORD = True
-# How many seconds will the clipboard be deleted after copying the password
-BUFFER_DEL_SEC = 10
-# Rsa key length when creating a new base (1024/2048/3072/4096)
-NEW_RSA_BIT = 4096
-
-rsa_length = int()
-db_dir = str()
-db_name = None
-pwd = None
-
-lines = None
-amount_item_0 = 0
-
-buffer = None
-choice_pubkey = None
-choice_privkey = None
-result_check_choice_privkey = None
-result_check_choice_pubkey = None
-result_check_privkey = None
-result_check_pubkey = None
-pubkey_dir = None
-privkey = None
-
-srt_section = list()
-privkey_dir = None
-cur = None
-conn = None
 
 
 def record_change_time(cursor: sqlite3.Cursor,
@@ -103,16 +70,18 @@ def record_change_time(cursor: sqlite3.Cursor,
 
 
 class PrintThread(QtCore.QThread):
-    def __init__(self, tool_button, tree_widget, pl, parent=None):
+    def __init__(self, tool_button, tree_widget, pl, db_dir, pwd, parent=None):
         QtCore.QThread.__init__(self, parent)
         self.toolButton = tool_button
         self.treeWidget = tree_widget
         self.pl = pl
+        self.db_dir = db_dir
+        self.pwd = pwd
 
     def run(self):
-        conn_print_thread = sqlite3.connect(db_dir)
+        conn_print_thread = sqlite3.connect(self.db_dir)
         cur_print_thread = conn_print_thread.cursor()
-        cur_print_thread.execute("PRAGMA key = '{}'".format(pwd))
+        cur_print_thread.execute("PRAGMA key = '{}'".format(self.pwd))
 
         with open('{}_privkey.pem'.format(self.toolButton.text()[:-12]), 'rb') \
                 as privfile:
@@ -221,50 +190,28 @@ class ShowPassThread(QtCore.QThread):
         self.response.emit(acc_secret_info_result)
 
 
-def calc_rsa_length(rsa_bit: int) -> int:
-    """
-    Calculates the length of the RSA key.
-
-    :param rsa_bit: indicates how many bits of rsa
-    :return: returns the length of the rsa key. If -1 means an error.
-    """
-    if rsa_bit == 4096:
-        length = 684
-    elif rsa_bit == 3072:
-        length = 512
-    elif rsa_bit == 2048:
-        length = 344
-    elif rsa_bit == 1024:
-        length = 172
-    else:
-        length = -1
-    return length
-
-
-def connect_sql():  # TODO: убрать глобалы и должна возвращать sqlite3.connect
-    global conn
-    global cur
-    global rsa_length
-    conn = sqlite3.connect(db_dir)
-    cur = conn.cursor()
-    cur.execute("PRAGMA key = '{}'".format(pwd))
-    rsa_bit = cur.execute("""
-    SELECT value
-    FROM db_information
-    WHERE name='rsa_bit'""").fetchone()[0]
-    rsa_length = calc_rsa_length(int(rsa_bit))
-
-
 class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
-    def __init__(self):
+    def __init__(self,
+                 version, db_dir, db_name, pwd, connect, cursor, rsa_length):
         super().__init__()
         self.setupUi(self)
+
+        self.version = version
+
+        self.db_dir = db_dir
+        self.db_name = db_name
+        self.pwd = pwd
+
+        self.conn = connect
+        self.cur = cursor
+        self.rsa_length = rsa_length
 
         self.create_db = None
         self.loading_db = None
         self.adding_data = None
         self.sync_db = None
-        self.timer = None
+        self.settings = None
+        self.about = None
         self.timer_sec = None
         self.step = None
         self.show_pass_thread = None
@@ -275,6 +222,24 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.change = None
         self.pubkey_file = os.path.isfile(f"{db_dir[:-3]}_pubkey.pem")
         self.privkey_file = os.path.isfile(f"{db_dir[:-3]}_privkey.pem")
+        self.lines = None
+        self.amount_item_0 = 0
+        self.srt_section = list()
+        self.result_check_privkey = None
+        self.result_check_pubkey = None
+        self.privkey_dir = None
+        self.pubkey_dir = None
+        self.choice_pubkey = None
+        self.choice_privkey = None
+        self.result_check_choice_pubkey = None
+        self.result_check_choice_privkey = None
+        self.buffer_del_time = 0
+        self.buffer = None
+        self.hide_password = True
+        self.acc_count = None
+        self.last_change_db = None
+
+        self.buffer_del_sec = 10
 
         font = QtGui.QFont()
         font.setBold(True)
@@ -300,10 +265,10 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.spinner.setRevolutionsPerSecond(1)
         self.spinner.setColor(QtGui.QColor(0, 0, 0))
 
-        self.result_check_privkey()
-        self.result_check_pubkey()
+        self.check_privkey()
+        self.check_pubkey()
 
-        if HIDE_PASSWORD:
+        if self.hide_password:
             self.pushButton_showPass.setText('Показать пароли')
         else:
             self.pushButton_showPass.setText('Скрыть пароли')
@@ -316,54 +281,62 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
         self.retranslate_ui_main()
 
+        self.set_db_info()
+
         self.action_saveDb.triggered.connect(self.save_db)
         self.action_createDb.triggered.connect(self.show_create_db)
         self.action_loadDb.triggered.connect(self.show_load_db)
         self.action_syncDb.triggered.connect(self.show_sync_db)
         self.action_print.triggered.connect(self.print_db)
         self.action_exit.triggered.connect(self.close)
+        self.action_settings.triggered.connect(self.show_settings)
+        self.action_about.triggered.connect(self.show_about)
         self.pushButton_delete.clicked.connect(self.delete_data)
         self.pushButton_addingData.clicked.connect(self.show_adding_data)
         self.pushButton_showHideSections.clicked.connect(
             self.show_hide_all_sections)
         self.pushButton_showPass.clicked.connect(self.password_hide_show)
-        self.toolButton_pubkey.clicked.connect(self.choice_pubkey)
-        self.toolButton_privkey.clicked.connect(self.choice_privkey)
+        self.toolButton_pubkey.clicked.connect(self.check_choice_pubkey)
+        self.toolButton_privkey.clicked.connect(self.check_choice_privkey)
         self.treeWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(
             self.menu_context_album)
 
     def retranslate_ui_main(self):
-        self.setWindowTitle(f"Password Saver - Главная | {db_name}")
+        self.setWindowTitle(f"Password Saver - Главная | {self.db_name}")
         __sortingEnabled = self.treeWidget.isSortingEnabled()
         self.treeWidget.setSortingEnabled(False)
         self.add_tree_widget_item_text()
         self.treeWidget.setSortingEnabled(__sortingEnabled)
-        self.label_version.setText(VERSION)
+        self.label_version.setText(self.version)
 
-        if self.pubkey_file and result_check_pubkey == 'ok':
-            self.toolButton_pubkey.setText(pubkey_dir)
-        elif self.pubkey_file and result_check_pubkey == '!ok':
-            self.toolButton_pubkey.setText('Ключ не подходит. Укажите pubkey.pem')
-        elif self.pubkey_file and result_check_pubkey is None:
-            self.toolButton_pubkey.setText(pubkey_dir)
-        elif self.pubkey_file and result_check_pubkey == 'not privkey':
-            self.toolButton_pubkey.setText('Сначало укажите privkey.pem')
+        if self.pubkey_file and self.result_check_pubkey == 'ok':
+            self.toolButton_pubkey.setText(self.pubkey_dir)
+        elif self.pubkey_file and self.result_check_pubkey == '!ok':
+            self.toolButton_pubkey.setText(
+                'Ключ не подходит. Укажите pubkey.pem')
+        elif self.pubkey_file and self.result_check_pubkey is None:
+            self.toolButton_pubkey.setText(self.pubkey_dir)
+        elif self.pubkey_file and self.result_check_pubkey == 'not privkey':
+            self.toolButton_pubkey.setText('Укажите privkey.pem')
         else:
             self.toolButton_pubkey.setText("Укажите pubkey.pem")
 
-        if self.privkey_file and result_check_privkey == 'ok':
-            global privkey_dir
-            privkey_dir = os.path.abspath("data/{}_privkey.pem".format(
-                db_name[:-3]))
-            self.toolButton_privkey.setText(privkey_dir)
-        elif self.privkey_file and result_check_privkey == '!ok':
-            self.toolButton_privkey.setText("Ключ не подходит. Укажите privkey.pem")
-        elif self.privkey_file and result_check_privkey == 'privkey != pubkey':
-            self.toolButton_privkey.setText("Ключи разные. Укажите правильный privkey.pem")
-            self.toolButton_pubkey.setText("Ключи разные. Укажите правильный pubkey.pem")
-        elif self.privkey_file and result_check_privkey == 'not pubkey':
-            self.toolButton_privkey.setText("Сначало укажите pubkey.pem")
+        if self.privkey_file and self.result_check_privkey == 'ok':
+            self.privkey_dir = os.path.abspath("data/{}_privkey.pem".format(
+                self.db_name[:-3]))
+            self.toolButton_privkey.setText(self.privkey_dir)
+        elif self.privkey_file and self.result_check_privkey == '!ok':
+            self.toolButton_privkey.setText(
+                "Ключ не подходит. Укажите privkey.pem")
+        elif self.privkey_file and \
+                self.result_check_privkey == 'privkey != pubkey':
+            self.toolButton_privkey.setText(
+                "Ключи разные. Укажите правильный privkey.pem")
+            self.toolButton_pubkey.setText(
+                "Ключи разные. Укажите правильный pubkey.pem")
+        elif self.privkey_file and self.result_check_privkey == 'not pubkey':
+            self.toolButton_privkey.setText("Укажите pubkey.pem")
         else:
             self.toolButton_privkey.setText("Укажите privkey.pem")
 
@@ -382,9 +355,12 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             result = pd.exec_()
 
             if result == 1:
-                self.print_thread = PrintThread(tool_button=self.toolButton_privkey,
-                                                tree_widget=self.treeWidget,
-                                                pl=pl)
+                self.print_thread = PrintThread(
+                    tool_button=self.toolButton_privkey,
+                    tree_widget=self.treeWidget,
+                    pl=pl,
+                    db_dir=self.db_dir,
+                    pwd=self.pwd)
                 self.print_thread.started.connect(self.print_spinner_started)
                 self.print_thread.finished.connect(
                     lambda: self.print_spinner_finished(self.print_thread.pl))
@@ -444,7 +420,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                           window_type='information',
                           buttons='yes_no')
         if result == QtWidgets.QMessageBox.Yes:
-            conn.commit()
+            self.conn.commit()
             show_msg(title='Успех',
                      top_text='База данных сохранена',
                      buttons='ok')
@@ -457,18 +433,32 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
     @QtCore.pyqtSlot()
     def show_load_db(self):
         self.loading_db = loading_db.LoadingDB()
-        status_load_db = self.loading_db.exec()
-        if status_load_db:
-            self.pubkey_file = os.path.isfile(f"{db_dir[:-3]}_pubkey.pem")
-            self.privkey_file = os.path.isfile(f"{db_dir[:-3]}_privkey.pem")
+        exit_status = self.loading_db.exec()
+        if exit_status:
+            self.cur.close()
+            self.conn.close()
+
+            data_loading_db = self.loading_db.get_data_loading_db()
+            self.db_dir = data_loading_db['db_dir']
+            self.db_name = data_loading_db['db_name']
+            self.pwd = data_loading_db['pwd']
+
+            data_sql_connection = self.loading_db.get_sql_connection()
+            self.conn = data_sql_connection['conn']
+            self.cur = data_sql_connection['cur']
+            self.rsa_length = data_sql_connection['rsa_length']
+
+            self.pubkey_file = os.path.isfile(f"{self.db_dir[:-3]}_pubkey.pem")
+            self.privkey_file = os.path.isfile(f"{self.db_dir[:-3]}_privkey.pem")
             self.refresh_tree_widget(load=True)
-            self.result_check_privkey()
-            self.result_check_pubkey()
+            self.check_privkey()
+            self.check_pubkey()
             self.button_state()
             self.retranslate_ui_main()
-            if result_check_pubkey:
+            if self.result_check_pubkey:
                 self.pushButton_addingData.setEnabled(True)
-            [lines], = cur.execute("SELECT Count(*) FROM account_information")
+            [lines], = self.cur.execute(
+                "SELECT Count(*) FROM account_information")
             if lines == 0:
                 self.pushButton_showHideSections.setEnabled(False)
                 self.pushButton_showHideSections.setText(
@@ -479,35 +469,58 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
     @QtCore.pyqtSlot()
     def show_sync_db(self):
         self.sync_db = sync_db.SyncDB(self.toolButton_privkey.text(),
-                                      self.toolButton_pubkey.text())
+                                      self.toolButton_pubkey.text(),
+                                      self.choice_privkey,
+                                      self.result_check_choice_privkey,
+                                      self.db_dir)
         finished_sync_db = self.sync_db.exec()
         if finished_sync_db:
             self.refresh_tree_widget()
 
     @QtCore.pyqtSlot()
     def show_adding_data(self):
-        global HIDE_PASSWORD
-        if not HIDE_PASSWORD:
+        if not self.hide_password:
             self.password_hide()
-        self.adding_data = adding_data.AddingData()
+        self.adding_data = adding_data.AddingData(self.srt_section,
+                                                  self.choice_pubkey,
+                                                  self.db_dir,
+                                                  self.conn,
+                                                  self.cur,
+                                                  self.buffer,
+                                                  self.buffer_del_sec)
         checkbox_status = self.adding_data.exec_()
+        self.buffer = self.adding_data.get_buffer()
         self.refresh_tree_widget()
 
-        if lines != 0 and self.privkey_file and result_check_privkey == 'ok' \
-                or lines != 0 and result_check_choice_privkey == 'ok':
+        if self.lines != 0 and self.privkey_file and \
+                self.result_check_privkey == 'ok' \
+                or self.lines != 0 and self.result_check_choice_privkey == 'ok':
             self.pushButton_delete.setEnabled(True)
             self.pushButton_showPass.setEnabled(True)
-        elif lines != 0 and self.privkey_file and result_check_privkey == '!ok'\
-                or lines != 0 and result_check_choice_privkey == '!ok':
+        elif self.lines != 0 and self.privkey_file and \
+                self.result_check_privkey == '!ok'\
+                or self.lines != 0 and self.result_check_choice_privkey == '!ok':
             self.pushButton_delete.setEnabled(True)
             self.pushButton_showPass.setEnabled(False)
-        elif lines == 0:
+        elif self.lines == 0:
             self.pushButton_delete.setEnabled(False)
         else:
             self.pushButton_delete.setEnabled(True)
 
         if checkbox_status:
             self.delete_buffer()
+
+    @QtCore.pyqtSlot()
+    def show_settings(self):
+        self.settings = settings.Settings(self.buffer_del_sec)
+        exit_status = self.settings.exec_()
+        if exit_status:
+            self.buffer_del_sec = self.settings.get_buffer_del_sec()
+
+    @QtCore.pyqtSlot()
+    def show_about(self):
+        self.about = about.About(self.version)
+        self.about.exec_()
 
     @QtCore.pyqtSlot()
     def show_hide_all_sections(self):
@@ -519,13 +532,12 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.treeWidget.collapseAll()
             self.pushButton_showHideSections.setText('Развернуть все разделы')
 
-    def copy_buffer(self):
-        global buffer
+    def copy_pass_buffer(self):
         row = self.current_row()
         if row[1] == 'item_1':
-            buffer = QtWidgets.QApplication.clipboard()
-            if buffer is not None:
-                data_one_section = cur.execute("""
+            self.buffer = QtWidgets.QApplication.clipboard()
+            if self.buffer is not None:
+                data_one_section = self.cur.execute("""
                 SELECT pass
                 FROM account_information
                 WHERE name='{}' AND
@@ -533,10 +545,10 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                       email='{}' AND
                       url='{}'""".format(row[0][0], row[0][1],
                                          row[0][3], row[0][5])).fetchall()
-                if choice_privkey is not None:
-                    privkey = choice_privkey
+                if self.choice_privkey is not None:
+                    privkey = self.choice_privkey
                 else:
-                    with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') \
+                    with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb') \
                             as privfile:
                         keydata_priv = privfile.read()
                         privfile.close()
@@ -545,8 +557,37 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 password_dec = base64.b64decode(password_bin)
                 decrypto = rsa.decrypt(password_dec, privkey)
                 password = decrypto.decode()
-                buffer.setText(password)
-                self.delete_buffer()
+                self.buffer.setText(password)
+
+    def copy_secret_buffer(self):
+        row = self.current_row()
+        self.buffer = QtWidgets.QApplication.clipboard()
+        if self.buffer is not None:
+            data_one_section = self.cur.execute("""
+            SELECT secret_word 
+            FROM account_information 
+            WHERE name='{}' AND 
+                  login='{}' AND 
+                  email='{}' AND 
+                  url='{}'""".format(row[0][0], row[0][1],
+                                     row[0][3], row[0][5])
+                                           ).fetchall()
+            if self.choice_privkey is not None:
+                privkey = self.choice_privkey
+            else:
+                with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb') \
+                        as privfile:
+                    keydata_priv = privfile.read()
+                    privfile.close()
+                privkey = rsa.PrivateKey.load_pkcs1(keydata_priv,
+                                                    'PEM')
+            secret_bin = data_one_section[0][0].encode()
+            secret_dec = base64.b64decode(secret_bin)
+            decrypto = rsa.decrypt(secret_dec, privkey)
+            secret = decrypto.decode()
+            return secret
+
+        return None
 
     @QtCore.pyqtSlot()
     def delete_data(self):
@@ -567,49 +608,49 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                               bottom_text='Вы уверенны?',
                               buttons='yes_no')
             if result == QtWidgets.QMessageBox.Yes:
-                acc_id = cur.execute("""SELECT id
-                                        FROM account_information
-                                        WHERE name = ? AND
-                                              login = ? AND
-                                              email = ? AND
-                                              url = ? """,
-                                     (row[0][0], row[0][1],
-                                      row[0][3], row[0][5])).fetchall()[0][0]
-                cur.execute("DELETE FROM data_change_time WHERE id = ?",
-                            (str(acc_id),))
-                cur.execute("""DELETE FROM account_information
-                               WHERE name = ? AND
-                                     login = ? AND
-                                     email = ? AND
-                                     url = ? """,
-                            (row[0][0], row[0][1], row[0][3], row[0][5]))
+                acc_id = self.cur.execute("""
+                SELECT id
+                FROM account_information
+                WHERE name = ? AND
+                    login = ? AND
+                    email = ? AND
+                    url = ? """, (row[0][0], row[0][1], row[0][3],
+                                  row[0][5])).fetchall()[0][0]
+                self.cur.execute("DELETE FROM data_change_time WHERE id = ?",
+                                 (str(acc_id),))
+                self.cur.execute("""
+                DELETE FROM account_information
+                WHERE name = ? AND
+                      login = ? AND
+                      email = ? AND
+                      url = ? """, (row[0][0], row[0][1], row[0][3],
+                                    row[0][5]))
                 self.refresh_tree_widget()
 
-        if lines == 0:
+        if self.lines == 0:
             self.pushButton_delete.setEnabled(False)
             self.pushButton_showPass.setEnabled(False)
 
     @QtCore.pyqtSlot()
     def password_hide_show(self):
-        global HIDE_PASSWORD
-        if lines != 0:
+        if self.lines != 0:
             if self.pushButton_showPass.text() == 'Показать пароли':
-                HIDE_PASSWORD = False
-                if choice_privkey is not None:
-                    privkey = choice_privkey
+                self.hide_password = False
+                if self.choice_privkey is not None:
+                    privkey = self.choice_privkey
                 else:
-                    with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb') \
+                    with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb') \
                             as privfile:
                         keydata_priv = privfile.read()
                         privfile.close()
                     privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
 
-                for _data_section in range(amount_item_0):
-                    data_one_section = cur.execute("""
+                for _data_section in range(self.amount_item_0):
+                    data_one_section = self.cur.execute("""
                     SELECT *
                     FROM account_information
                     WHERE section='{}'""".format(
-                        srt_section[_data_section])).fetchall()
+                        self.srt_section[_data_section])).fetchall()
                     acc_info = []
                     for item in data_one_section:
                         acc_info.append(list(item[2:]))
@@ -622,7 +663,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         __acc_secret_info[_data_item[1]] = _data_item[2],\
                                                            _data_item[4]
 
-                self.show_pass_thread = ShowPassThread(__acc_secret_info, privkey)
+                self.show_pass_thread = ShowPassThread(__acc_secret_info,
+                                                       privkey)
                 self.show_pass_thread.started.connect(
                     self.show_pass_spinner_started)
                 self.show_pass_thread.response.connect(self.show_pass_response)
@@ -630,19 +672,19 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     self.show_pass_spinner_finished)
                 self.show_pass_thread.start()
             elif self.pushButton_showPass.text() == 'Скрыть пароли':
-                HIDE_PASSWORD = True
+                self.hide_password = True
                 top_level_item_iter = -1
-                for data_section in range(amount_item_0):
-                    data_one_section = cur.execute("""
+                for data_section in range(self.amount_item_0):
+                    data_one_section = self.cur.execute("""
                     SELECT *
                     FROM account_information
                     WHERE section='{}'""".format(
-                        srt_section[data_section])).fetchall()
+                        self.srt_section[data_section])).fetchall()
                     acc_info = []
                     for item in data_one_section:
                         acc_info.append(item[2:])
                     self.treeWidget.topLevelItem(data_section).setText(
-                        0, str(srt_section[data_section]))
+                        0, str(self.srt_section[data_section]))
                     top_level_item_iter += 1
                     child_iter = -1
                     for index in range(len(acc_info)):
@@ -651,23 +693,21 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         for _ in acc_info[index]:
                             text_iter += 1
                             if text_iter == 3:
-                                self.treeWidget.topLevelItem(top_level_item_iter) \
+                                self.treeWidget.topLevelItem(top_level_item_iter)\
                                     .child(child_iter) \
                                     .setText(text_iter, '**********')
                 self.pushButton_showPass.setText('Показать пароли')
 
     @QtCore.pyqtSlot()
-    def choice_pubkey(self):
-        global choice_pubkey
-        global result_check_choice_pubkey
+    def check_choice_pubkey(self):
         directory_name = QtWidgets.QFileDialog.getOpenFileName(
             None, 'Укажите публичный ключ-файл (.pem)', os.getcwd(),
-            '{}_pubkey.pem;;*_pubkey.pem'.format(db_name[:-3]))
+            '{}_pubkey.pem;;*_pubkey.pem'.format(self.db_name[:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
             with open(directory_name[0], 'rb') as pubfile:
                 keydata_pub = pubfile.read()
                 pubfile.close()
-            choice_pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
+            self.choice_pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
             self.toolButton_pubkey.setEnabled(False)
             self.toolButton_pubkey.setText(directory_name[0])
             self.pushButton_addingData.setEnabled(True)
@@ -682,10 +722,10 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     chars = string.ascii_letters + string.digits
                     rnd_text = ''.join(random.choice(chars) for _ in range(20))
                     rnd_text = rnd_text.encode()
-                    crypto_text = rsa.encrypt(rnd_text, choice_pubkey)
+                    crypto_text = rsa.encrypt(rnd_text, self.choice_pubkey)
                     self_test_decrypto = rsa.decrypt(crypto_text,
                                                      self_test_privfile)
-                    result_check_choice_pubkey = 'ok'
+                    self.result_check_choice_pubkey = 'ok'
                     self.action_syncDb.setEnabled(True)
                 except rsa.pkcs1.DecryptionError as rsa_dec_error:
                     self.toolButton_pubkey.setEnabled(True)
@@ -694,45 +734,43 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     self.pushButton_addingData.setEnabled(False)
                     self.statusbar.showMessage(f'Ошибка: {rsa_dec_error}',
                                                30000)
-                    result_check_choice_pubkey = '!ok'
+                    self.result_check_choice_pubkey = '!ok'
 
     @QtCore.pyqtSlot()
-    def choice_privkey(self):
-        global choice_privkey
-        global result_check_choice_privkey
+    def check_choice_privkey(self):
         directory_name = QtWidgets.QFileDialog.getOpenFileName(
             None, 'Укажите приватный ключ-файл (.pem)', os.getcwd(),
-            '{}_privkey.pem;;*_privkey.pem'.format(db_name[:-3]))
+            '{}_privkey.pem;;*_privkey.pem'.format(self.db_name[:-3]))
         if directory_name[0] != '' and directory_name[1] != '':
             with open(directory_name[0], 'rb') as privfile:
                 keydata_priv = privfile.read()
                 privfile.close()
-            choice_privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-            if lines == 0:
+            self.choice_privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
+            if self.lines == 0:
                 self.toolButton_privkey.setEnabled(False)
                 self.toolButton_privkey.setText(directory_name[0])
-                result_check_choice_privkey = 'ok'
+                self.result_check_choice_privkey = 'ok'
                 if not self.toolButton_pubkey.isEnabled():
                     self.action_syncDb.setEnabled(True)
-            elif lines != 0:
+            elif self.lines != 0:
                 try:
-                    first_pass = cur.execute("""
+                    first_pass = self.cur.execute("""
                     SELECT pass
                     FROM account_information
                     ORDER BY ID ASC LIMIT 1""").fetchall()
                     password_bin = (first_pass[0][0]).encode()
                     password_dec = base64.b64decode(password_bin)
-                    decrypto = rsa.decrypt(password_dec, choice_privkey)
+                    decrypto = rsa.decrypt(password_dec, self.choice_privkey)
                     password = decrypto.decode()
-                    result_check_choice_privkey = 'ok'
+                    self.result_check_choice_privkey = 'ok'
                 except rsa.pkcs1.DecryptionError as rsa_dec_error:
-                    result_check_choice_privkey = '!ok'
+                    self.result_check_choice_privkey = '!ok'
                     self.toolButton_privkey.setText(
                         'Ключ не подходит. '
                         'Выберете правильный privkey')
                     self.statusbar.showMessage(f'Ошибка: {rsa_dec_error}',
                                                30000)
-                if result_check_choice_privkey == 'ok':
+                if self.result_check_choice_privkey == 'ok':
                     self.toolButton_privkey.setEnabled(False)
                     self.toolButton_privkey.setText(directory_name[0])
                     self.pushButton_showPass.setEnabled(True)
@@ -751,7 +789,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                             crypto_text = rsa.encrypt(rnd_text,
                                                       self_test_pubfile)
                             self_test_decrypto = rsa.decrypt(crypto_text,
-                                                             choice_privkey)
+                                                             self.choice_privkey)
                             self.action_syncDb.setEnabled(True)
                         except rsa.pkcs1.DecryptionError as rsa_dec_error:
                             self.toolButton_pubkey.setEnabled(True)
@@ -761,16 +799,15 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                             self.statusbar.showMessage(
                                 f'Ошибка: {rsa_dec_error}', 30000)
 
-    def result_check_privkey(self):
-        global result_check_privkey
-        if lines != 0 and self.privkey_file:
+    def check_privkey(self):
+        if self.lines != 0 and self.privkey_file:
             try:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
+                with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb')\
                         as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-                first_pass = cur.execute("""
+                first_pass = self.cur.execute("""
                 SELECT pass
                 FROM account_information
                 ORDER BY ID ASC LIMIT 1""").fetchall()
@@ -778,17 +815,18 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 password_dec = base64.b64decode(password_bin)
                 decrypto = rsa.decrypt(password_dec, privkey)
                 password = decrypto.decode()
-                result_check_privkey = 'ok'
+                self.result_check_privkey = 'ok'
             except rsa.pkcs1.DecryptionError:
-                result_check_privkey = '!ok'
-        elif lines == 0 and self.privkey_file and self.pubkey_file:
+                self.result_check_privkey = '!ok'
+        elif self.lines == 0 and self.privkey_file and self.pubkey_file:
             try:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
+                with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb')\
                         as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-                with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                with open('{}_pubkey.pem'.format(self.db_dir[:-3]), 'rb') as \
+                        pubfile:
                     keydata_pub = pubfile.read()
                     pubfile.close()
                 pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
@@ -797,25 +835,25 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 rnd_pass = rnd_pass.encode()
                 crypto_pass = rsa.encrypt(rnd_pass, pubkey)
                 decrypto = rsa.decrypt(crypto_pass, privkey)
-                result_check_privkey = 'ok'
+                self.result_check_privkey = 'ok'
             except rsa.pkcs1.DecryptionError:
-                result_check_privkey = 'privkey != pubkey'
-        elif lines == 0 and self.privkey_file and not self.pubkey_file:
-            result_check_privkey = 'not pubkey'
+                self.result_check_privkey = 'privkey != pubkey'
+        elif self.lines == 0 and self.privkey_file and not self.pubkey_file:
+            self.result_check_privkey = 'not pubkey'
         else:
-            result_check_privkey = None
+            self.result_check_privkey = None
 
-    def result_check_pubkey(self):
-        global result_check_pubkey
+    def check_pubkey(self):
         if self.pubkey_file and self.privkey_file\
-                and result_check_privkey == 'ok':
+                and self.result_check_privkey == 'ok':
             try:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
+                with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb')\
                         as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-                with open('{}_pubkey.pem'.format(db_dir[:-3]), 'rb') as pubfile:
+                with open('{}_pubkey.pem'.format(self.db_dir[:-3]), 'rb') \
+                        as pubfile:
                     keydata_pub = pubfile.read()
                     pubfile.close()
                 pubkey = rsa.PublicKey.load_pkcs1(keydata_pub, 'PEM')
@@ -824,111 +862,91 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 rnd_pass = rnd_pass.encode()
                 crypto_pass = rsa.encrypt(rnd_pass, pubkey)
                 decrypto = rsa.decrypt(crypto_pass, privkey)
-                result_check_pubkey = 'ok'
+                self.result_check_pubkey = 'ok'
             except rsa.pkcs1.DecryptionError:
-                result_check_pubkey = '!ok'
+                self.result_check_pubkey = '!ok'
         else:
-            result_check_pubkey = None
+            self.result_check_pubkey = None
 
     def button_state(self):
-        global pubkey_dir
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/resource/image/cross.ico"),
                        QtGui.QIcon.Disabled, QtGui.QIcon.Off)
-        if self.pubkey_file and result_check_pubkey == 'ok':
-            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(
-                db_name[:-3]))
+        if self.pubkey_file and self.result_check_pubkey == 'ok':
+            self.pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(
+                self.db_name[:-3]))
             self.toolButton_pubkey.setEnabled(False)
-        elif self.pubkey_file and result_check_pubkey == '!ok':
+        elif self.pubkey_file and self.result_check_pubkey == '!ok':
             self.toolButton_pubkey.setEnabled(True)
             self.pushButton_addingData.setEnabled(False)
-        elif self.pubkey_file and result_check_pubkey is None:
-            pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(
-                db_name[:-3]))
+        elif self.pubkey_file and self.result_check_pubkey is None:
+            self.pubkey_dir = os.path.abspath("data/{}_pubkey.pem".format(
+                self.db_name[:-3]))
             self.toolButton_pubkey.setEnabled(False)
-        elif self.pubkey_file and result_check_pubkey == 'not privkey':
+        elif self.pubkey_file and self.result_check_pubkey == 'not privkey':
             self.toolButton_pubkey.setEnabled(False)
             self.toolButton_pubkey.setIcon(icon)
         else:
             self.toolButton_pubkey.setEnabled(True)
             self.pushButton_addingData.setEnabled(False)
 
-        if self.privkey_file and result_check_privkey == 'ok':
+        if self.privkey_file and self.result_check_privkey == 'ok':
             self.toolButton_privkey.setEnabled(False)
             self.pushButton_showPass.setEnabled(True)
-        elif self.privkey_file and result_check_privkey == '!ok':
+        elif self.privkey_file and self.result_check_privkey == '!ok':
             self.toolButton_privkey.setEnabled(True)
             self.pushButton_addingData.setEnabled(False)
             self.pushButton_showPass.setEnabled(False)
-        elif self.privkey_file and result_check_privkey == 'privkey != pubkey':
+        elif self.privkey_file and \
+                self.result_check_privkey == 'privkey != pubkey':
             self.toolButton_privkey.setEnabled(True)
             self.toolButton_pubkey.setEnabled(True)
             self.pushButton_addingData.setEnabled(False)
-        elif self.privkey_file and result_check_privkey == 'not pubkey':
+        elif self.privkey_file and self.result_check_privkey == 'not pubkey':
             self.toolButton_privkey.setEnabled(False)
             self.toolButton_privkey.setIcon(icon)
         else:
             self.toolButton_privkey.setEnabled(True)
             self.pushButton_showPass.setEnabled(False)
 
-        if lines == 0:
+        if self.lines == 0:
             self.pushButton_delete.setEnabled(False)
             self.pushButton_showPass.setEnabled(False)
 
     def delete_buffer(self):
-        global BUFFER_DEL_SEC
-        self.timer = QtCore.QBasicTimer()
-        self.timer_sec = QtCore.QTimer()
-        self.step = 0
-        self.statusbar.showMessage("Данные будут удалены с буфера обмена "
-                                   f"через {BUFFER_DEL_SEC} секунд")
-        timer_del = BUFFER_DEL_SEC * 10
-        if self.timer_sec.isActive():
-            self.timer_sec.stop()
-        if self.timer.isActive():
-            self.timer.stop()
-        else:
-            self.timer.start(timer_del, self)
+        buffer_del_sec_loc = self.buffer_del_sec
+        self.buffer_del_time = buffer_del_sec_loc
+        if buffer_del_sec_loc != 0:
+            self.timer_sec = QtCore.QTimer()
+            self.timer_sec.timeout.connect(
+                lambda: self.__update_buffer(buffer_del_sec_loc))
+            self.step = 100
+            self.statusbar.showMessage("Данные будут удалены с буфера обмена "
+                                       f"через {buffer_del_sec_loc} секунд")
             self.progressBar.show()
-            self.start_timer(self.timer_func, BUFFER_DEL_SEC)
-
-    def timerEvent(self, e):
-        global BUFFER_DEL_SEC
-        if self.step >= 100:
-            self.timer.stop()
-            buffer.clear()
-            self.statusbar.showMessage("Данные удалены с буфера обмена")
-            return
-        else:
-            self.step += 1
             self.progressBar.setValue(self.step)
+            timer_del = 1000
+            self.timer_sec.start(timer_del)
+        else:
+            self.statusbar.showMessage("Скопирован")
 
-    def start_timer(self, slot, count=0, interval=1000):
-        global BUFFER_DEL_SEC
-        counter = BUFFER_DEL_SEC
+    def __update_buffer(self, buffer_del_sec_loc):
+        self.step -= 100 / buffer_del_sec_loc
+        self.buffer_del_time -= 1
+        self.progressBar.setValue(self.step)
+        self.statusbar.showMessage(
+            "Данные будут удалены с буфера обмена через "
+            f"{self.buffer_del_time} секунд")
 
-        def handler():
-            nonlocal counter
-            counter -= 1
-            slot(counter)
-            if counter >= count:
-                self.timer_sec.stop()
-                self.timer_sec.deleteLater()
-
-        self.timer_sec.timeout.connect(handler)
-        self.timer_sec.start(interval)
-
-    def timer_func(self, count):
-        global BUFFER_DEL_SEC
-        self.statusbar.showMessage("Данные будут удалены с буфера обмена "
-                                   f"через {count} секунд")
-        if count <= 0:
+        if self.step <= 0:
+            self.buffer.clear()
+            if platform == "linux" or platform == "linux2":
+                self.buffer.setText("")
+            self.statusbar.showMessage("Данные удалены с буфера обмена")
             self.timer_sec.stop()
+            self.step = 100
 
     def menu_context_album(self, event):
-        global buffer
-        global result_check_privkey
-        global result_check_pubkey
         row = self.current_row()
         if row[1] == 'item_1':
             self.menu_context_alb = QtWidgets.QMenu(self.treeWidget)
@@ -945,8 +963,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 "Копировать секретное слово")
             rmenu_copy_url = rsub_menu_copy_log.addAction("Копировать url")
 
-            if result_check_privkey == 'ok'\
-                    or result_check_choice_privkey == 'ok':
+            if self.result_check_privkey == 'ok'\
+                    or self.result_check_choice_privkey == 'ok':
                 rmenu_copy_pass.setEnabled(True)
                 rmenu_copy_secret.setEnabled(True)
             else:
@@ -961,7 +979,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             rmenu_change_url = rsub_menu_change_log.addAction("Изменить url")
 
             sect_list = []
-            section = cur.execute("""
+            section = self.cur.execute("""
             SELECT section 
             FROM account_information 
             GROUP BY section 
@@ -987,67 +1005,46 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                 self.treeWidget.mapToGlobal(event))
             if action2 is not None:
                 if action2 == rmenu_copy_log:
-                    buffer = QtWidgets.QApplication.clipboard()
-                    if buffer is not None:
-                        buffer.setText(row[0][1])
+                    self.buffer = QtWidgets.QApplication.clipboard()
+                    if self.buffer is not None:
+                        self.buffer.setText(row[0][1])
                         self.delete_buffer()
                 elif action2 == rmenu_copy_email:
-                    buffer = QtWidgets.QApplication.clipboard()
-                    if buffer is not None:
+                    self.buffer = QtWidgets.QApplication.clipboard()
+                    if self.buffer is not None:
                         if row[0][3] == 'None':
                             show_msg(title='Ошибка',
                                      top_text='На этом аккаунте нет почты',
                                      window_type='critical',
                                      buttons='ok')
                         else:
-                            buffer.setText(row[0][3])
+                            self.buffer.setText(row[0][3])
                             self.delete_buffer()
                 elif action2 == rmenu_copy_url:
-                    buffer = QtWidgets.QApplication.clipboard()
-                    if buffer is not None:
+                    self.buffer = QtWidgets.QApplication.clipboard()
+                    if self.buffer is not None:
                         if row[0][5] == 'None':
                             show_msg(title='Ошибка',
                                      top_text='На этом аккаунте не указан url',
                                      window_type='critical',
                                      buttons='ok')
                         else:
-                            buffer.setText(row[0][5])
+                            self.buffer.setText(row[0][5])
                             self.delete_buffer()
                 elif action2 == rmenu_copy_pass:
-                    self.copy_buffer()
+                    self.copy_pass_buffer()
+                    self.delete_buffer()
                 elif action2 == rmenu_copy_secret:
-                    buffer = QtWidgets.QApplication.clipboard()
-                    if buffer is not None:
-                        data_one_section = cur.execute("""
-                        SELECT secret_word 
-                        FROM account_information 
-                        WHERE name='{}' AND 
-                              login='{}' AND 
-                              email='{}' AND 
-                              url='{}'""".format(row[0][0], row[0][1],
-                                                 row[0][3], row[0][5])
-                                                       ).fetchall()
-                        if choice_privkey is not None:
-                            privkey = choice_privkey
-                        else:
-                            with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
-                                    as privfile:
-                                keydata_priv = privfile.read()
-                                privfile.close()
-                            privkey = rsa.PrivateKey.load_pkcs1(keydata_priv,
-                                                                'PEM')
-                        secret_bin = data_one_section[0][0].encode()
-                        secret_dec = base64.b64decode(secret_bin)
-                        decrypto = rsa.decrypt(secret_dec, privkey)
-                        secret = decrypto.decode()
-                        if secret == 'None':
+                    copy_secret_buffer = self.copy_secret_buffer()
+                    if copy_secret_buffer is not None:
+                        if copy_secret_buffer == 'None':
                             show_msg(title='Ошибка',
                                      top_text='На этом аккаунте не указанно '
                                               'секретное слово',
                                      window_type='critical',
                                      buttons='ok')
                         else:
-                            buffer.setText(secret)
+                            self.buffer.setText(copy_secret_buffer)
                             self.delete_buffer()
                 elif action2 == rmenu_change_log:
                     self.change = change.Change('Изменение логина',
@@ -1056,8 +1053,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     if result_close_window:
                         login = self.change.lineEdit.text()
                         if login != '':
-                            record_change_time(cur, row, 'change_login')
-                            cur.execute("""
+                            record_change_time(self.cur, row, 'change_login')
+                            self.cur.execute("""
                             UPDATE account_information
                             SET login = ?
                             WHERE name = ? AND
@@ -1085,7 +1082,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                             if not self.toolButton_pubkey.isEnabled():
                                 path_to_pubkey = self.toolButton_pubkey.text()
                             else:
-                                path_to_pubkey = f"{db_dir[:-3]}_pubkey.pem"
+                                path_to_pubkey = f"{self.db_dir[:-3]}_pubkey.pem"
                             with open(path_to_pubkey, 'rb') as pubfile:
                                 keydata_pub = pubfile.read()
                                 pubfile.close()
@@ -1093,8 +1090,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                             pass_bin = self.change.lineEdit.text().encode()
                             crypto_pass = rsa.encrypt(pass_bin, pubkey)
                             password = base64.b64encode(crypto_pass).decode()
-                            record_change_time(cur, row, 'change_pass')
-                            cur.execute("""
+                            record_change_time(self.cur, row, 'change_pass')
+                            self.cur.execute("""
                             UPDATE account_information
                             SET pass = ?
                             WHERE name = ? AND
@@ -1111,8 +1108,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         email = self.change.lineEdit.text()
                         if email == '':
                             email = None
-                        record_change_time(cur, row, 'change_email')
-                        cur.execute("""
+                        record_change_time(self.cur, row, 'change_email')
+                        self.cur.execute("""
                         UPDATE account_information
                         SET email = ?
                         WHERE name = ? AND
@@ -1133,7 +1130,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         if not self.toolButton_pubkey.isEnabled():
                             path_to_pubkey = self.toolButton_pubkey.text()
                         else:
-                            path_to_pubkey = f"{db_dir[:-3]}_pubkey.pem"
+                            path_to_pubkey = f"{self.db_dir[:-3]}_pubkey.pem"
                         with open(path_to_pubkey, 'rb') as pubfile:
                             keydata_pub = pubfile.read()
                             pubfile.close()
@@ -1141,8 +1138,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         secret_bin = secret_text.encode()
                         crypto_secret = rsa.encrypt(secret_bin, pubkey)
                         secret = base64.b64encode(crypto_secret).decode()
-                        record_change_time(cur, row, 'change_secret_word')
-                        cur.execute("""
+                        record_change_time(self.cur, row, 'change_secret_word')
+                        self.cur.execute("""
                         UPDATE account_information
                         SET secret_word = ?
                         WHERE name = ? AND
@@ -1159,8 +1156,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         url = self.change.lineEdit.text()
                         if url == '':
                             url = None
-                        record_change_time(cur, row, 'change_url')
-                        cur.execute("""
+                        record_change_time(self.cur, row, 'change_url')
+                        self.cur.execute("""
                         UPDATE account_information
                         SET url = ?
                         WHERE name = ? AND
@@ -1172,8 +1169,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
                 for item_type in sect_list:
                     if action2 is not None and action2 == item_type:
-                        record_change_time(cur, row, 'change_section')
-                        cur.execute("""
+                        record_change_time(self.cur, row, 'change_section')
+                        self.cur.execute("""
                         UPDATE account_information
                         SET section = ?
                         WHERE name = ? AND
@@ -1184,45 +1181,43 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                         self.refresh_tree_widget()
 
     def add_tree_widget_item(self):
-        global lines
-        global amount_item_0
-        global srt_section
-        [lines], = cur.execute("SELECT Count(*) FROM account_information")
+        [self.lines], = self.cur.execute(
+            "SELECT Count(*) FROM account_information")
         section = []
-        if lines != 0:
+        if self.lines != 0:
             self.pushButton_showHideSections.setEnabled(True)
-            for _line in range(1, lines + 1):
-                [_current_id], = cur.execute("""
+            for _line in range(1, self.lines + 1):
+                [_current_id], = self.cur.execute("""
                 SELECT ID 
                 FROM account_information 
                 LIMIT 1 OFFSET {}""".format(_line - 1))
 
-                [_current_section], = cur.execute("""
+                [_current_section], = self.cur.execute("""
                 SELECT section 
                 FROM account_information 
                 WHERE ID='{}'""".format(_current_id))
 
                 section.append(_current_section)
-            srt_section = list(dict.fromkeys(section))
-            amount_item_0 = len(list(set(section)))
-            for _data_section in range(amount_item_0):
+            self.srt_section = list(dict.fromkeys(section))
+            self.amount_item_0 = len(list(set(section)))
+            for _data_section in range(self.amount_item_0):
                 if _data_section == 0:
                     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
                     brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
                     brush.setStyle(QtCore.Qt.NoBrush)
                     for index in range(0, 7):
                         item_0.setBackground(index, brush)
-                    data_one_section = cur.execute("""
+                    data_one_section = self.cur.execute("""
                     SELECT * 
                     FROM account_information 
                     WHERE section='{}'""".format(
-                        srt_section[_data_section])).fetchall()
+                        self.srt_section[_data_section])).fetchall()
                 else:
-                    data_one_section = cur.execute("""
+                    data_one_section = self.cur.execute("""
                     SELECT * 
                     FROM account_information 
                     WHERE section='{}'""".format(
-                        srt_section[_data_section])).fetchall()
+                        self.srt_section[_data_section])).fetchall()
                     item_0 = QtWidgets.QTreeWidgetItem(self.treeWidget)
                 for _ in range(len(data_one_section)):
                     item_1 = QtWidgets.QTreeWidgetItem(item_0)
@@ -1233,31 +1228,30 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.treeWidget.clear()
 
     def add_tree_widget_item_text(self):
-        global privkey
-        top_level_item_iter = -1
-        child_iter = -1
-        text_iter = 0
-        if lines != 0:
+        if self.lines != 0:
+            privkey = None
+            top_level_item_iter = -1
+
             if self.privkey_file:
-                with open('{}_privkey.pem'.format(db_dir[:-3]), 'rb')\
+                with open('{}_privkey.pem'.format(self.db_dir[:-3]), 'rb')\
                         as privfile:
                     keydata_priv = privfile.read()
                     privfile.close()
                 privkey = rsa.PrivateKey.load_pkcs1(keydata_priv, 'PEM')
-            elif choice_privkey:
-                privkey = choice_privkey
+            elif self.choice_privkey:
+                privkey = self.choice_privkey
 
-            for _data_section in range(amount_item_0):
-                data_one_section = cur.execute("""
+            for _data_section in range(self.amount_item_0):
+                data_one_section = self.cur.execute("""
                 SELECT * 
                 FROM account_information 
                 WHERE section='{}'""".format(
-                    srt_section[_data_section])).fetchall()
+                    self.srt_section[_data_section])).fetchall()
                 acc_info = []
                 for item in data_one_section:
                     acc_info.append(item[2:])
                 self.treeWidget.topLevelItem(_data_section)\
-                    .setText(0, str(srt_section[_data_section]))
+                    .setText(0, str(self.srt_section[_data_section]))
                 top_level_item_iter += 1
                 child_iter = -1
                 for _index in range(len(acc_info)):
@@ -1265,8 +1259,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                     text_iter = 0
                     for _value in acc_info[_index]:
                         text_iter += 1
-                        if (text_iter == 3 and HIDE_PASSWORD)\
-                                or (text_iter == 5 and HIDE_PASSWORD):
+                        if (text_iter == 3 and self.hide_password)\
+                                or (text_iter == 5 and self.hide_password):
                             self.treeWidget.topLevelItem(top_level_item_iter)\
                                 .child(child_iter)\
                                 .setText(text_iter, str('**********'))
@@ -1275,7 +1269,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                             self.treeWidget.topLevelItem(top_level_item_iter)\
                                 .child(child_iter)\
                                 .setText(text_iter, str(value))
-                        elif len(_value) == rsa_length:
+                        elif len(_value) == self.rsa_length:
                             value_bin = _value.encode()
                             value_dec = base64.b64decode(value_bin)
                             try:
@@ -1291,8 +1285,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                                     .topLevelItem(top_level_item_iter)\
                                     .child(child_iter)\
                                     .setText(text_iter, str(value))
-                        elif (text_iter == 3 and rsa_length == 'error')\
-                                or (text_iter == 5 and rsa_length == 'error'):
+                        elif (text_iter == 3 and self.rsa_length == -1)\
+                                or (text_iter == 5 and self.rsa_length == -1):
                             value = '##ERRORKEYLENGTH##'
                             self.treeWidget\
                                 .topLevelItem(top_level_item_iter)\
@@ -1341,6 +1335,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.delete_tree_widget_item()
         self.add_tree_widget_item()
         self.add_tree_widget_item_text()
+        self.set_db_info()
 
         tree_widget_items = self.create_tree_widget_top_items()
 
@@ -1373,6 +1368,54 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             iter_number += 1
         return row_data, item_type
 
+    def set_db_info(self):
+        self.acc_count = self.calc_acc_count()
+        self.last_change_db = self.get_last_change_db()
+        self.label_db_info.setText(f"Аккаунтов: {self.acc_count} | "
+                                   f"Последнее изменение: {self.last_change_db}")
+
+    def get_last_change_db(self) -> str:
+        """
+        Returns the date and time of the last change in the database.
+
+        :return: str(date and time)
+        """
+        create_acc = self.cur.execute(
+            "SELECT create_account FROM data_change_time").fetchall()
+        update_acc = self.cur.execute(
+            "SELECT update_account FROM data_change_time").fetchall()
+        time_list = list()
+        time_list.extend(create_acc)
+        time_list.extend(update_acc)
+        time_list = list(set(time_list))
+        new_update_acc = list()
+        for item in time_list:
+            if item[0] != 'NULL':
+                new_update_acc.append(item[0])
+
+        time_list.clear()
+        for item in new_update_acc:
+            time_list.append(
+                datetime.datetime.strptime(item, "%Y-%m-%d %H:%M:%S"))
+
+        if len(time_list) == 0:
+            last_change_db = '-'
+        else:
+            last_change_db = max(time_list)
+            last_change_db = last_change_db.strftime('%d-%m-%Y %H:%M:%S')
+
+        return last_change_db
+
+    def calc_acc_count(self) -> int:
+        """
+        Counts the number of accounts.
+
+        :return: Return number of accounts
+        """
+        acc_count = self.cur.execute(
+            "SELECT count(*) FROM account_information").fetchall()[0][0]
+        return acc_count
+
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         close = show_msg(title='Предупреждение',
                          top_text='Все несохраненные изменения будут потеряны',
@@ -1380,10 +1423,10 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                          window_type='warning',
                          buttons='yes_no')
         if close == QtWidgets.QMessageBox.Yes:
-            if buffer is not None:
-                buffer.clear()
-            cur.close()
-            conn.close()
+            if self.buffer is not None:
+                self.buffer.clear()
+            self.cur.close()
+            self.conn.close()
             a0.accept()
         else:
             a0.ignore()

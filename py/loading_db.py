@@ -2,12 +2,9 @@
 import os
 from sys import platform
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
-import py.main_menu
-import py.start_window
+import py.database as database
 import py.ui.loading_db_ui as loading_db_ui
 from py.show_msg import show_msg
 
@@ -25,6 +22,23 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
         super().__init__()
         self.setupUi(self)
         self.name_db = []
+
+        self._db_dir = str()
+        self._db_name = str()
+        self._pwd = str()
+
+        self._conn = None
+        self._cur = None
+        self._rsa_length = None
+
+        self._data_loading_db = {'db_dir': self._db_dir,
+                                 'db_name': self._db_name,
+                                 'pwd': self._pwd}
+
+        self._sql_connection = {'conn': self._conn,
+                                'cur': self._cur,
+                                'rsa_length': self._rsa_length}
+
         data_files_name = os.listdir(path="data")
         self.name_db.clear()
         for name_db_ in data_files_name:
@@ -81,13 +95,14 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
             conn_load.close()
             result = bool(0)
         if result:
-            py.main_menu.cur.close()
-            py.main_menu.conn.close()
-            py.main_menu.db_dir = db_info[0]
-            py.main_menu.db_name = db_info[1]
-            py.main_menu.pwd = pwd
+            self._conn, self._cur, self._rsa_length = \
+                database.connect_sql(db_info[0], pwd)
+            self._db_dir = db_info[0]
+            self._db_name = db_info[1]
+            self._pwd = pwd
             del pwd
-            py.main_menu.connect_sql()
+            self._update_data_loading_db()
+            self._update_sql_connection()
             self.done(1)
         else:
             show_msg(title='Ошибка',
@@ -95,3 +110,19 @@ class LoadingDB(QtWidgets.QDialog, loading_db_ui.Ui_Dialog):
                      window_type='critical',
                      buttons='ok')
             self.lineEdit.clear()
+
+    def _update_data_loading_db(self):
+        self._data_loading_db['db_dir'] = self._db_dir
+        self._data_loading_db['db_name'] = self._db_name
+        self._data_loading_db['pwd'] = self._pwd
+
+    def _update_sql_connection(self):
+        self._sql_connection['conn'] = self._conn
+        self._sql_connection['cur'] = self._cur
+        self._sql_connection['rsa_length'] = self._rsa_length
+
+    def get_data_loading_db(self):
+        return self._data_loading_db
+
+    def get_sql_connection(self):
+        return self._sql_connection

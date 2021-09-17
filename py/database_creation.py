@@ -4,12 +4,9 @@ import string
 import rsa
 from sys import platform
 
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
-import py.res_rc
-import py.main_menu
+import py.res_rc    # required for loading resource files. Do not delete
 import py.ui.database_creation_ui as database_creation_ui
 from py.spinner_widget import QtWaitingSpinner
 from py.show_msg import show_msg
@@ -24,12 +21,13 @@ elif platform == "win32":
 
 class ThreadCreateKeys(QtCore.QThread):
 
-    def __init__(self, name_db, parent=None):
+    def __init__(self, name_db, new_rsa_bit, parent=None):
         QtCore.QThread.__init__(self, parent)
         self.name_db = name_db
+        self.new_rsa_bit = new_rsa_bit
 
     def run(self):
-        (pubkey, privkey) = rsa.newkeys(py.main_menu.NEW_RSA_BIT)
+        (pubkey, privkey) = rsa.newkeys(self.new_rsa_bit)
         pubkey_pem = pubkey.save_pkcs1('PEM')
         privkey_pem = privkey.save_pkcs1('PEM')
         with open('data/{0}_pubkey.pem'.format(self.name_db), mode='w+')\
@@ -49,7 +47,6 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
         self.setupUi(self)
 
         self.label_6.hide()
-
         self.validate_password = None
 
         self.spinner = QtWaitingSpinner(self, centerOnParent=False,
@@ -73,6 +70,13 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
         self.lineEdit_3.textChanged.connect(self.confirm_password)
 
         self.create_keys = None
+
+        rsa_keys = [1024, 2048, 3072, 4096]
+        for rsa_key in rsa_keys:
+            self.comboBox.addItem(str(rsa_key), rsa_key)
+        self.comboBox.setCurrentIndex(3)
+
+        self._new_rsa_bit = self.comboBox.currentData()
 
     @QtCore.pyqtSlot()
     def valid_name_db(self):
@@ -187,6 +191,7 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
                          buttons='ok')
                 self.lineEdit_3.setStyleSheet("border: 1px solid red")
             elif pwd == pwd_re:
+                self._new_rsa_bit = self.comboBox.currentData()
                 conn_db_creation = sqlite3.connect(r'data/' + name_db + '.db')
                 cur_db_creation = conn_db_creation.cursor()
                 cur_db_creation.execute("PRAGMA key = '{}'".format(pwd))
@@ -220,11 +225,12 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
                     "change_url" TEXT DEFAULT 'NULL')""")
                 cur_db_creation.execute("""
                 INSERT INTO db_information (name, value) 
-                VALUES ('rsa_bit', {})""".format(py.main_menu.NEW_RSA_BIT))
+                VALUES ('rsa_bit', {})""".format(self._new_rsa_bit))
                 conn_db_creation.commit()
                 cur_db_creation.close()
                 conn_db_creation.close()
-                self.create_keys = ThreadCreateKeys(name_db=self.lineEdit.text())
+                self.create_keys = ThreadCreateKeys(name_db=self.lineEdit.text(),
+                                                    new_rsa_bit=self._new_rsa_bit)
                 self.create_keys.started.connect(self.spinner_started)
                 self.create_keys.finished.connect(self.spinner_finished)
                 self.create_keys.start()
@@ -280,3 +286,6 @@ class CreateDB(QtWidgets.QDialog, database_creation_ui.Ui_Dialog):
                     has_no(string.digits) or
                     has_no(string.ascii_lowercase) or
                     has_no(string.ascii_uppercase))
+
+    def get_new_rsa_bit(self):
+        return self._new_rsa_bit

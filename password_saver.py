@@ -4,8 +4,7 @@
 #############################################
 import sys
 
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
+from PyQt5 import QtWidgets, QtCore
 
 import py.start_window as start_window
 from py.show_msg import show_msg
