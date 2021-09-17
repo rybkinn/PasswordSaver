@@ -9,6 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import py.res_rc
 
 
 class Ui_Dialog(object):
@@ -17,6 +18,9 @@ class Ui_Dialog(object):
         Dialog.resize(400, 300)
         Dialog.setMinimumSize(QtCore.QSize(400, 300))
         Dialog.setMaximumSize(QtCore.QSize(400, 300))
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/resource/image/key.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        Dialog.setWindowIcon(icon)
         self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
         self.buttonBox.setGeometry(QtCore.QRect(30, 240, 341, 32))
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
