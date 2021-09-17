@@ -7,14 +7,14 @@ import rsa
 
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-import py.main_menu as main_menu
 import py.ui.adding_data_ui as adding_data_ui
 from py.show_msg import show_msg
 
 
 class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
 
-    def __init__(self, srt_section, choice_pubkey, db_dir, conn, cur, buffer):
+    def __init__(self, srt_section, choice_pubkey, db_dir,
+                 conn, cur, buffer, buffer_del_sec):
         super().__init__()
         self.setupUi(self)
 
@@ -46,11 +46,14 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
         else:
             self.add_section()
 
-        self.checkBox.setText(f"на {main_menu.BUFFER_DEL_SEC} секунд")
+        self.checkBox.setText(f"на {buffer_del_sec} секунд")
         if self.lines != 0:
             for index_item, section in enumerate(
                     self.srt_section_main_menu):
                 self.comboBox.setItemText(index_item, str(section))
+
+        if buffer_del_sec == 0:
+            self.checkBox.setText("")
 
         self.pushButton.clicked.connect(self.add_section)
         self.pushButton_2.clicked.connect(self.generate_password)

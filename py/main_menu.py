@@ -10,6 +10,7 @@ from sys import platform
 from PyQt5 import QtCore, QtGui, QtWidgets, QtPrintSupport
 
 import py.res_rc    # required for loading resource files. Do not delete
+import py.settings as settings
 import py.database_creation as database_creation
 import py.adding_data as adding_data
 import py.loading_db as loading_db
@@ -26,9 +27,6 @@ elif platform == "win32":
     import sqlite3
 # elif platform == "darwin":
     # OS X
-
-# How many seconds will the clipboard be deleted after copying the password
-BUFFER_DEL_SEC = 10
 
 
 def record_change_time(cursor: sqlite3.Cursor,
@@ -210,6 +208,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.loading_db = None
         self.adding_data = None
         self.sync_db = None
+        self.settings = None
         self.timer_sec = None
         self.step = None
         self.show_pass_thread = None
@@ -234,6 +233,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.buffer_del_time = 0
         self.buffer = None
         self.hide_password = True
+
+        self.buffer_del_sec = 10
 
         font = QtGui.QFont()
         font.setBold(True)
@@ -281,6 +282,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
         self.action_syncDb.triggered.connect(self.show_sync_db)
         self.action_print.triggered.connect(self.print_db)
         self.action_exit.triggered.connect(self.close)
+        self.action_settings.triggered.connect(self.show_settings)
         self.pushButton_delete.clicked.connect(self.delete_data)
         self.pushButton_addingData.clicked.connect(self.show_adding_data)
         self.pushButton_showHideSections.clicked.connect(
@@ -475,7 +477,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                                                   self.db_dir,
                                                   self.conn,
                                                   self.cur,
-                                                  self.buffer)
+                                                  self.buffer,
+                                                  self.buffer_del_sec)
         checkbox_status = self.adding_data.exec_()
         self.buffer = self.adding_data.get_buffer()
         self.refresh_tree_widget()
@@ -497,6 +500,13 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
         if checkbox_status:
             self.delete_buffer()
+
+    @QtCore.pyqtSlot()
+    def show_settings(self):
+        self.settings = settings.Settings(self.buffer_del_sec)
+        exit_status = self.settings.exec_()
+        if exit_status:
+            self.buffer_del_sec = self.settings.get_buffer_del_sec()
 
     @QtCore.pyqtSlot()
     def show_hide_all_sections(self):
@@ -890,19 +900,21 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.pushButton_showPass.setEnabled(False)
 
     def delete_buffer(self):
-        global BUFFER_DEL_SEC
-        buffer_del_sec_loc = BUFFER_DEL_SEC
-        self.buffer_del_time = BUFFER_DEL_SEC
-        self.timer_sec = QtCore.QTimer()
-        self.timer_sec.timeout.connect(
-            lambda: self.__update_buffer(buffer_del_sec_loc))
-        self.step = 100
-        self.statusbar.showMessage("Данные будут удалены с буфера обмена "
-                                   f"через {BUFFER_DEL_SEC} секунд")
-        self.progressBar.show()
-        self.progressBar.setValue(self.step)
-        timer_del = 1000
-        self.timer_sec.start(timer_del)
+        buffer_del_sec_loc = self.buffer_del_sec
+        self.buffer_del_time = buffer_del_sec_loc
+        if buffer_del_sec_loc != 0:
+            self.timer_sec = QtCore.QTimer()
+            self.timer_sec.timeout.connect(
+                lambda: self.__update_buffer(buffer_del_sec_loc))
+            self.step = 100
+            self.statusbar.showMessage("Данные будут удалены с буфера обмена "
+                                       f"через {buffer_del_sec_loc} секунд")
+            self.progressBar.show()
+            self.progressBar.setValue(self.step)
+            timer_del = 1000
+            self.timer_sec.start(timer_del)
+        else:
+            self.statusbar.showMessage("Скопирован")
 
     def __update_buffer(self, buffer_del_sec_loc):
         self.step -= 100 / buffer_del_sec_loc
