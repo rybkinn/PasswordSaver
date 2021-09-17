@@ -29,8 +29,6 @@ elif platform == "win32":
 
 # How many seconds will the clipboard be deleted after copying the password
 BUFFER_DEL_SEC = 10
-# Rsa key length when creating a new base (1024/2048/3072/4096)
-NEW_RSA_BIT = 4096
 
 
 def record_change_time(cursor: sqlite3.Cursor,
