@@ -173,6 +173,13 @@
    </layout>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>pushButton_3</tabstop>
+  <tabstop>pushButton_2</tabstop>
+  <tabstop>comboBox_2</tabstop>
+  <tabstop>toolButton</tabstop>
+  <tabstop>lineEdit_2</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
