@@ -718,7 +718,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                        QtGui.QIcon.Disabled, QtGui.QIcon.Off)
         directory_name = QtWidgets.QFileDialog.getOpenFileName(
             None, 'Укажите публичный ключ-файл (.pem)', os.getcwd(),
-            '{}_pubkey.pem;;*_pubkey.pem'.format(self.db_name[:-3]))
+            f'pubkey ({self.db_name[:-3]}_pubkey.pem);;pubkey (*_pubkey.pem)')
         if directory_name[0] != '' and directory_name[1] != '':
             with open(directory_name[0], 'rb') as pubfile:
                 keydata_pub = pubfile.read()
@@ -764,7 +764,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
     def check_choice_privkey(self):
         directory_name = QtWidgets.QFileDialog.getOpenFileName(
             None, 'Укажите приватный ключ-файл (.pem)', os.getcwd(),
-            '{}_privkey.pem;;*_privkey.pem'.format(self.db_name[:-3]))
+            f'privkey ({self.db_name[:-3]}_privkey.pem);;privkey (*_privkey.pem)')
         if directory_name[0] != '' and directory_name[1] != '':
             with open(directory_name[0], 'rb') as privfile:
                 keydata_priv = privfile.read()
