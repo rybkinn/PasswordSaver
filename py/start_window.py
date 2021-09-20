@@ -109,16 +109,11 @@ class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
         self.main_window = None
         self.create_db = None
         self.names_db = []
-        self.version = 'v 1.7.1'
+        self.version = 'v 1.7.2'
         self.updates_list_db()
         self.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
         self.label_4.setText(self.version)
         self.new_rsa_bit = None
-
-        self.setTabOrder(self.pushButton_3, self.comboBox_2)
-        self.setTabOrder(self.comboBox_2, self.toolButton)
-        self.setTabOrder(self.toolButton, self.lineEdit_2)
-        self.setTabOrder(self.lineEdit_2, self.pushButton_2)
 
         self.toolButton.clicked.connect(self.push_tool_button)
         self.pushButton_3.clicked.connect(self.show_main_window)
