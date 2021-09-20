@@ -955,6 +955,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             rsub_menu_change_log = self.menu_context_alb.addMenu("Изменить")
             rsub_menu_transfer_acc = self.menu_context_alb.addMenu(
                 "Переместить в")
+            rsub_menu_delete_acc = self.menu_context_alb.addAction("Удалить")
 
             rmenu_copy_log = rsub_menu_copy_log.addAction("Копировать логин")
             rmenu_copy_pass = rsub_menu_copy_log.addAction("Копировать пароль")
@@ -1166,6 +1167,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                               url = ? """, (url, row[0][0], row[0][1],
                                             row[0][3], row[0][5]))
                         self.refresh_tree_widget()
+                elif action2 == rsub_menu_delete_acc:
+                    self.delete_data()
 
                 for item_type in sect_list:
                     if action2 is not None and action2 == item_type:
