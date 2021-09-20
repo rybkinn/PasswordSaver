@@ -109,7 +109,7 @@ class StartWindow(QtWidgets.QDialog, start_window_ui.Ui_Dialog):
         self.main_window = None
         self.create_db = None
         self.names_db = []
-        self.version = 'v 1.7.1'
+        self.version = 'v 1.7.2'
         self.updates_list_db()
         self.setWindowIcon(QtGui.QIcon(':/resource/image/key.ico'))
         self.label_4.setText(self.version)
