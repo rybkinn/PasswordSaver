@@ -61,7 +61,40 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
         self.pushButton_4.clicked.connect(self.close)
         self.pushButton_5.clicked.connect(self.copy_password)
 
-        self.lineEdit_3.textChanged.connect(self.copy_password_visible)
+        self.lineEdit.textChanged.connect(self.name_check_text)
+        self.lineEdit_2.textChanged.connect(self.login_check_text)
+        self.lineEdit_3.textChanged.connect(self.password_check_text)
+        self.lineEdit_7.textChanged.connect(self.section_check_text)
+
+    @QtCore.pyqtSlot()
+    def name_check_text(self):
+        if self.lineEdit.text() == '':
+            self.lineEdit.setStyleSheet("border: 1px solid red;")
+        else:
+            self.lineEdit.setStyleSheet("")
+
+    @QtCore.pyqtSlot()
+    def login_check_text(self):
+        if self.lineEdit_2.text() == '':
+            self.lineEdit_2.setStyleSheet("border: 1px solid red;")
+        else:
+            self.lineEdit_2.setStyleSheet("")
+
+    @QtCore.pyqtSlot()
+    def password_check_text(self):
+        if self.lineEdit_3.text() == '':
+            self.lineEdit_3.setStyleSheet("border: 1px solid red;")
+            self.pushButton_5.setEnabled(False)
+        else:
+            self.lineEdit_3.setStyleSheet("")
+            self.pushButton_5.setEnabled(True)
+
+    @QtCore.pyqtSlot()
+    def section_check_text(self):
+        if self.lineEdit_7.text() == '':
+            self.lineEdit_7.setStyleSheet("border: 1px solid red;")
+        else:
+            self.lineEdit_7.setStyleSheet("")
 
     @QtCore.pyqtSlot()
     def add_data(self):
@@ -102,21 +135,25 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
                      top_text='Введите раздел',
                      window_type='critical',
                      buttons='ok')
+            self.lineEdit_7.setStyleSheet("border: 1px solid red;")
         elif name == '':
             show_msg(title='Ошибка',
                      top_text='Введите название',
                      window_type='critical',
                      buttons='ok')
+            self.lineEdit.setStyleSheet("border: 1px solid red;")
         elif login == '':
             show_msg(title='Ошибка',
                      top_text='Введите логин',
                      window_type='critical',
                      buttons='ok')
+            self.lineEdit_2.setStyleSheet("border: 1px solid red;")
         elif entered_password == '':
             show_msg(title='Ошибка',
                      top_text='Введите пароль',
                      window_type='critical',
                      buttons='ok')
+            self.lineEdit_3.setStyleSheet("border: 1px solid red;")
         else:
             if email == '':
                 email = 'None'
@@ -205,12 +242,6 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
     def copy_password(self):
         self._buffer = QtWidgets.QApplication.clipboard()
         self._buffer.setText(self.lineEdit_3.text())
-
-    def copy_password_visible(self):
-        if len(self.lineEdit_3.text()) > 0:
-            self.pushButton_5.setEnabled(True)
-        else:
-            self.pushButton_5.setEnabled(False)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.done(self.checkbox_copy_buffer)
