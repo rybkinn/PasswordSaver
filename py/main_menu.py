@@ -275,9 +275,11 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
         self.button_state()
 
-        if not self.toolButton_privkey.isEnabled() \
-                and not self.toolButton_pubkey.isEnabled():
+        if (not self.toolButton_pubkey.isEnabled() and
+                not self.toolButton_privkey.isEnabled()):
             self.action_syncDb.setEnabled(True)
+        else:
+            self.action_syncDb.setEnabled(False)
 
         self.retranslate_ui_main()
 
@@ -336,7 +338,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.toolButton_pubkey.setText(
                 "Ключи разные. Укажите правильный pubkey.pem")
         elif self.privkey_file and self.result_check_privkey == 'not pubkey':
-            self.toolButton_privkey.setText("Укажите pubkey.pem")
+            self.toolButton_privkey.setText("Сперва нужно указать pubkey.pem")
         else:
             self.toolButton_privkey.setText("Укажите privkey.pem")
 
@@ -453,6 +455,8 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.refresh_tree_widget(load=True)
             self.check_privkey()
             self.check_pubkey()
+            self.result_check_choice_pubkey = None
+            self.result_check_choice_privkey = None
             self.button_state()
             self.retranslate_ui_main()
             if self.result_check_pubkey:
@@ -468,14 +472,23 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
     @QtCore.pyqtSlot()
     def show_sync_db(self):
-        self.sync_db = sync_db.SyncDB(self.toolButton_privkey.text(),
-                                      self.toolButton_pubkey.text(),
-                                      self.choice_privkey,
-                                      self.result_check_choice_privkey,
-                                      self.db_dir)
-        finished_sync_db = self.sync_db.exec()
-        if finished_sync_db:
-            self.refresh_tree_widget()
+        if ((self.result_check_pubkey == 'ok' or
+             self.result_check_choice_pubkey == 'ok') and
+                (self.result_check_privkey == 'ok' or
+                 self.result_check_choice_privkey == 'ok')):
+            self.sync_db = sync_db.SyncDB(self.toolButton_privkey.text(),
+                                          self.toolButton_pubkey.text(),
+                                          self.choice_privkey,
+                                          self.result_check_choice_privkey,
+                                          self.db_dir)
+            finished_sync_db = self.sync_db.exec()
+            if finished_sync_db:
+                self.refresh_tree_widget()
+        else:
+            show_msg(title='Ошибка',
+                     top_text='Укажите ключи',
+                     window_type='critical',
+                     buttons='ok')
 
     @QtCore.pyqtSlot()
     def show_adding_data(self):
@@ -700,6 +713,9 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
 
     @QtCore.pyqtSlot()
     def check_choice_pubkey(self):
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/resource/image/checkmark.ico"),
+                       QtGui.QIcon.Disabled, QtGui.QIcon.Off)
         directory_name = QtWidgets.QFileDialog.getOpenFileName(
             None, 'Укажите публичный ключ-файл (.pem)', os.getcwd(),
             '{}_pubkey.pem;;*_pubkey.pem'.format(self.db_name[:-3]))
@@ -713,8 +729,13 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
             self.pushButton_addingData.setEnabled(True)
 
             if not self.toolButton_privkey.isEnabled():
+                if (self.privkey_file and
+                        self.result_check_privkey == 'not pubkey'):
+                    patch_dir_privkey = f"{self.db_dir[:-3]}_privkey.pem"
+                else:
+                    patch_dir_privkey = self.toolButton_privkey.text()
                 try:
-                    with open(self.toolButton_privkey.text(), 'rb') as privfile:
+                    with open(patch_dir_privkey, 'rb') as privfile:
                         keydata_priv = privfile.read()
                         privfile.close()
                     self_test_privfile = rsa.PrivateKey.load_pkcs1(keydata_priv,
@@ -727,6 +748,9 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                                                      self_test_privfile)
                     self.result_check_choice_pubkey = 'ok'
                     self.action_syncDb.setEnabled(True)
+                    if self.toolButton_privkey.text() == 'Сперва нужно указать pubkey.pem':
+                        self.toolButton_privkey.setText(patch_dir_privkey)
+                        self.toolButton_privkey.setIcon(icon)
                 except rsa.pkcs1.DecryptionError as rsa_dec_error:
                     self.toolButton_pubkey.setEnabled(True)
                     self.toolButton_pubkey.setText('Ключ неправильный. '
@@ -790,6 +814,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                                                       self_test_pubfile)
                             self_test_decrypto = rsa.decrypt(crypto_text,
                                                              self.choice_privkey)
+                            self.result_check_choice_pubkey = 'ok'
                             self.action_syncDb.setEnabled(True)
                         except rsa.pkcs1.DecryptionError as rsa_dec_error:
                             self.toolButton_pubkey.setEnabled(True)
@@ -798,6 +823,7 @@ class MainMenu(QtWidgets.QMainWindow, main_menu_ui.Ui_MainWindow):
                             self.pushButton_addingData.setEnabled(False)
                             self.statusbar.showMessage(
                                 f'Ошибка: {rsa_dec_error}', 30000)
+                            self.result_check_choice_pubkey = '!ok'
 
     def check_privkey(self):
         if self.lines != 0 and self.privkey_file:
