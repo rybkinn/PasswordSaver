@@ -35,6 +35,6 @@ ___
 
 ## Программа создана с помощью
 
-- Python 3
-- PyQt5
+- Python 3.9.6
+- PyQt 5.15.4
 - Qt5 Designer
