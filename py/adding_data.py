@@ -181,16 +181,12 @@ class AddingData(QtWidgets.QDialog, adding_data_ui.Ui_Dialog):
                 self.close()
             else:
                 self.cur.execute("""
-                    SELECT name 
-                    FROM account_information 
-                    WHERE name='{}'""".format(name))
-                exists_name = self.cur.fetchone()
-                self.cur.execute("""
-                    SELECT login 
-                    FROM account_information 
-                    WHERE login='{}'""".format(login))
-                exists_login = self.cur.fetchone()
-                if exists_name is not None and exists_login is not None:
+                    SELECT ID
+                    FROM account_information
+                    WHERE name='{}' and login='{}'
+                """.format(name, login))
+                exist_account = self.cur.fetchone()
+                if exist_account is not None:
                     show_msg(title='Ошибка',
                              top_text='Такой аккаунт уже существует',
                              window_type='critical',
