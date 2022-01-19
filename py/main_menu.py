@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os.path
 import base64
 import random
